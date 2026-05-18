@@ -1,0 +1,9 @@
+.git
+.idea
+bin/
+log/*
+helm/*
+pgbouncer/*
+.cache/*
+.env.paas
+.env.override

@@ -1,0 +1,55 @@
+version: "2"
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+run:
+  build-tags:
+    - integration
+linters:
+  default: none
+  enable:
+    - errcheck
+    - gochecknoinits
+    - govet
+    - ineffassign
+    - makezero
+    - revive
+    - staticcheck
+    - unused
+    - whitespace
+  settings:
+    revive:
+      rules:
+        - name: var-naming
+          disabled: true
+    unused:
+      field-writes-are-uses: false
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofumpt
+    - gci
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - localmodule
+    gofumpt:
+      extra-rules: true
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
