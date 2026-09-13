@@ -13,6 +13,11 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/khambek-archakov/jitLog/internal/configure"
+	updatehandler "github.com/khambek-archakov/jitLog/internal/handler/update"
+	userrepo "github.com/khambek-archakov/jitLog/internal/repository/user"
+	"github.com/khambek-archakov/jitLog/internal/usecase/start"
 )
 
 const (
@@ -35,6 +40,12 @@ func run() int {
 		return fail
 	}
 
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		slog.Error("DATABASE_URL is not set")
+		return fail
+	}
+
 	// logger
 	logger := slog.New(
 		slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
@@ -50,6 +61,16 @@ func run() int {
 	)
 	defer cancel()
 
+	// postgres
+	DB, err := configure.InitDB(ctx, databaseURL)
+	if err != nil {
+		logger.Error("failed to configure postgres", "error", err)
+		return fail
+	}
+	defer DB.Close()
+
+	logger.Info("postgres connected")
+
 	// telegram bot
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
@@ -58,6 +79,10 @@ func run() int {
 	}
 
 	logger.Info("telegram bot started", "username", bot.Self.UserName)
+
+	users := userrepo.New(DB)
+	startUseCase := start.New(bot, users)
+	updateHandler := updatehandler.New(startUseCase, logger)
 
 	// prometheus + health server
 	httpMux := http.NewServeMux()
@@ -90,36 +115,7 @@ func run() int {
 
 	updates := bot.GetUpdatesChan(updateConfig)
 
-	go func() {
-		for {
-			select {
-
-			case <-ctx.Done():
-				return
-
-			case update := <-updates:
-
-				if update.Message == nil {
-					continue
-				}
-
-				logger.Info(
-					"message received",
-					"user", update.Message.From.UserName,
-					"text", update.Message.Text,
-				)
-
-				msg := tgbotapi.NewMessage(
-					update.Message.Chat.ID,
-					"echo: "+update.Message.Text,
-				)
-
-				if _, err := bot.Send(msg); err != nil {
-					logger.Error("failed to send message", "error", err)
-				}
-			}
-		}
-	}()
+	go updateHandler.Handle(ctx, updates)
 
 	<-ctx.Done()
 

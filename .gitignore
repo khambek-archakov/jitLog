@@ -38,6 +38,7 @@ go.work.sum
 
 .DS_Store
 
+.env
 .env.paas
 .env.override
 

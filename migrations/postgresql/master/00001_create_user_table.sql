@@ -1,9 +1,9 @@
 -- +goose Up
-create table user
+create table "user"
 (
     id              bigserial primary key,
     telegram_id     bigint      not null unique,
-    name            text        not null,
+    name            text,
     age             smallint,
     belt            smallint    not null default 0,
     onboarding_step smallint    not null default 0,
@@ -12,4 +12,4 @@ create table user
 );
 
 -- +goose Down
-drop table user;
+drop table "user";
