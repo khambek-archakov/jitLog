@@ -20,3 +20,12 @@ go run ./cmd/service
 ```bash
 goose -dir migrations/postgresql/master postgres "$DATABASE_URL" up
 ```
+
+## Линтер
+
+```bash
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+golangci-lint run ./...
+```
+
+Конфиг — `.golangci.yml`.

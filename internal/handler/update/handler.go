@@ -30,7 +30,6 @@ func New(useCase UseCase, logger *slog.Logger) *Handler {
 func (h *Handler) Handle(ctx context.Context, updates tgbotapi.UpdatesChannel) {
 	for {
 		select {
-
 		case <-ctx.Done():
 			return
 

@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/start/dto"
 )
@@ -17,21 +15,26 @@ const ageNotParsed = "Не смог разобрать точную цифру, 
 const callbackSkipAge = "start:age:skip"
 
 type AgeStep struct {
-	bot  Sender
-	user User
+	bot  sender
+	user user
 }
 
-func NewAge(bot Sender, user User) *AgeStep {
+func NewAge(bot sender, user user) *AgeStep {
 	return &AgeStep{bot: bot, user: user}
 }
 
 func (s *AgeStep) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	if in.IsStartCmd {
-		return sendWithKeyboard(s.bot, in.ChatID, ageQuestion(*u.Name), skipAgeKeyboard())
+		return s.bot.SendWithKeyboard(in.ChatID, ageQuestion(*u.Name), ageKeyboard())
 	}
 
 	if in.HasCallback {
-		return s.handleSkip(ctx, u, in)
+		switch in.CallbackData {
+		case callbackBack:
+			return s.handleBack(ctx, u, in)
+		default:
+			return s.handleSkip(ctx, u, in)
+		}
 	}
 
 	if !in.HasMessage {
@@ -41,9 +44,23 @@ func (s *AgeStep) Handle(ctx context.Context, u *model.User, in dto.Input) error
 	return s.handleAnswer(ctx, u, in)
 }
 
+func (s *AgeStep) handleBack(ctx context.Context, u *model.User, in dto.Input) error {
+	u.OnboardingStep = model.OnboardingStepAwaitingName
+
+	if err := s.user.Update(ctx, u); err != nil {
+		return fmt.Errorf("update user: %w", err)
+	}
+
+	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+		return err
+	}
+
+	return s.bot.Send(in.ChatID, askNameAgain)
+}
+
 func (s *AgeStep) handleSkip(ctx context.Context, u *model.User, in dto.Input) error {
 	if in.CallbackData != callbackSkipAge {
-		return answerCallback(s.bot, in.CallbackID)
+		return s.bot.AnswerCallback(in.CallbackID)
 	}
 
 	u.OnboardingStep = model.OnboardingStepAwaitingBelt
@@ -52,11 +69,11 @@ func (s *AgeStep) handleSkip(ctx context.Context, u *model.User, in dto.Input) e
 		return fmt.Errorf("update user: %w", err)
 	}
 
-	if err := answerCallback(s.bot, in.CallbackID); err != nil {
+	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
 		return err
 	}
 
-	return sendWithKeyboard(s.bot, in.ChatID, beltQuestion, beltKeyboard())
+	return s.bot.SendWithKeyboard(in.ChatID, beltQuestion, beltKeyboard())
 }
 
 func (s *AgeStep) handleAnswer(ctx context.Context, u *model.User, in dto.Input) error {
@@ -68,11 +85,11 @@ func (s *AgeStep) handleAnswer(ctx context.Context, u *model.User, in dto.Input)
 			return fmt.Errorf("update user: %w", err)
 		}
 
-		if err := send(s.bot, in.ChatID, ageNotParsed); err != nil {
+		if err := s.bot.Send(in.ChatID, ageNotParsed); err != nil {
 			return err
 		}
 
-		return sendWithKeyboard(s.bot, in.ChatID, beltQuestion, beltKeyboard())
+		return s.bot.SendWithKeyboard(in.ChatID, beltQuestion, beltKeyboard())
 	}
 
 	parsedAge := int16(age)
@@ -82,7 +99,7 @@ func (s *AgeStep) handleAnswer(ctx context.Context, u *model.User, in dto.Input)
 		return fmt.Errorf("update user age: %w", err)
 	}
 
-	return sendWithKeyboard(s.bot, in.ChatID, beltQuestion, beltKeyboard())
+	return s.bot.SendWithKeyboard(in.ChatID, beltQuestion, beltKeyboard())
 }
 
 func ageQuestion(name string) string {
@@ -92,10 +109,9 @@ func ageQuestion(name string) string {
 	)
 }
 
-func skipAgeKeyboard() tgbotapi.InlineKeyboardMarkup {
-	return tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Пропустить", callbackSkipAge),
-		),
-	)
+func ageKeyboard() dto.Keyboard {
+	return dto.Keyboard{
+		dto.Row(dto.Button{Label: "Пропустить", Data: callbackSkipAge}),
+		dto.Row(backButton()),
+	}
 }

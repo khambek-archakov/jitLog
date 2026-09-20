@@ -10,21 +10,15 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/start/steps"
 )
 
-// UseCase drives the /start onboarding scenario. It only speaks in
-// dto.Input — tgbotapi.Update is translated into it at the delivery
-// boundary (see internal/handler/update), so this package has no dependency
-// on the Telegram transport.
 type UseCase struct {
-	bot      steps.Sender
-	user     steps.User
-	handlers map[model.OnboardingStep]steps.Handler
+	user     user
+	handlers map[model.OnboardingStep]handler
 }
 
-func New(bot steps.Sender, user steps.User) *UseCase {
+func New(bot sender, user user) *UseCase {
 	return &UseCase{
-		bot:  bot,
 		user: user,
-		handlers: map[model.OnboardingStep]steps.Handler{
+		handlers: map[model.OnboardingStep]handler{
 			model.OnboardingStepAwaitingName: steps.NewName(bot, user),
 			model.OnboardingStepAwaitingAge:  steps.NewAge(bot, user),
 			model.OnboardingStepAwaitingBelt: steps.NewBelt(bot, user),

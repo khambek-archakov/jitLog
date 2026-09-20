@@ -46,7 +46,8 @@ formatters:
         - default
         - localmodule
     gofumpt:
-      extra-rules: true
+      extra:
+        group-params: true
   exclusions:
     generated: lax
     paths:

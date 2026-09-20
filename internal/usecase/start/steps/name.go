@@ -15,26 +15,26 @@ const (
 )
 
 type NameStep struct {
-	bot  Sender
-	user User
+	bot  sender
+	user user
 }
 
-func NewName(bot Sender, user User) *NameStep {
+func NewName(bot sender, user user) *NameStep {
 	return &NameStep{bot: bot, user: user}
 }
 
 func (s *NameStep) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	if in.IsStartCmd {
-		return send(s.bot, in.ChatID, greetingText)
+		return s.bot.Send(in.ChatID, greetingText)
 	}
 
 	if !in.HasMessage {
-		return answerCallback(s.bot, in.CallbackID)
+		return s.bot.AnswerCallback(in.CallbackID)
 	}
 
 	name := strings.TrimSpace(in.Text)
 	if name == "" {
-		return send(s.bot, in.ChatID, askNameAgain)
+		return s.bot.Send(in.ChatID, askNameAgain)
 	}
 
 	u.Name = &name
@@ -44,5 +44,5 @@ func (s *NameStep) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 		return fmt.Errorf("update user name: %w", err)
 	}
 
-	return sendWithKeyboard(s.bot, in.ChatID, ageQuestion(name), skipAgeKeyboard())
+	return s.bot.SendWithKeyboard(in.ChatID, ageQuestion(name), ageKeyboard())
 }
