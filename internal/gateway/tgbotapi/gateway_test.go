@@ -10,7 +10,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	gateway "github.com/khambek-archakov/jitLog/internal/gateway/tgbotapi"
-	"github.com/khambek-archakov/jitLog/internal/usecase/start/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
 )
 
 const chatID int64 = 777

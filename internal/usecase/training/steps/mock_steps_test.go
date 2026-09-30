@@ -12,9 +12,10 @@ package steps_test
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	model "github.com/khambek-archakov/jitLog/internal/model"
-	dto "github.com/khambek-archakov/jitLog/internal/usecase/start/dto"
+	dto "github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -98,70 +99,69 @@ func (mr *MocksenderMockRecorder) SendWithKeyboard(chatID, text, keyboard any) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendWithKeyboard", reflect.TypeOf((*Mocksender)(nil).SendWithKeyboard), chatID, text, keyboard)
 }
 
-// Mockuser is a mock of user interface.
-type Mockuser struct {
+// MockdraftRepo is a mock of draftRepo interface.
+type MockdraftRepo struct {
 	ctrl     *gomock.Controller
-	recorder *MockuserMockRecorder
+	recorder *MockdraftRepoMockRecorder
 	isgomock struct{}
 }
 
-// MockuserMockRecorder is the mock recorder for Mockuser.
-type MockuserMockRecorder struct {
-	mock *Mockuser
+// MockdraftRepoMockRecorder is the mock recorder for MockdraftRepo.
+type MockdraftRepoMockRecorder struct {
+	mock *MockdraftRepo
 }
 
-// NewMockuser creates a new mock instance.
-func NewMockuser(ctrl *gomock.Controller) *Mockuser {
-	mock := &Mockuser{ctrl: ctrl}
-	mock.recorder = &MockuserMockRecorder{mock}
+// NewMockdraftRepo creates a new mock instance.
+func NewMockdraftRepo(ctrl *gomock.Controller) *MockdraftRepo {
+	mock := &MockdraftRepo{ctrl: ctrl}
+	mock.recorder = &MockdraftRepoMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *Mockuser) EXPECT() *MockuserMockRecorder {
+func (m *MockdraftRepo) EXPECT() *MockdraftRepoMockRecorder {
 	return m.recorder
 }
 
-// Create mocks base method.
-func (m *Mockuser) Create(ctx context.Context, telegramID int64) (*model.User, error) {
+// CreateTraining mocks base method.
+func (m *MockdraftRepo) CreateTraining(ctx context.Context, userID int64, date time.Time, trainingType model.TrainingType, durationMinutes int32, notes *string) (*model.Training, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", ctx, telegramID)
-	ret0, _ := ret[0].(*model.User)
+	ret := m.ctrl.Call(m, "CreateTraining", ctx, userID, date, trainingType, durationMinutes, notes)
+	ret0, _ := ret[0].(*model.Training)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Create indicates an expected call of Create.
-func (mr *MockuserMockRecorder) Create(ctx, telegramID any) *gomock.Call {
+// CreateTraining indicates an expected call of CreateTraining.
+func (mr *MockdraftRepoMockRecorder) CreateTraining(ctx, userID, date, trainingType, durationMinutes, notes any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*Mockuser)(nil).Create), ctx, telegramID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTraining", reflect.TypeOf((*MockdraftRepo)(nil).CreateTraining), ctx, userID, date, trainingType, durationMinutes, notes)
 }
 
-// GetByTelegramID mocks base method.
-func (m *Mockuser) GetByTelegramID(ctx context.Context, telegramID int64) (*model.User, error) {
+// DeleteDraft mocks base method.
+func (m *MockdraftRepo) DeleteDraft(ctx context.Context, userID int64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByTelegramID", ctx, telegramID)
-	ret0, _ := ret[0].(*model.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetByTelegramID indicates an expected call of GetByTelegramID.
-func (mr *MockuserMockRecorder) GetByTelegramID(ctx, telegramID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByTelegramID", reflect.TypeOf((*Mockuser)(nil).GetByTelegramID), ctx, telegramID)
-}
-
-// Update mocks base method.
-func (m *Mockuser) Update(ctx context.Context, u *model.User) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update", ctx, u)
+	ret := m.ctrl.Call(m, "DeleteDraft", ctx, userID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Update indicates an expected call of Update.
-func (mr *MockuserMockRecorder) Update(ctx, u any) *gomock.Call {
+// DeleteDraft indicates an expected call of DeleteDraft.
+func (mr *MockdraftRepoMockRecorder) DeleteDraft(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*Mockuser)(nil).Update), ctx, u)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDraft", reflect.TypeOf((*MockdraftRepo)(nil).DeleteDraft), ctx, userID)
+}
+
+// UpdateDraft mocks base method.
+func (m *MockdraftRepo) UpdateDraft(ctx context.Context, d *model.TrainingDraft) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDraft", ctx, d)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateDraft indicates an expected call of UpdateDraft.
+func (mr *MockdraftRepoMockRecorder) UpdateDraft(ctx, d any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDraft", reflect.TypeOf((*MockdraftRepo)(nil).UpdateDraft), ctx, d)
 }

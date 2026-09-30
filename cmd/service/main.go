@@ -17,8 +17,11 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/configure"
 	tgbotapigateway "github.com/khambek-archakov/jitLog/internal/gateway/tgbotapi"
 	updatehandler "github.com/khambek-archakov/jitLog/internal/handler/update"
+	trainingrepo "github.com/khambek-archakov/jitLog/internal/repository/training"
 	userrepo "github.com/khambek-archakov/jitLog/internal/repository/user"
-	"github.com/khambek-archakov/jitLog/internal/usecase/start"
+	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding"
+	"github.com/khambek-archakov/jitLog/internal/usecase/router"
+	"github.com/khambek-archakov/jitLog/internal/usecase/training"
 )
 
 const (
@@ -81,9 +84,14 @@ func run() int {
 	logger.Info("telegram bot started", "username", bot.Self.UserName)
 
 	users := userrepo.New(DB)
+	trainings := trainingrepo.New(DB)
 	gateway := tgbotapigateway.New(bot)
-	startUseCase := start.New(gateway, users)
-	updateHandler := updatehandler.New(startUseCase, logger)
+
+	onboardingUseCase := onboarding.New(gateway, users)
+	trainingUseCase := training.New(gateway, trainings)
+	appRouter := router.New(onboardingUseCase, trainingUseCase, users, trainings)
+
+	updateHandler := updatehandler.New(appRouter, logger)
 
 	// prometheus + health server
 	httpMux := http.NewServeMux()

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
-	"github.com/khambek-archakov/jitLog/internal/usecase/start/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
 )
 
 const menuPromptText = "Вот что я умею:"
@@ -36,7 +36,10 @@ func (s *CompletedStep) Handle(_ context.Context, _ *model.User, in dto.Input) e
 
 	if in.HasCallback {
 		switch in.CallbackData {
-		case callbackMenuAddTraining, callbackMenuSchedule, callbackMenuStats:
+		// callbackMenuAddTraining is intercepted upstream by the router
+		// before it ever reaches here (see internal/usecase/router) — a
+		// training_draft exists by the time this step could see it again.
+		case callbackMenuSchedule, callbackMenuStats:
 			return s.bot.AnswerCallbackWithText(in.CallbackID, comingSoonText)
 		default:
 			return s.bot.AnswerCallback(in.CallbackID)
@@ -56,8 +59,8 @@ func sendMainMenu(bot sender, chatID int64, text string) error {
 
 func mainMenuKeyboard() dto.Keyboard {
 	return dto.Keyboard{
-		dto.Row(dto.Button{Label: "Добавить тренировку", Data: callbackMenuAddTraining}),
-		dto.Row(dto.Button{Label: "Расписание", Data: callbackMenuSchedule}),
-		dto.Row(dto.Button{Label: "Статистика", Data: callbackMenuStats}),
+		dto.Row(dto.Button{Label: "🥋 Добавить тренировку", Data: callbackMenuAddTraining}),
+		dto.Row(dto.Button{Label: "📅 Расписание", Data: callbackMenuSchedule}),
+		dto.Row(dto.Button{Label: "📊 Статистика", Data: callbackMenuStats}),
 	}
 }

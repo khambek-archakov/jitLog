@@ -8,13 +8,15 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
-	"github.com/khambek-archakov/jitLog/internal/usecase/start/dto"
-	"github.com/khambek-archakov/jitLog/internal/usecase/start/steps"
+	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/steps"
 )
 
-// callbackMenuAddTraining mirrors steps' own private constant, same
-// reasoning as callbackSkipAge/callbackBack in age_test.go.
-const callbackMenuAddTraining = "menu:add_training"
+// callbackMenuSchedule mirrors steps' own private constant, same reasoning
+// as callbackSkipAge/callbackBack in age_test.go. callbackMenuAddTraining
+// is deliberately not tested here anymore — it's intercepted upstream by
+// the router before CompletedStep ever sees it (see internal/usecase/router).
+const callbackMenuSchedule = "menu:schedule"
 
 func TestCompletedStep_Handle(t *testing.T) {
 	t.Parallel()
@@ -42,7 +44,7 @@ func TestCompletedStep_Handle(t *testing.T) {
 
 		{
 			name: "tapping a not-yet-built menu action shows a toast",
-			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackMenuAddTraining},
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackMenuSchedule},
 			prepare: func(sender *Mocksender) {
 				sender.EXPECT().
 					AnswerCallbackWithText("cb-1", gomock.Any()).

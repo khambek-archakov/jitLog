@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
-	"github.com/khambek-archakov/jitLog/internal/usecase/start/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
 )
 
 const (
@@ -79,15 +79,15 @@ func (s *BeltStep) handleBack(ctx context.Context, u *model.User, in dto.Input) 
 func beltKeyboard() dto.Keyboard {
 	return dto.Keyboard{
 		dto.Row(
-			dto.Button{Label: "Белый", Data: callbackBeltWhite},
-			dto.Button{Label: "Синий", Data: callbackBeltBlue},
+			dto.Button{Label: "⚪ Белый", Data: callbackBeltWhite},
+			dto.Button{Label: "🔵 Синий", Data: callbackBeltBlue},
 		),
 		dto.Row(
-			dto.Button{Label: "Пурпурный", Data: callbackBeltPurple},
-			dto.Button{Label: "Коричневый", Data: callbackBeltBrown},
+			dto.Button{Label: "🟣 Пурпурный", Data: callbackBeltPurple},
+			dto.Button{Label: "🟤 Коричневый", Data: callbackBeltBrown},
 		),
 		dto.Row(
-			dto.Button{Label: "Чёрный", Data: callbackBeltBlack},
+			dto.Button{Label: "⚫ Чёрный", Data: callbackBeltBlack},
 		),
 		dto.Row(backButton()),
 	}

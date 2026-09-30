@@ -6,13 +6,13 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
-	"github.com/khambek-archakov/jitLog/internal/usecase/start/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
 )
 
-// UseCase is the onboarding scenario this handler translates and dispatches
-// updates to.
+// UseCase is what this handler translates and dispatches updates to — the
+// app's router, deciding between onboarding/training/whatever else exists.
 type UseCase interface {
-	Start(ctx context.Context, in dto.Input) error
+	Route(ctx context.Context, in dto.Input) error
 }
 
 // Handler consumes raw Telegram updates, translates each into a
@@ -39,7 +39,7 @@ func (h *Handler) Handle(ctx context.Context, updates tgbotapi.UpdatesChannel) {
 				continue
 			}
 
-			if err := h.useCase.Start(ctx, NewInput(upd)); err != nil {
+			if err := h.useCase.Route(ctx, NewInput(upd)); err != nil {
 				h.logger.Error("failed to handle update", "error", err)
 			}
 		}

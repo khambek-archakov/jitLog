@@ -9,8 +9,8 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
-	"github.com/khambek-archakov/jitLog/internal/usecase/start/dto"
-	"github.com/khambek-archakov/jitLog/internal/usecase/start/steps"
+	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/steps"
 )
 
 // callbackSkipAge and callbackBack mirror steps' own private constants —
