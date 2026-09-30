@@ -36,6 +36,10 @@ func NewNotes(bot sender, repo draftRepo) *NotesStep {
 }
 
 func (s *NotesStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.Input) error {
+	if in.HasCallback && in.CallbackData == callbackBack {
+		return s.handleBack(ctx, d, in)
+	}
+
 	// "Добавить заметку" is just a nudge — it doesn't finish the dialog,
 	// the user still types the actual note as a normal message afterwards.
 	if in.HasCallback && in.CallbackData == callbackAddNotes {
@@ -82,10 +86,25 @@ func (s *NotesStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.I
 	return s.bot.SendWithKeyboard(in.ChatID, confirmationText(t), confirmationKeyboard(t.ID))
 }
 
+func (s *NotesStep) handleBack(ctx context.Context, d *model.TrainingDraft, in dto.Input) error {
+	d.Step = model.TrainingDraftStepAwaitingDuration
+
+	if err := s.repo.UpdateDraft(ctx, d); err != nil {
+		return fmt.Errorf("update training draft: %w", err)
+	}
+
+	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+		return err
+	}
+
+	return s.bot.SendWithKeyboard(in.ChatID, durationQuestion, durationKeyboard())
+}
+
 func notesKeyboard() dto.Keyboard {
 	return dto.Keyboard{
 		dto.Row(dto.Button{Label: "✏️ Добавить заметку", Data: callbackAddNotes}),
 		dto.Row(dto.Button{Label: "Пропустить", Data: callbackSkipNotes}),
+		dto.Row(backButton()),
 	}
 }
 

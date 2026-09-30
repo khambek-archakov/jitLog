@@ -27,6 +27,7 @@ func TestNotesStep_Handle(t *testing.T) {
 
 	duration := int32(60)
 	date := time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)
+	backDraft := &model.TrainingDraft{ID: 1, UserID: userID, Step: model.TrainingDraftStepAwaitingNotes}
 
 	tests := []struct {
 		name    string
@@ -38,6 +39,30 @@ func TestNotesStep_Handle(t *testing.T) {
 		)
 		expected func(t assert.TestingT, err error)
 	}{
+		{
+			name: "back goes to duration step, notes untouched",
+			d:    backDraft,
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackBack},
+			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
+				repo.EXPECT().
+					UpdateDraft(gomock.Any(), gomock.Any()).
+					Return(nil)
+
+				sender.EXPECT().
+					AnswerCallback("cb-1").
+					Return(nil)
+
+				sender.EXPECT().
+					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+				assert.Equal(t, model.TrainingDraftStepAwaitingDuration, backDraft.Step)
+				assert.Nil(t, backDraft.Notes)
+			},
+		},
+
 		{
 			name: "skip finishes without notes",
 			d: &model.TrainingDraft{

@@ -33,6 +33,10 @@ func NewDuration(bot sender, repo draftRepo) *DurationStep {
 
 func (s *DurationStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.Input) error {
 	if in.HasCallback {
+		if in.CallbackData == callbackBack {
+			return s.handleBack(ctx, d, in)
+		}
+
 		if in.CallbackData == callbackDurationOther {
 			return s.bot.AnswerCallback(in.CallbackID)
 		}
@@ -75,6 +79,20 @@ func (s *DurationStep) saveDuration(ctx context.Context, d *model.TrainingDraft,
 	return s.bot.SendWithKeyboard(in.ChatID, notesQuestion, notesKeyboard())
 }
 
+func (s *DurationStep) handleBack(ctx context.Context, d *model.TrainingDraft, in dto.Input) error {
+	d.Step = model.TrainingDraftStepAwaitingType
+
+	if err := s.repo.UpdateDraft(ctx, d); err != nil {
+		return fmt.Errorf("update training draft: %w", err)
+	}
+
+	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+		return err
+	}
+
+	return s.bot.SendWithKeyboard(in.ChatID, typeQuestion, typeKeyboard())
+}
+
 func durationKeyboard() dto.Keyboard {
 	return dto.Keyboard{
 		dto.Row(
@@ -83,6 +101,7 @@ func durationKeyboard() dto.Keyboard {
 			dto.Button{Label: "120 мин", Data: callbackDuration120},
 		),
 		dto.Row(dto.Button{Label: "Другое", Data: callbackDurationOther}),
+		dto.Row(backButton()),
 	}
 }
 

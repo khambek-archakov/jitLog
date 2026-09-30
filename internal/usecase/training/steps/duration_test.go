@@ -36,6 +36,30 @@ func TestDurationStep_Handle(t *testing.T) {
 		expected func(t assert.TestingT, d *model.TrainingDraft, err error)
 	}{
 		{
+			name: "back goes to type step, duration untouched",
+			d:    &model.TrainingDraft{ID: 1, Step: model.TrainingDraftStepAwaitingDuration},
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackBack},
+			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
+				repo.EXPECT().
+					UpdateDraft(gomock.Any(), gomock.Any()).
+					Return(nil)
+
+				sender.EXPECT().
+					AnswerCallback("cb-1").
+					Return(nil)
+
+				sender.EXPECT().
+					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
+				assert.NoError(t, err)
+				assert.Equal(t, model.TrainingDraftStepAwaitingType, d.Step)
+				assert.Nil(t, d.DurationMinutes)
+			},
+		},
+
+		{
 			name: "stray callback is just acknowledged",
 			d:    &model.TrainingDraft{ID: 1, Step: model.TrainingDraftStepAwaitingDuration},
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1"},

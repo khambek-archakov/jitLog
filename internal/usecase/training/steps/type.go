@@ -30,6 +30,10 @@ func (s *TypeStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.In
 		return nil
 	}
 
+	if in.CallbackData == callbackBack {
+		return s.handleBack(ctx, d, in)
+	}
+
 	trainingType, ok := trainingTypeFromCallback(in.CallbackData)
 	if !ok {
 		return s.bot.AnswerCallback(in.CallbackID)
@@ -49,6 +53,20 @@ func (s *TypeStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.In
 	return s.bot.SendWithKeyboard(in.ChatID, durationQuestion, durationKeyboard())
 }
 
+func (s *TypeStep) handleBack(ctx context.Context, d *model.TrainingDraft, in dto.Input) error {
+	d.Step = model.TrainingDraftStepAwaitingDate
+
+	if err := s.repo.UpdateDraft(ctx, d); err != nil {
+		return fmt.Errorf("update training draft: %w", err)
+	}
+
+	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+		return err
+	}
+
+	return s.bot.SendWithKeyboard(in.ChatID, dateQuestion, dateKeyboard())
+}
+
 func typeKeyboard() dto.Keyboard {
 	return dto.Keyboard{
 		dto.Row(
@@ -58,6 +76,7 @@ func typeKeyboard() dto.Keyboard {
 		dto.Row(
 			dto.Button{Label: "🤼 Open Mat", Data: callbackTrainingTypeOpenMat},
 		),
+		dto.Row(backButton()),
 	}
 }
 

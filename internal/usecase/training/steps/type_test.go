@@ -13,9 +13,12 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/training/steps"
 )
 
-// callbackTrainingTypeGi mirrors steps' own private constant — black-box
-// tests have to know the literal value.
-const callbackTrainingTypeGi = "training:type:gi"
+// callbackTrainingTypeGi and callbackBack mirror steps' own private
+// constants — black-box tests have to know the literal values.
+const (
+	callbackTrainingTypeGi = "training:type:gi"
+	callbackBack           = "training:back"
+)
 
 func TestTypeStep_Handle(t *testing.T) {
 	t.Parallel()
@@ -77,6 +80,30 @@ func TestTypeStep_Handle(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, model.TrainingTypeGi, d.TrainingType)
 				assert.Equal(t, model.TrainingDraftStepAwaitingDuration, d.Step)
+			},
+		},
+
+		{
+			name: "back goes to date step, type untouched",
+			d:    &model.TrainingDraft{ID: 1, Step: model.TrainingDraftStepAwaitingType},
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackBack},
+			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
+				repo.EXPECT().
+					UpdateDraft(gomock.Any(), gomock.Any()).
+					Return(nil)
+
+				sender.EXPECT().
+					AnswerCallback("cb-1").
+					Return(nil)
+
+				sender.EXPECT().
+					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
+				assert.NoError(t, err)
+				assert.Equal(t, model.TrainingDraftStepAwaitingDate, d.Step)
+				assert.Equal(t, model.TrainingTypeNone, d.TrainingType)
 			},
 		},
 
