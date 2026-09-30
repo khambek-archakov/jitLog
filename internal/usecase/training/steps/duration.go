@@ -38,7 +38,11 @@ func (s *DurationStep) Handle(ctx context.Context, d *model.TrainingDraft, in dt
 		}
 
 		if in.CallbackData == callbackDurationOther {
-			return s.bot.AnswerCallback(in.CallbackID)
+			if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+				return err
+			}
+
+			return s.bot.Send(in.ChatID, "Напиши длительность в минутах, например: 45")
 		}
 
 		minutes, ok := durationFromCallback(in.CallbackData)

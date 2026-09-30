@@ -100,6 +100,10 @@ func TestNotesStep_Handle(t *testing.T) {
 				sender.EXPECT().
 					AnswerCallback("cb-1").
 					Return(nil)
+
+				sender.EXPECT().
+					Send(chatID, gomock.Any()).
+					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)

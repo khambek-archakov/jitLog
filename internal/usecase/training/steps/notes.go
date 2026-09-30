@@ -43,7 +43,11 @@ func (s *NotesStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.I
 	// "Добавить заметку" is just a nudge — it doesn't finish the dialog,
 	// the user still types the actual note as a normal message afterwards.
 	if in.HasCallback && in.CallbackData == callbackAddNotes {
-		return s.bot.AnswerCallback(in.CallbackID)
+		if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+			return err
+		}
+
+		return s.bot.Send(in.ChatID, "Напиши заметку:")
 	}
 
 	var notes *string
