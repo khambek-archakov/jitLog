@@ -13,6 +13,13 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/training/steps"
 )
 
+// callbackDuration90 and callbackDurationOther mirror steps' own private
+// constants — black-box tests have to know the literal values.
+const (
+	callbackDuration90    = "training:duration:90"
+	callbackDurationOther = "training:duration:other"
+)
+
 func TestDurationStep_Handle(t *testing.T) {
 	t.Parallel()
 
@@ -39,6 +46,45 @@ func TestDurationStep_Handle(t *testing.T) {
 			},
 			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
 				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "quick button saves duration and moves to notes",
+			d:    &model.TrainingDraft{ID: 1, Step: model.TrainingDraftStepAwaitingDuration},
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackDuration90},
+			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
+				repo.EXPECT().
+					UpdateDraft(gomock.Any(), gomock.Any()).
+					Return(nil)
+
+				sender.EXPECT().
+					AnswerCallback("cb-1").
+					Return(nil)
+
+				sender.EXPECT().
+					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
+				assert.NoError(t, err)
+				assert.Equal(t, int32(90), *d.DurationMinutes)
+				assert.Equal(t, model.TrainingDraftStepAwaitingNotes, d.Step)
+			},
+		},
+
+		{
+			name: "\"другое\" just nudges, doesn't set a duration",
+			d:    &model.TrainingDraft{ID: 1, Step: model.TrainingDraftStepAwaitingDuration},
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackDurationOther},
+			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
+				sender.EXPECT().
+					AnswerCallback("cb-1").
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
+				assert.NoError(t, err)
+				assert.Nil(t, d.DurationMinutes)
 			},
 		},
 

@@ -11,8 +11,15 @@ import (
 )
 
 const (
-	durationQuestion  = "Сколько минут длилась тренировка?"
+	durationQuestion  = "⏱ Сколько длилась тренировка?"
 	durationNotParsed = "Не смог разобрать число, напиши длительность в минутах цифрами."
+)
+
+const (
+	callbackDuration60    = "training:duration:60"
+	callbackDuration90    = "training:duration:90"
+	callbackDuration120   = "training:duration:120"
+	callbackDurationOther = "training:duration:other"
 )
 
 type DurationStep struct {
@@ -26,7 +33,16 @@ func NewDuration(bot sender, repo draftRepo) *DurationStep {
 
 func (s *DurationStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.Input) error {
 	if in.HasCallback {
-		return s.bot.AnswerCallback(in.CallbackID)
+		if in.CallbackData == callbackDurationOther {
+			return s.bot.AnswerCallback(in.CallbackID)
+		}
+
+		minutes, ok := durationFromCallback(in.CallbackData)
+		if !ok {
+			return s.bot.AnswerCallback(in.CallbackID)
+		}
+
+		return s.saveDuration(ctx, d, in, minutes)
 	}
 
 	if !in.HasMessage {
@@ -38,6 +54,10 @@ func (s *DurationStep) Handle(ctx context.Context, d *model.TrainingDraft, in dt
 		return s.bot.Send(in.ChatID, durationNotParsed)
 	}
 
+	return s.saveDuration(ctx, d, in, minutes)
+}
+
+func (s *DurationStep) saveDuration(ctx context.Context, d *model.TrainingDraft, in dto.Input, minutes int) error {
 	duration := int32(minutes)
 	d.DurationMinutes = &duration
 	d.Step = model.TrainingDraftStepAwaitingNotes
@@ -46,5 +66,35 @@ func (s *DurationStep) Handle(ctx context.Context, d *model.TrainingDraft, in dt
 		return fmt.Errorf("update training draft: %w", err)
 	}
 
+	if in.HasCallback {
+		if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+			return err
+		}
+	}
+
 	return s.bot.SendWithKeyboard(in.ChatID, notesQuestion, notesKeyboard())
+}
+
+func durationKeyboard() dto.Keyboard {
+	return dto.Keyboard{
+		dto.Row(
+			dto.Button{Label: "60 мин", Data: callbackDuration60},
+			dto.Button{Label: "90 мин", Data: callbackDuration90},
+			dto.Button{Label: "120 мин", Data: callbackDuration120},
+		),
+		dto.Row(dto.Button{Label: "Другое", Data: callbackDurationOther}),
+	}
+}
+
+func durationFromCallback(data string) (int, bool) {
+	switch data {
+	case callbackDuration60:
+		return 60, true
+	case callbackDuration90:
+		return 90, true
+	case callbackDuration120:
+		return 120, true
+	default:
+		return 0, false
+	}
 }

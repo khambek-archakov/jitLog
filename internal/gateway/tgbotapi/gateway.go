@@ -45,6 +45,19 @@ func (g *Gateway) SendWithKeyboard(chatID int64, text string, keyboard dto.Keybo
 	return nil
 }
 
+// EditMessageWithKeyboard rewrites an already-sent message's text and
+// keyboard in place (e.g. paging a calendar) instead of sending a new one.
+func (g *Gateway) EditMessageWithKeyboard(chatID int64, messageID int, text string, keyboard dto.Keyboard) error {
+	edit := tgbotapi.NewEditMessageTextAndMarkup(chatID, messageID, text, toInlineKeyboard(keyboard))
+
+	_, err := g.bot.Send(edit)
+	if err != nil {
+		return fmt.Errorf("edit message: %w", err)
+	}
+
+	return nil
+}
+
 // AnswerCallback closes a pending callback query (stops the tap spinner)
 // with no visible feedback. A blank callbackID is a no-op, so callers don't
 // need to special-case updates that weren't callbacks.

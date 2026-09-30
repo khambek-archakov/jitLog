@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
@@ -14,7 +15,10 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/training/steps"
 )
 
-const callbackSkipNotes = "training:notes:skip"
+const (
+	callbackAddNotes  = "training:notes:add"
+	callbackSkipNotes = "training:notes:skip"
+)
 
 func TestNotesStep_Handle(t *testing.T) {
 	t.Parallel()
@@ -48,14 +52,28 @@ func TestNotesStep_Handle(t *testing.T) {
 
 				repo.EXPECT().
 					CreateTraining(gomock.Any(), userID, date, model.TrainingTypeGi, int32(60), gomock.Nil()).
-					Return(&model.Training{ID: 1}, nil)
+					Return(&model.Training{ID: 1, Date: date, TrainingType: model.TrainingTypeGi, DurationMinutes: 60}, nil)
 
 				repo.EXPECT().
 					DeleteDraft(gomock.Any(), userID).
 					Return(nil)
 
 				sender.EXPECT().
-					Send(chatID, gomock.Any()).
+					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "add-note nudge just acknowledges, doesn't finish the dialog",
+			d:    &model.TrainingDraft{ID: 1, UserID: userID, Step: model.TrainingDraftStepAwaitingNotes},
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackAddNotes},
+			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
+				sender.EXPECT().
+					AnswerCallback("cb-1").
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -97,11 +115,11 @@ func TestNotesStep_Handle(t *testing.T) {
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				repo.EXPECT().
 					CreateTraining(gomock.Any(), userID, date, model.TrainingTypeNoGi, int32(60), gomock.Any()).
-					DoAndReturn(func(_ context.Context, _ int64, _ time.Time, _ model.TrainingType, _ int32, notes *string) (*model.Training, error) {
+					DoAndReturn(func(_ context.Context, _ int64, date time.Time, trainingType model.TrainingType, duration int32, notes *string) (*model.Training, error) {
 						assert.NotNil(t, notes)
 						assert.Equal(t, "armbar from closed guard", *notes)
 
-						return &model.Training{ID: 1}, nil
+						return &model.Training{ID: 1, Date: date, TrainingType: trainingType, DurationMinutes: duration}, nil
 					})
 
 				repo.EXPECT().
@@ -109,8 +127,50 @@ func TestNotesStep_Handle(t *testing.T) {
 					Return(nil)
 
 				sender.EXPECT().
-					Send(chatID, gomock.Any()).
+					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "confirmation shows a formatted summary with edit/delete buttons",
+			d: &model.TrainingDraft{
+				ID: 1, UserID: userID, Date: &date, TrainingType: model.TrainingTypeOpenMat,
+				DurationMinutes: &duration, Step: model.TrainingDraftStepAwaitingNotes,
+			},
+			in: dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackSkipNotes},
+			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
+				sender.EXPECT().
+					AnswerCallback("cb-1").
+					Return(nil)
+
+				repo.EXPECT().
+					CreateTraining(gomock.Any(), userID, date, model.TrainingTypeOpenMat, int32(60), gomock.Nil()).
+					Return(&model.Training{ID: 7, Date: date, TrainingType: model.TrainingTypeOpenMat, DurationMinutes: 60}, nil)
+
+				repo.EXPECT().
+					DeleteDraft(gomock.Any(), userID).
+					Return(nil)
+
+				sender.EXPECT().
+					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ int64, text string, keyboard dto.Keyboard) error {
+						assert.Contains(t, text, "15 марта")
+						assert.Contains(t, text, "🤼 Open Mat")
+						assert.Contains(t, text, "60 минут")
+
+						require.Len(t, keyboard, 1)
+						require.Len(t, keyboard[0], 2)
+						assert.Equal(t, "✏️ Изменить", keyboard[0][0].Label)
+						assert.Equal(t, "training:edit:7", keyboard[0][0].Data)
+						assert.Equal(t, "🗑 Удалить", keyboard[0][1].Label)
+						assert.Equal(t, "training:delete:7", keyboard[0][1].Data)
+
+						return nil
+					})
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)

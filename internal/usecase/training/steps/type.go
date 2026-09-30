@@ -46,17 +46,17 @@ func (s *TypeStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.In
 		return err
 	}
 
-	return s.bot.Send(in.ChatID, durationQuestion)
+	return s.bot.SendWithKeyboard(in.ChatID, durationQuestion, durationKeyboard())
 }
 
 func typeKeyboard() dto.Keyboard {
 	return dto.Keyboard{
 		dto.Row(
-			dto.Button{Label: "Gi", Data: callbackTrainingTypeGi},
-			dto.Button{Label: "No-Gi", Data: callbackTrainingTypeNoGi},
+			dto.Button{Label: "🥋 Gi", Data: callbackTrainingTypeGi},
+			dto.Button{Label: "🥷 No-Gi", Data: callbackTrainingTypeNoGi},
 		),
 		dto.Row(
-			dto.Button{Label: "Open Mat", Data: callbackTrainingTypeOpenMat},
+			dto.Button{Label: "🤼 Open Mat", Data: callbackTrainingTypeOpenMat},
 		),
 	}
 }

@@ -15,11 +15,13 @@ func NewInput(update tgbotapi.Update) dto.Input {
 	switch {
 	case update.Message != nil:
 		in.TelegramID = update.Message.From.ID
+		in.MessageID = update.Message.MessageID
 		in.HasMessage = true
 		in.Text = update.Message.Text
 		in.IsStartCmd = update.Message.IsCommand() && update.Message.Command() == "start"
 	case update.CallbackQuery != nil:
 		in.TelegramID = update.CallbackQuery.From.ID
+		in.MessageID = update.CallbackQuery.Message.MessageID
 		in.HasCallback = true
 		in.CallbackID = update.CallbackQuery.ID
 		in.CallbackData = update.CallbackQuery.Data

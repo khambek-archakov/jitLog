@@ -11,6 +11,7 @@ import (
 type sender interface {
 	Send(chatID int64, text string) error
 	SendWithKeyboard(chatID int64, text string, keyboard dto.Keyboard) error
+	EditMessageWithKeyboard(chatID int64, messageID int, text string, keyboard dto.Keyboard) error
 	AnswerCallback(callbackID string) error
 	AnswerCallbackWithText(callbackID, text string) error
 }

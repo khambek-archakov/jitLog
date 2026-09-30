@@ -7,6 +7,7 @@ package dto
 type Input struct {
 	TelegramID int64
 	ChatID     int64
+	MessageID  int
 
 	IsStartCmd bool
 

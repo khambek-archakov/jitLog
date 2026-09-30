@@ -10,7 +10,7 @@ import (
 
 const (
 	beltQuestion = "Какой у тебя пояс?"
-	doneText     = "Спасибо! Итак, начнём 🥷\n\n" + menuPromptText
+	doneText     = "Отлично! Начинаем! 🚀\n\n" + menuPromptText
 )
 
 const (

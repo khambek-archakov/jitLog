@@ -71,6 +71,20 @@ func (mr *MocksenderMockRecorder) AnswerCallbackWithText(callbackID, text any) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AnswerCallbackWithText", reflect.TypeOf((*Mocksender)(nil).AnswerCallbackWithText), callbackID, text)
 }
 
+// EditMessageWithKeyboard mocks base method.
+func (m *Mocksender) EditMessageWithKeyboard(chatID int64, messageID int, text string, keyboard dto.Keyboard) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EditMessageWithKeyboard", chatID, messageID, text, keyboard)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// EditMessageWithKeyboard indicates an expected call of EditMessageWithKeyboard.
+func (mr *MocksenderMockRecorder) EditMessageWithKeyboard(chatID, messageID, text, keyboard any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EditMessageWithKeyboard", reflect.TypeOf((*Mocksender)(nil).EditMessageWithKeyboard), chatID, messageID, text, keyboard)
+}
+
 // Send mocks base method.
 func (m *Mocksender) Send(chatID int64, text string) error {
 	m.ctrl.T.Helper()

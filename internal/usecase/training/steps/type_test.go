@@ -70,7 +70,7 @@ func TestTypeStep_Handle(t *testing.T) {
 					Return(nil)
 
 				sender.EXPECT().
-					Send(chatID, gomock.Any()).
+					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {

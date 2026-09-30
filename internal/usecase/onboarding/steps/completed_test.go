@@ -56,6 +56,19 @@ func TestCompletedStep_Handle(t *testing.T) {
 		},
 
 		{
+			name: "tapping edit/delete on a finished training also shows a toast",
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "training:edit:7"},
+			prepare: func(sender *Mocksender) {
+				sender.EXPECT().
+					AnswerCallbackWithText("cb-1", gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
 			name: "unknown callback is just acknowledged",
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "junk"},
 			prepare: func(sender *Mocksender) {

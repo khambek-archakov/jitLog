@@ -4,15 +4,26 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
 )
 
 const (
-	notesQuestion     = "Есть что добавить? Например, что отрабатывал."
+	notesQuestion     = "📝 Хочешь добавить заметку? Например, что отрабатывал."
+	callbackAddNotes  = "training:notes:add"
 	callbackSkipNotes = "training:notes:skip"
-	doneText          = "Записал! Тренировка добавлена 💪"
+)
+
+// callbackTrainingEditPrefix and callbackTrainingDeletePrefix are shared
+// with internal/usecase/onboarding/steps (duplicated there, same reasoning
+// as callbackMenuAddTraining) — that's where these taps actually get
+// acknowledged, since by the time they happen the draft (and thus this
+// scenario's involvement) is long gone.
+const (
+	callbackTrainingEditPrefix   = "training:edit:"
+	callbackTrainingDeletePrefix = "training:delete:"
 )
 
 type NotesStep struct {
@@ -25,6 +36,12 @@ func NewNotes(bot sender, repo draftRepo) *NotesStep {
 }
 
 func (s *NotesStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.Input) error {
+	// "Добавить заметку" is just a nudge — it doesn't finish the dialog,
+	// the user still types the actual note as a normal message afterwards.
+	if in.HasCallback && in.CallbackData == callbackAddNotes {
+		return s.bot.AnswerCallback(in.CallbackID)
+	}
+
 	var notes *string
 
 	switch {
@@ -53,7 +70,8 @@ func (s *NotesStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.I
 		return fmt.Errorf("training draft %d has no duration set", d.ID)
 	}
 
-	if _, err := s.repo.CreateTraining(ctx, d.UserID, *d.Date, d.TrainingType, *d.DurationMinutes, notes); err != nil {
+	t, err := s.repo.CreateTraining(ctx, d.UserID, *d.Date, d.TrainingType, *d.DurationMinutes, notes)
+	if err != nil {
 		return fmt.Errorf("create training: %w", err)
 	}
 
@@ -61,11 +79,72 @@ func (s *NotesStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.I
 		return fmt.Errorf("delete training draft: %w", err)
 	}
 
-	return s.bot.Send(in.ChatID, doneText)
+	return s.bot.SendWithKeyboard(in.ChatID, confirmationText(t), confirmationKeyboard(t.ID))
 }
 
 func notesKeyboard() dto.Keyboard {
 	return dto.Keyboard{
+		dto.Row(dto.Button{Label: "✏️ Добавить заметку", Data: callbackAddNotes}),
 		dto.Row(dto.Button{Label: "Пропустить", Data: callbackSkipNotes}),
+	}
+}
+
+func confirmationText(t *model.Training) string {
+	return fmt.Sprintf(
+		"✅ Тренировка сохранена!\n\n📅 %s\n%s\n⏱ %s",
+		formatDate(t.Date),
+		trainingTypeLabel(t.TrainingType),
+		formatDuration(t.DurationMinutes),
+	)
+}
+
+func confirmationKeyboard(trainingID int64) dto.Keyboard {
+	return dto.Keyboard{
+		dto.Row(
+			dto.Button{Label: "✏️ Изменить", Data: fmt.Sprintf("%s%d", callbackTrainingEditPrefix, trainingID)},
+			dto.Button{Label: "🗑 Удалить", Data: fmt.Sprintf("%s%d", callbackTrainingDeletePrefix, trainingID)},
+		),
+	}
+}
+
+func trainingTypeLabel(t model.TrainingType) string {
+	switch t {
+	case model.TrainingTypeGi:
+		return "🥋 Gi"
+	case model.TrainingTypeNoGi:
+		return "🥷 No-Gi"
+	case model.TrainingTypeOpenMat:
+		return "🤼 Open Mat"
+	default:
+		return string(t)
+	}
+}
+
+var russianMonthsGenitive = [...]string{
+	"января", "февраля", "марта", "апреля", "мая", "июня",
+	"июля", "августа", "сентября", "октября", "ноября", "декабря",
+}
+
+func formatDate(d time.Time) string {
+	return fmt.Sprintf("%d %s", d.Day(), russianMonthsGenitive[d.Month()-1])
+}
+
+func formatDuration(minutes int32) string {
+	return fmt.Sprintf("%d %s", minutes, minutesWord(minutes))
+}
+
+// minutesWord picks the right Russian plural form of "минута" for n.
+func minutesWord(n int32) string {
+	if n%100 >= 11 && n%100 <= 14 {
+		return "минут"
+	}
+
+	switch n % 10 {
+	case 1:
+		return "минута"
+	case 2, 3, 4:
+		return "минуты"
+	default:
+		return "минут"
 	}
 }
