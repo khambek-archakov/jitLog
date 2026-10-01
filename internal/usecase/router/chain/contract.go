@@ -48,6 +48,11 @@ type trainingDelete interface {
 	Handle(ctx context.Context, userID int64, in dto.Input) error
 }
 
+// trainingStats shows the "📊 Статистика" screen (stats:period:*).
+type trainingStats interface {
+	Handle(ctx context.Context, userID int64, in dto.Input) error
+}
+
 type trainingDraft interface {
 	GetDraftByUserID(ctx context.Context, userID int64) (*model.TrainingDraft, error)
 }

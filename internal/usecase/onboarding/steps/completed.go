@@ -13,14 +13,11 @@ const (
 	comingSoonText = "Скоро!"
 )
 
-const (
-	callbackMenuSchedule = "menu:schedule"
-	callbackMenuStats    = "menu:stats"
-	// callbackMenuBack mirrors internal/usecase/training/history's own
-	// private constant — it's how a history/card screen gets back to the
-	// main menu.
-	callbackMenuBack = "menu:back"
-)
+const callbackMenuSchedule = "menu:schedule"
+
+// callbackMenuBack mirrors internal/usecase/training/history's own private
+// constant — it's how a history/card/stats screen gets back to the main menu.
+const callbackMenuBack = "menu:back"
 
 // CompletedStep only re-shows the main menu, so it needs no user repository access.
 type CompletedStep struct {
@@ -38,10 +35,11 @@ func (s *CompletedStep) Handle(_ context.Context, _ *model.User, in dto.Input) e
 
 	if in.HasCallback {
 		switch in.CallbackData {
-		// callbackMenuAddTraining, callbackMenuMyTrainings, training:view:*,
-		// training:edit:* and training:delete:* are intercepted upstream by
-		// the router before they ever reach here (see internal/usecase/router).
-		case callbackMenuSchedule, callbackMenuStats:
+		// callbackMenuAddTraining, callbackMenuMyTrainings, stats:period:*,
+		// training:view:*, training:edit:* and training:delete:* are
+		// intercepted upstream by the router before they ever reach here
+		// (see internal/usecase/router).
+		case callbackMenuSchedule:
 			return s.bot.AnswerCallbackWithText(in.CallbackID, comingSoonText)
 		case callbackMenuBack:
 			if err := s.bot.AnswerCallback(in.CallbackID); err != nil {

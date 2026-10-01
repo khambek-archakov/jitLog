@@ -13,7 +13,7 @@ const (
 	callbackAddTraining = "menu:add_training"
 	callbackMyTrainings = "training:history:page:0"
 	callbackSchedule    = "menu:schedule"
-	callbackStats       = "menu:stats"
+	callbackStats       = "stats:period:week"
 )
 
 func Keyboard() dto.Keyboard {

@@ -161,6 +161,41 @@ func (r *Repository) ListTrainings(ctx context.Context, userID int64, limit, off
 	return trainings, hasMore, nil
 }
 
+// ListAllTrainings returns every training for userID, oldest first — for
+// stats, which needs the full history (period aggregates and the streak)
+// rather than a page of it.
+func (r *Repository) ListAllTrainings(ctx context.Context, userID int64) ([]*model.Training, error) {
+	const query = `
+		select id, user_id, training_date, training_type, duration_minutes, notes, created_at
+		from training
+		where user_id = $1
+		order by training_date asc, id asc
+	`
+
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list all trainings: %w", err)
+	}
+	defer rows.Close()
+
+	var trainings []*model.Training
+
+	for rows.Next() {
+		t, err := scanTraining(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan training: %w", err)
+		}
+
+		trainings = append(trainings, t)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list all trainings: %w", err)
+	}
+
+	return trainings, nil
+}
+
 func (r *Repository) UpdateTraining(
 	ctx context.Context,
 	id int64,
