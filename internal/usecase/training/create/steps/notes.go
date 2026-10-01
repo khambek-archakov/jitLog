@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
+	"github.com/khambek-archakov/jitLog/internal/usecase/menu"
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
 	"github.com/khambek-archakov/jitLog/internal/usecase/training/info"
 )
@@ -86,7 +87,13 @@ func (s *NotesStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.I
 		return fmt.Errorf("delete training draft: %w", err)
 	}
 
-	return s.bot.SendWithKeyboard(in.ChatID, confirmationText(t), confirmationKeyboard(t.ID))
+	if err := s.bot.SendWithKeyboard(in.ChatID, confirmationText(t), confirmationKeyboard(t.ID)); err != nil {
+		return err
+	}
+
+	// A nudge towards what's next — without this the user has nothing left
+	// on screen to tap after saving.
+	return s.bot.SendWithKeyboard(in.ChatID, menu.Text, menu.Keyboard())
 }
 
 func (s *NotesStep) handleBack(ctx context.Context, d *model.TrainingDraft, in dto.Input) error {

@@ -83,8 +83,13 @@ func TestNotesStep_Handle(t *testing.T) {
 					DeleteDraft(gomock.Any(), userID).
 					Return(nil)
 
-				sender.EXPECT().
+				confirmation := sender.EXPECT().
 					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					Return(nil)
+
+				sender.EXPECT().
+					SendWithKeyboard(chatID, "Вот что я умею:", gomock.Any()).
+					After(confirmation).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -155,8 +160,13 @@ func TestNotesStep_Handle(t *testing.T) {
 					DeleteDraft(gomock.Any(), userID).
 					Return(nil)
 
-				sender.EXPECT().
+				confirmation := sender.EXPECT().
 					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					Return(nil)
+
+				sender.EXPECT().
+					SendWithKeyboard(chatID, "Вот что я умею:", gomock.Any()).
+					After(confirmation).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -184,7 +194,7 @@ func TestNotesStep_Handle(t *testing.T) {
 					DeleteDraft(gomock.Any(), userID).
 					Return(nil)
 
-				sender.EXPECT().
+				confirmation := sender.EXPECT().
 					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ int64, text string, keyboard dto.Keyboard) error {
 						assert.Contains(t, text, "15 марта")
@@ -200,6 +210,11 @@ func TestNotesStep_Handle(t *testing.T) {
 
 						return nil
 					})
+
+				sender.EXPECT().
+					SendWithKeyboard(chatID, "Вот что я умею:", gomock.Any()).
+					After(confirmation).
+					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)

@@ -4,21 +4,18 @@ import (
 	"context"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
+	"github.com/khambek-archakov/jitLog/internal/usecase/menu"
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
 )
 
-const menuPromptText = "Вот что я умею:"
-
 const (
-	welcomeBack    = "С возвращением!\n\n" + menuPromptText
+	welcomeBack    = "С возвращением!\n\n" + menu.Text
 	comingSoonText = "Скоро!"
 )
 
 const (
-	callbackMenuAddTraining = "menu:add_training"
-	callbackMenuMyTrainings = "training:history:page:0"
-	callbackMenuSchedule    = "menu:schedule"
-	callbackMenuStats       = "menu:stats"
+	callbackMenuSchedule = "menu:schedule"
+	callbackMenuStats    = "menu:stats"
 	// callbackMenuBack mirrors internal/usecase/training/history's own
 	// private constant — it's how a history/card screen gets back to the
 	// main menu.
@@ -51,28 +48,19 @@ func (s *CompletedStep) Handle(_ context.Context, _ *model.User, in dto.Input) e
 				return err
 			}
 
-			return sendMainMenu(s.bot, in.ChatID, menuPromptText)
+			return sendMainMenu(s.bot, in.ChatID, menu.Text)
 		default:
 			return s.bot.AnswerCallback(in.CallbackID)
 		}
 	}
 
 	if in.HasMessage {
-		return sendMainMenu(s.bot, in.ChatID, menuPromptText)
+		return sendMainMenu(s.bot, in.ChatID, menu.Text)
 	}
 
 	return nil
 }
 
 func sendMainMenu(bot sender, chatID int64, text string) error {
-	return bot.SendWithKeyboard(chatID, text, mainMenuKeyboard())
-}
-
-func mainMenuKeyboard() dto.Keyboard {
-	return dto.Keyboard{
-		dto.Row(dto.Button{Label: "➕ Добавить тренировку", Data: callbackMenuAddTraining}),
-		dto.Row(dto.Button{Label: "🗒️ Мои тренировки", Data: callbackMenuMyTrainings}),
-		dto.Row(dto.Button{Label: "📅 Расписание", Data: callbackMenuSchedule}),
-		dto.Row(dto.Button{Label: "📊 Статистика", Data: callbackMenuStats}),
-	}
+	return bot.SendWithKeyboard(chatID, text, menu.Keyboard())
 }

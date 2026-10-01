@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
+	"github.com/khambek-archakov/jitLog/internal/usecase/menu"
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
 )
 
 const (
 	beltQuestion = "Какой у тебя пояс?"
-	doneText     = "Отлично! Начинаем! 🚀\n\n" + menuPromptText
+	doneText     = "Отлично! Начинаем! 🚀\n\n" + menu.Text
 )
 
 const (
