@@ -56,32 +56,32 @@ func (mr *MockonboardingMockRecorder) Handle(ctx, u, in any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*Mockonboarding)(nil).Handle), ctx, u, in)
 }
 
-// Mocktraining is a mock of training interface.
-type Mocktraining struct {
+// MocktrainingCreate is a mock of trainingCreate interface.
+type MocktrainingCreate struct {
 	ctrl     *gomock.Controller
-	recorder *MocktrainingMockRecorder
+	recorder *MocktrainingCreateMockRecorder
 	isgomock struct{}
 }
 
-// MocktrainingMockRecorder is the mock recorder for Mocktraining.
-type MocktrainingMockRecorder struct {
-	mock *Mocktraining
+// MocktrainingCreateMockRecorder is the mock recorder for MocktrainingCreate.
+type MocktrainingCreateMockRecorder struct {
+	mock *MocktrainingCreate
 }
 
-// NewMocktraining creates a new mock instance.
-func NewMocktraining(ctrl *gomock.Controller) *Mocktraining {
-	mock := &Mocktraining{ctrl: ctrl}
-	mock.recorder = &MocktrainingMockRecorder{mock}
+// NewMocktrainingCreate creates a new mock instance.
+func NewMocktrainingCreate(ctrl *gomock.Controller) *MocktrainingCreate {
+	mock := &MocktrainingCreate{ctrl: ctrl}
+	mock.recorder = &MocktrainingCreateMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *Mocktraining) EXPECT() *MocktrainingMockRecorder {
+func (m *MocktrainingCreate) EXPECT() *MocktrainingCreateMockRecorder {
 	return m.recorder
 }
 
 // Begin mocks base method.
-func (m *Mocktraining) Begin(ctx context.Context, userID int64, in dto.Input) error {
+func (m *MocktrainingCreate) Begin(ctx context.Context, userID int64, in dto.Input) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Begin", ctx, userID, in)
 	ret0, _ := ret[0].(error)
@@ -89,13 +89,13 @@ func (m *Mocktraining) Begin(ctx context.Context, userID int64, in dto.Input) er
 }
 
 // Begin indicates an expected call of Begin.
-func (mr *MocktrainingMockRecorder) Begin(ctx, userID, in any) *gomock.Call {
+func (mr *MocktrainingCreateMockRecorder) Begin(ctx, userID, in any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Begin", reflect.TypeOf((*Mocktraining)(nil).Begin), ctx, userID, in)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Begin", reflect.TypeOf((*MocktrainingCreate)(nil).Begin), ctx, userID, in)
 }
 
 // Continue mocks base method.
-func (m *Mocktraining) Continue(ctx context.Context, d *model.TrainingDraft, in dto.Input) error {
+func (m *MocktrainingCreate) Continue(ctx context.Context, d *model.TrainingDraft, in dto.Input) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Continue", ctx, d, in)
 	ret0, _ := ret[0].(error)
@@ -103,9 +103,175 @@ func (m *Mocktraining) Continue(ctx context.Context, d *model.TrainingDraft, in 
 }
 
 // Continue indicates an expected call of Continue.
-func (mr *MocktrainingMockRecorder) Continue(ctx, d, in any) *gomock.Call {
+func (mr *MocktrainingCreateMockRecorder) Continue(ctx, d, in any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Continue", reflect.TypeOf((*Mocktraining)(nil).Continue), ctx, d, in)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Continue", reflect.TypeOf((*MocktrainingCreate)(nil).Continue), ctx, d, in)
+}
+
+// MocktrainingInfo is a mock of trainingInfo interface.
+type MocktrainingInfo struct {
+	ctrl     *gomock.Controller
+	recorder *MocktrainingInfoMockRecorder
+	isgomock struct{}
+}
+
+// MocktrainingInfoMockRecorder is the mock recorder for MocktrainingInfo.
+type MocktrainingInfoMockRecorder struct {
+	mock *MocktrainingInfo
+}
+
+// NewMocktrainingInfo creates a new mock instance.
+func NewMocktrainingInfo(ctrl *gomock.Controller) *MocktrainingInfo {
+	mock := &MocktrainingInfo{ctrl: ctrl}
+	mock.recorder = &MocktrainingInfoMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MocktrainingInfo) EXPECT() *MocktrainingInfoMockRecorder {
+	return m.recorder
+}
+
+// Handle mocks base method.
+func (m *MocktrainingInfo) Handle(ctx context.Context, userID int64, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, userID, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MocktrainingInfoMockRecorder) Handle(ctx, userID, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MocktrainingInfo)(nil).Handle), ctx, userID, in)
+}
+
+// MocktrainingHistory is a mock of trainingHistory interface.
+type MocktrainingHistory struct {
+	ctrl     *gomock.Controller
+	recorder *MocktrainingHistoryMockRecorder
+	isgomock struct{}
+}
+
+// MocktrainingHistoryMockRecorder is the mock recorder for MocktrainingHistory.
+type MocktrainingHistoryMockRecorder struct {
+	mock *MocktrainingHistory
+}
+
+// NewMocktrainingHistory creates a new mock instance.
+func NewMocktrainingHistory(ctrl *gomock.Controller) *MocktrainingHistory {
+	mock := &MocktrainingHistory{ctrl: ctrl}
+	mock.recorder = &MocktrainingHistoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MocktrainingHistory) EXPECT() *MocktrainingHistoryMockRecorder {
+	return m.recorder
+}
+
+// Handle mocks base method.
+func (m *MocktrainingHistory) Handle(ctx context.Context, userID int64, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, userID, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MocktrainingHistoryMockRecorder) Handle(ctx, userID, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MocktrainingHistory)(nil).Handle), ctx, userID, in)
+}
+
+// MocktrainingUpdate is a mock of trainingUpdate interface.
+type MocktrainingUpdate struct {
+	ctrl     *gomock.Controller
+	recorder *MocktrainingUpdateMockRecorder
+	isgomock struct{}
+}
+
+// MocktrainingUpdateMockRecorder is the mock recorder for MocktrainingUpdate.
+type MocktrainingUpdateMockRecorder struct {
+	mock *MocktrainingUpdate
+}
+
+// NewMocktrainingUpdate creates a new mock instance.
+func NewMocktrainingUpdate(ctrl *gomock.Controller) *MocktrainingUpdate {
+	mock := &MocktrainingUpdate{ctrl: ctrl}
+	mock.recorder = &MocktrainingUpdateMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MocktrainingUpdate) EXPECT() *MocktrainingUpdateMockRecorder {
+	return m.recorder
+}
+
+// Continue mocks base method.
+func (m *MocktrainingUpdate) Continue(ctx context.Context, d *model.TrainingEditDraft, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Continue", ctx, d, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Continue indicates an expected call of Continue.
+func (mr *MocktrainingUpdateMockRecorder) Continue(ctx, d, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Continue", reflect.TypeOf((*MocktrainingUpdate)(nil).Continue), ctx, d, in)
+}
+
+// Handle mocks base method.
+func (m *MocktrainingUpdate) Handle(ctx context.Context, userID int64, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, userID, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MocktrainingUpdateMockRecorder) Handle(ctx, userID, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MocktrainingUpdate)(nil).Handle), ctx, userID, in)
+}
+
+// MocktrainingDelete is a mock of trainingDelete interface.
+type MocktrainingDelete struct {
+	ctrl     *gomock.Controller
+	recorder *MocktrainingDeleteMockRecorder
+	isgomock struct{}
+}
+
+// MocktrainingDeleteMockRecorder is the mock recorder for MocktrainingDelete.
+type MocktrainingDeleteMockRecorder struct {
+	mock *MocktrainingDelete
+}
+
+// NewMocktrainingDelete creates a new mock instance.
+func NewMocktrainingDelete(ctrl *gomock.Controller) *MocktrainingDelete {
+	mock := &MocktrainingDelete{ctrl: ctrl}
+	mock.recorder = &MocktrainingDeleteMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MocktrainingDelete) EXPECT() *MocktrainingDeleteMockRecorder {
+	return m.recorder
+}
+
+// Handle mocks base method.
+func (m *MocktrainingDelete) Handle(ctx context.Context, userID int64, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, userID, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MocktrainingDeleteMockRecorder) Handle(ctx, userID, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MocktrainingDelete)(nil).Handle), ctx, userID, in)
 }
 
 // Mockuser is a mock of user interface.
@@ -199,4 +365,43 @@ func (m *MocktrainingDraft) GetDraftByUserID(ctx context.Context, userID int64) 
 func (mr *MocktrainingDraftMockRecorder) GetDraftByUserID(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDraftByUserID", reflect.TypeOf((*MocktrainingDraft)(nil).GetDraftByUserID), ctx, userID)
+}
+
+// MocktrainingEditDraft is a mock of trainingEditDraft interface.
+type MocktrainingEditDraft struct {
+	ctrl     *gomock.Controller
+	recorder *MocktrainingEditDraftMockRecorder
+	isgomock struct{}
+}
+
+// MocktrainingEditDraftMockRecorder is the mock recorder for MocktrainingEditDraft.
+type MocktrainingEditDraftMockRecorder struct {
+	mock *MocktrainingEditDraft
+}
+
+// NewMocktrainingEditDraft creates a new mock instance.
+func NewMocktrainingEditDraft(ctrl *gomock.Controller) *MocktrainingEditDraft {
+	mock := &MocktrainingEditDraft{ctrl: ctrl}
+	mock.recorder = &MocktrainingEditDraftMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MocktrainingEditDraft) EXPECT() *MocktrainingEditDraftMockRecorder {
+	return m.recorder
+}
+
+// GetEditDraftByUserID mocks base method.
+func (m *MocktrainingEditDraft) GetEditDraftByUserID(ctx context.Context, userID int64) (*model.TrainingEditDraft, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEditDraftByUserID", ctx, userID)
+	ret0, _ := ret[0].(*model.TrainingEditDraft)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEditDraftByUserID indicates an expected call of GetEditDraftByUserID.
+func (mr *MocktrainingEditDraftMockRecorder) GetEditDraftByUserID(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEditDraftByUserID", reflect.TypeOf((*MocktrainingEditDraft)(nil).GetEditDraftByUserID), ctx, userID)
 }

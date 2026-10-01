@@ -53,3 +53,25 @@ func draftStepFromDB(v int16) model.TrainingDraftStep {
 		return model.TrainingDraftStepAwaitingDate
 	}
 }
+
+func editFieldToDB(f model.TrainingEditField) int16 {
+	switch f {
+	case model.TrainingEditFieldDuration:
+		return 1
+	case model.TrainingEditFieldNotes:
+		return 2
+	default:
+		return 0
+	}
+}
+
+func editFieldFromDB(v int16) model.TrainingEditField {
+	switch v {
+	case 1:
+		return model.TrainingEditFieldDuration
+	case 2:
+		return model.TrainingEditFieldNotes
+	default:
+		return ""
+	}
+}

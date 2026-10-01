@@ -1,4 +1,4 @@
-package training_test
+package create_test
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
-	"github.com/khambek-archakov/jitLog/internal/usecase/training"
+	"github.com/khambek-archakov/jitLog/internal/usecase/training/create"
 )
 
 const callbackMenuAddTraining = "menu:add_training"
@@ -74,7 +74,7 @@ func TestUseCase_Begin(t *testing.T) {
 
 			tc.prepare(mockSender, mockRepo)
 
-			uc := training.New(mockSender, mockRepo)
+			uc := create.New(mockSender, mockRepo)
 
 			err := uc.Begin(context.Background(), userID, in)
 
@@ -138,7 +138,7 @@ func TestUseCase_Continue(t *testing.T) {
 
 			tc.prepare(mockSender, mockRepo)
 
-			uc := training.New(mockSender, mockRepo)
+			uc := create.New(mockSender, mockRepo)
 
 			err := uc.Continue(context.Background(), tc.d, tc.in)
 

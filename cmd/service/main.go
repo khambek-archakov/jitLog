@@ -21,7 +21,11 @@ import (
 	userrepo "github.com/khambek-archakov/jitLog/internal/repository/user"
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding"
 	"github.com/khambek-archakov/jitLog/internal/usecase/router"
-	"github.com/khambek-archakov/jitLog/internal/usecase/training"
+	"github.com/khambek-archakov/jitLog/internal/usecase/training/create"
+	trainingdelete "github.com/khambek-archakov/jitLog/internal/usecase/training/delete"
+	"github.com/khambek-archakov/jitLog/internal/usecase/training/history"
+	"github.com/khambek-archakov/jitLog/internal/usecase/training/info"
+	"github.com/khambek-archakov/jitLog/internal/usecase/training/update"
 )
 
 const (
@@ -88,8 +92,15 @@ func run() int {
 	gateway := tgbotapigateway.New(bot)
 
 	onboardingUseCase := onboarding.New(gateway, users)
-	trainingUseCase := training.New(gateway, trainings)
-	appRouter := router.New(onboardingUseCase, trainingUseCase, users, trainings)
+	trainingCreateUseCase := create.New(gateway, trainings)
+	trainingInfoUseCase := info.New(gateway, trainings)
+	trainingHistoryUseCase := history.New(gateway, trainings)
+	trainingUpdateUseCase := update.New(gateway, trainings)
+	trainingDeleteUseCase := trainingdelete.New(gateway, trainings)
+	appRouter := router.New(
+		onboardingUseCase, trainingCreateUseCase, trainingInfoUseCase, trainingHistoryUseCase, trainingUpdateUseCase,
+		trainingDeleteUseCase, users, trainings, trainings,
+	)
 
 	updateHandler := updatehandler.New(appRouter, logger)
 

@@ -13,27 +13,47 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/router"
 )
 
+type mocks struct {
+	onboarding *Mockonboarding
+	create     *MocktrainingCreate
+	info       *MocktrainingInfo
+	history    *MocktrainingHistory
+	update     *MocktrainingUpdate
+	delete     *MocktrainingDelete
+	user       *Mockuser
+	drafts     *MocktrainingDraft
+	edits      *MocktrainingEditDraft
+}
+
+// noActiveDrafts stubs both the training draft and edit draft lookups to
+// "none in progress" — the shared setup every case reaching the
+// callback-prefix switch needs.
+func noActiveDrafts(m mocks, userID int64) {
+	m.drafts.EXPECT().
+		GetDraftByUserID(gomock.Any(), userID).
+		Return(nil, model.ErrNotFound)
+
+	m.edits.EXPECT().
+		GetEditDraftByUserID(gomock.Any(), userID).
+		Return(nil, model.ErrNotFound)
+}
+
 func TestRouter_Route(t *testing.T) {
 	t.Parallel()
 
 	const telegramID, userID, chatID int64 = 123, 42, 777
 
 	tests := []struct {
-		name    string
-		in      dto.Input
-		prepare func(
-			onboarding *Mockonboarding,
-			training *Mocktraining,
-			user *Mockuser,
-			drafts *MocktrainingDraft,
-		)
+		name     string
+		in       dto.Input
+		prepare  func(m mocks)
 		expected func(t assert.TestingT, err error)
 	}{
 		{
 			name: "failed to fetch user",
 			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, IsStartCmd: true},
-			prepare: func(onboarding *Mockonboarding, training *Mocktraining, user *Mockuser, drafts *MocktrainingDraft) {
-				user.EXPECT().
+			prepare: func(m mocks) {
+				m.user.EXPECT().
 					GetByTelegramID(gomock.Any(), telegramID).
 					Return(nil, errors.New("fail"))
 			},
@@ -45,8 +65,8 @@ func TestRouter_Route(t *testing.T) {
 		{
 			name: "no user, not a /start command — ignored",
 			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, HasMessage: true, Text: "hi"},
-			prepare: func(onboarding *Mockonboarding, training *Mocktraining, user *Mockuser, drafts *MocktrainingDraft) {
-				user.EXPECT().
+			prepare: func(m mocks) {
+				m.user.EXPECT().
 					GetByTelegramID(gomock.Any(), telegramID).
 					Return(nil, model.ErrNotFound)
 			},
@@ -58,12 +78,12 @@ func TestRouter_Route(t *testing.T) {
 		{
 			name: "onboarding not complete goes to onboarding",
 			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, IsStartCmd: true},
-			prepare: func(onboarding *Mockonboarding, training *Mocktraining, user *Mockuser, drafts *MocktrainingDraft) {
-				user.EXPECT().
+			prepare: func(m mocks) {
+				m.user.EXPECT().
 					GetByTelegramID(gomock.Any(), telegramID).
 					Return(&model.User{ID: userID, OnboardingStep: model.OnboardingStepAwaitingAge}, nil)
 
-				onboarding.EXPECT().
+				m.onboarding.EXPECT().
 					Handle(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
@@ -73,18 +93,18 @@ func TestRouter_Route(t *testing.T) {
 		},
 
 		{
-			name: "active training draft goes to training",
+			name: "active training draft goes to create",
 			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, HasMessage: true, Text: "60"},
-			prepare: func(onboarding *Mockonboarding, training *Mocktraining, user *Mockuser, drafts *MocktrainingDraft) {
-				user.EXPECT().
+			prepare: func(m mocks) {
+				m.user.EXPECT().
 					GetByTelegramID(gomock.Any(), telegramID).
 					Return(&model.User{ID: userID, OnboardingStep: model.OnboardingStepCompleted}, nil)
 
-				drafts.EXPECT().
+				m.drafts.EXPECT().
 					GetDraftByUserID(gomock.Any(), userID).
 					Return(&model.TrainingDraft{ID: 1, UserID: userID}, nil)
 
-				training.EXPECT().
+				m.create.EXPECT().
 					Continue(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
@@ -96,12 +116,12 @@ func TestRouter_Route(t *testing.T) {
 		{
 			name: "failed to fetch training draft",
 			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, HasMessage: true, Text: "hi"},
-			prepare: func(onboarding *Mockonboarding, training *Mocktraining, user *Mockuser, drafts *MocktrainingDraft) {
-				user.EXPECT().
+			prepare: func(m mocks) {
+				m.user.EXPECT().
 					GetByTelegramID(gomock.Any(), telegramID).
 					Return(&model.User{ID: userID, OnboardingStep: model.OnboardingStepCompleted}, nil)
 
-				drafts.EXPECT().
+				m.drafts.EXPECT().
 					GetDraftByUserID(gomock.Any(), userID).
 					Return(nil, errors.New("fail"))
 			},
@@ -111,18 +131,65 @@ func TestRouter_Route(t *testing.T) {
 		},
 
 		{
-			name: "add-training button with no draft begins training",
-			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "menu:add_training"},
-			prepare: func(onboarding *Mockonboarding, training *Mocktraining, user *Mockuser, drafts *MocktrainingDraft) {
-				user.EXPECT().
+			name: "active edit draft goes to update",
+			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, HasMessage: true, Text: "45"},
+			prepare: func(m mocks) {
+				m.user.EXPECT().
 					GetByTelegramID(gomock.Any(), telegramID).
 					Return(&model.User{ID: userID, OnboardingStep: model.OnboardingStepCompleted}, nil)
 
-				drafts.EXPECT().
+				m.drafts.EXPECT().
 					GetDraftByUserID(gomock.Any(), userID).
 					Return(nil, model.ErrNotFound)
 
-				training.EXPECT().
+				m.edits.EXPECT().
+					GetEditDraftByUserID(gomock.Any(), userID).
+					Return(&model.TrainingEditDraft{UserID: userID, TrainingID: 7}, nil)
+
+				m.update.EXPECT().
+					Continue(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "failed to fetch training edit draft",
+			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, HasMessage: true, Text: "hi"},
+			prepare: func(m mocks) {
+				m.user.EXPECT().
+					GetByTelegramID(gomock.Any(), telegramID).
+					Return(&model.User{ID: userID, OnboardingStep: model.OnboardingStepCompleted}, nil)
+
+				m.drafts.EXPECT().
+					GetDraftByUserID(gomock.Any(), userID).
+					Return(nil, model.ErrNotFound)
+
+				m.edits.EXPECT().
+					GetEditDraftByUserID(gomock.Any(), userID).
+					Return(nil, errors.New("fail"))
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.Error(t, err)
+			},
+		},
+
+		{
+			name: "add-training button with no draft begins create",
+			in: dto.Input{
+				TelegramID: telegramID, ChatID: chatID, HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "menu:add_training",
+			},
+			prepare: func(m mocks) {
+				m.user.EXPECT().
+					GetByTelegramID(gomock.Any(), telegramID).
+					Return(&model.User{ID: userID, OnboardingStep: model.OnboardingStepCompleted}, nil)
+
+				noActiveDrafts(m, userID)
+
+				m.create.EXPECT().
 					Begin(gomock.Any(), userID, gomock.Any()).
 					Return(nil)
 			},
@@ -132,18 +199,104 @@ func TestRouter_Route(t *testing.T) {
 		},
 
 		{
-			name: "no draft, no add-training trigger falls through to onboarding's menu handling",
-			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, HasMessage: true, Text: "hi"},
-			prepare: func(onboarding *Mockonboarding, training *Mocktraining, user *Mockuser, drafts *MocktrainingDraft) {
-				user.EXPECT().
+			name: "view callback goes to info",
+			in: dto.Input{
+				TelegramID: telegramID, ChatID: chatID, HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "training:view:7",
+			},
+			prepare: func(m mocks) {
+				m.user.EXPECT().
 					GetByTelegramID(gomock.Any(), telegramID).
 					Return(&model.User{ID: userID, OnboardingStep: model.OnboardingStepCompleted}, nil)
 
-				drafts.EXPECT().
-					GetDraftByUserID(gomock.Any(), userID).
-					Return(nil, model.ErrNotFound)
+				noActiveDrafts(m, userID)
 
-				onboarding.EXPECT().
+				m.info.EXPECT().
+					Handle(gomock.Any(), userID, gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "history page callback goes to history",
+			in: dto.Input{
+				TelegramID: telegramID, ChatID: chatID, HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "training:history:page:0",
+			},
+			prepare: func(m mocks) {
+				m.user.EXPECT().
+					GetByTelegramID(gomock.Any(), telegramID).
+					Return(&model.User{ID: userID, OnboardingStep: model.OnboardingStepCompleted}, nil)
+
+				noActiveDrafts(m, userID)
+
+				m.history.EXPECT().
+					Handle(gomock.Any(), userID, gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "edit callback goes to update",
+			in: dto.Input{
+				TelegramID: telegramID, ChatID: chatID, HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "training:edit:7",
+			},
+			prepare: func(m mocks) {
+				m.user.EXPECT().
+					GetByTelegramID(gomock.Any(), telegramID).
+					Return(&model.User{ID: userID, OnboardingStep: model.OnboardingStepCompleted}, nil)
+
+				noActiveDrafts(m, userID)
+
+				m.update.EXPECT().
+					Handle(gomock.Any(), userID, gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "delete callback goes to delete",
+			in: dto.Input{
+				TelegramID: telegramID, ChatID: chatID, HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "training:delete:7",
+			},
+			prepare: func(m mocks) {
+				m.user.EXPECT().
+					GetByTelegramID(gomock.Any(), telegramID).
+					Return(&model.User{ID: userID, OnboardingStep: model.OnboardingStepCompleted}, nil)
+
+				noActiveDrafts(m, userID)
+
+				m.delete.EXPECT().
+					Handle(gomock.Any(), userID, gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "no draft, no known trigger falls through to onboarding's menu handling",
+			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, HasMessage: true, Text: "hi"},
+			prepare: func(m mocks) {
+				m.user.EXPECT().
+					GetByTelegramID(gomock.Any(), telegramID).
+					Return(&model.User{ID: userID, OnboardingStep: model.OnboardingStepCompleted}, nil)
+
+				noActiveDrafts(m, userID)
+
+				m.onboarding.EXPECT().
 					Handle(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
@@ -159,14 +312,23 @@ func TestRouter_Route(t *testing.T) {
 
 			ctrl := gomock.NewController(t)
 
-			mockOnboarding := NewMockonboarding(ctrl)
-			mockTraining := NewMocktraining(ctrl)
-			mockUser := NewMockuser(ctrl)
-			mockDrafts := NewMocktrainingDraft(ctrl)
+			m := mocks{
+				onboarding: NewMockonboarding(ctrl),
+				create:     NewMocktrainingCreate(ctrl),
+				info:       NewMocktrainingInfo(ctrl),
+				history:    NewMocktrainingHistory(ctrl),
+				update:     NewMocktrainingUpdate(ctrl),
+				delete:     NewMocktrainingDelete(ctrl),
+				user:       NewMockuser(ctrl),
+				drafts:     NewMocktrainingDraft(ctrl),
+				edits:      NewMocktrainingEditDraft(ctrl),
+			}
 
-			tc.prepare(mockOnboarding, mockTraining, mockUser, mockDrafts)
+			tc.prepare(m)
 
-			r := router.New(mockOnboarding, mockTraining, mockUser, mockDrafts)
+			r := router.New(
+				m.onboarding, m.create, m.info, m.history, m.update, m.delete, m.user, m.drafts, m.edits,
+			)
 
 			err := r.Route(context.Background(), tc.in)
 

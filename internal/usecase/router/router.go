@@ -1,29 +1,54 @@
 // Package router is the only place in the usecase layer allowed to know
-// that more than one scenario (onboarding, training) exists. Each scenario
-// package stays oblivious to the others — Router just resolves the current
-// user once and decides who handles the update.
+// that more than one scenario (onboarding, the training sub-scenarios)
+// exists. Each scenario package stays oblivious to the others — Router just
+// resolves the current user once and decides who handles the update.
 package router
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
 )
 
-const callbackMenuAddTraining = "menu:add_training"
+const (
+	callbackMenuAddTraining      = "menu:add_training"
+	callbackTrainingViewPrefix   = "training:view:"
+	callbackTrainingEditPrefix   = "training:edit:"
+	callbackTrainingDeletePrefix = "training:delete:"
+	callbackHistoryPagePrefix    = "training:history:page:"
+)
 
 type Router struct {
 	onboarding onboarding
-	training   training
+	create     trainingCreate
+	info       trainingInfo
+	history    trainingHistory
+	update     trainingUpdate
+	delete     trainingDelete
 	user       user
 	drafts     trainingDraft
+	edits      trainingEditDraft
 }
 
-func New(onboarding onboarding, training training, user user, drafts trainingDraft) *Router {
-	return &Router{onboarding: onboarding, training: training, user: user, drafts: drafts}
+func New(
+	onboarding onboarding,
+	create trainingCreate,
+	info trainingInfo,
+	history trainingHistory,
+	update trainingUpdate,
+	del trainingDelete,
+	user user,
+	drafts trainingDraft,
+	edits trainingEditDraft,
+) *Router {
+	return &Router{
+		onboarding: onboarding, create: create, info: info, history: history, update: update, delete: del,
+		user: user, drafts: drafts, edits: edits,
+	}
 }
 
 func (r *Router) Route(ctx context.Context, in dto.Input) error {
@@ -41,14 +66,33 @@ func (r *Router) Route(ctx context.Context, in dto.Input) error {
 
 	draft, err := r.drafts.GetDraftByUserID(ctx, u.ID)
 	if err == nil {
-		return r.training.Continue(ctx, draft, in)
+		return r.create.Continue(ctx, draft, in)
 	}
 	if !errors.Is(err, model.ErrNotFound) {
 		return fmt.Errorf("get training draft: %w", err)
 	}
 
-	if in.HasCallback && in.CallbackData == callbackMenuAddTraining {
-		return r.training.Begin(ctx, u.ID, in)
+	editDraft, err := r.edits.GetEditDraftByUserID(ctx, u.ID)
+	if err == nil {
+		return r.update.Continue(ctx, editDraft, in)
+	}
+	if !errors.Is(err, model.ErrNotFound) {
+		return fmt.Errorf("get training edit draft: %w", err)
+	}
+
+	if in.HasCallback {
+		switch {
+		case in.CallbackData == callbackMenuAddTraining:
+			return r.create.Begin(ctx, u.ID, in)
+		case strings.HasPrefix(in.CallbackData, callbackTrainingViewPrefix):
+			return r.info.Handle(ctx, u.ID, in)
+		case strings.HasPrefix(in.CallbackData, callbackHistoryPagePrefix):
+			return r.history.Handle(ctx, u.ID, in)
+		case strings.HasPrefix(in.CallbackData, callbackTrainingEditPrefix):
+			return r.update.Handle(ctx, u.ID, in)
+		case strings.HasPrefix(in.CallbackData, callbackTrainingDeletePrefix):
+			return r.delete.Handle(ctx, u.ID, in)
+		}
 	}
 
 	return r.onboarding.Handle(ctx, u, in)

@@ -1,4 +1,4 @@
-package training
+package create
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
-	"github.com/khambek-archakov/jitLog/internal/usecase/training/steps"
+	"github.com/khambek-archakov/jitLog/internal/usecase/training/create/steps"
 )
 
 type UseCase struct {

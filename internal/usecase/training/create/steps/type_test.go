@@ -10,7 +10,7 @@ import (
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
-	"github.com/khambek-archakov/jitLog/internal/usecase/training/steps"
+	"github.com/khambek-archakov/jitLog/internal/usecase/training/create/steps"
 )
 
 // callbackTrainingTypeGi and callbackBack mirror steps' own private

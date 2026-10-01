@@ -13,9 +13,11 @@ import (
 )
 
 // callbackMenuSchedule mirrors steps' own private constant, same reasoning
-// as callbackSkipAge/callbackBack in age_test.go. callbackMenuAddTraining
-// is deliberately not tested here anymore — it's intercepted upstream by
-// the router before CompletedStep ever sees it (see internal/usecase/router).
+// as callbackSkipAge/callbackBack in age_test.go. callbackMenuAddTraining,
+// callbackMenuMyTrainings, training:view:*, training:edit:* and
+// training:delete:* are deliberately not tested here anymore — they're
+// intercepted upstream by the router before CompletedStep ever sees them
+// (see internal/usecase/router).
 const callbackMenuSchedule = "menu:schedule"
 
 func TestCompletedStep_Handle(t *testing.T) {
@@ -35,6 +37,27 @@ func TestCompletedStep_Handle(t *testing.T) {
 			prepare: func(sender *Mocksender) {
 				sender.EXPECT().
 					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ int64, _ string, keyboard dto.Keyboard) error {
+						assert.Equal(t, "training:history:page:0", keyboard[1][0].Data)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "menu:back re-shows the menu",
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "menu:back"},
+			prepare: func(sender *Mocksender) {
+				sender.EXPECT().
+					AnswerCallback("cb-1").
+					Return(nil)
+
+				sender.EXPECT().
+					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -45,19 +68,6 @@ func TestCompletedStep_Handle(t *testing.T) {
 		{
 			name: "tapping a not-yet-built menu action shows a toast",
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackMenuSchedule},
-			prepare: func(sender *Mocksender) {
-				sender.EXPECT().
-					AnswerCallbackWithText("cb-1", gomock.Any()).
-					Return(nil)
-			},
-			expected: func(t assert.TestingT, err error) {
-				assert.NoError(t, err)
-			},
-		},
-
-		{
-			name: "tapping edit/delete on a finished training also shows a toast",
-			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "training:edit:7"},
 			prepare: func(sender *Mocksender) {
 				sender.EXPECT().
 					AnswerCallbackWithText("cb-1", gomock.Any()).

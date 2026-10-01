@@ -1,5 +1,5 @@
 //go:generate mockgen -source=$GOFILE -destination=mock_${GOPACKAGE}_test.go -package=${GOPACKAGE}_test
-package training
+package update
 
 import (
 	"context"
@@ -17,22 +17,16 @@ type sender interface {
 	AnswerCallbackWithText(callbackID, text string) error
 }
 
-type draftRepo interface {
-	CreateDraft(ctx context.Context, userID int64) (*model.TrainingDraft, error)
-	UpdateDraft(ctx context.Context, d *model.TrainingDraft) error
-	CreateTraining(
+type trainingRepo interface {
+	GetTraining(ctx context.Context, id int64) (*model.Training, error)
+	UpdateTraining(
 		ctx context.Context,
-		userID int64,
+		id int64,
 		date time.Time,
 		trainingType model.TrainingType,
 		durationMinutes int32,
 		notes *string,
 	) (*model.Training, error)
-	DeleteDraft(ctx context.Context, userID int64) error
-}
-
-// handler mirrors steps' own (also private) step-handler contract — UseCase
-// is the only thing that needs to name this type, to keep its dispatch map.
-type handler interface {
-	Handle(ctx context.Context, d *model.TrainingDraft, in dto.Input) error
+	SetEditDraft(ctx context.Context, userID, trainingID int64, field model.TrainingEditField) error
+	DeleteEditDraft(ctx context.Context, userID int64) error
 }

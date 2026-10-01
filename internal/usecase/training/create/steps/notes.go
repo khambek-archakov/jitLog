@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/training/info"
 )
 
 const (
@@ -16,11 +16,10 @@ const (
 	callbackSkipNotes = "training:notes:skip"
 )
 
-// callbackTrainingEditPrefix and callbackTrainingDeletePrefix are shared
-// with internal/usecase/onboarding/steps (duplicated there, same reasoning
-// as callbackMenuAddTraining) — that's where these taps actually get
-// acknowledged, since by the time they happen the draft (and thus this
-// scenario's involvement) is long gone.
+// callbackTrainingEditPrefix and callbackTrainingDeletePrefix mirror
+// internal/usecase/training/update's and .../delete's own private
+// constants — by the time either is tapped the draft (and thus this
+// scenario's involvement) is long gone, Router sends them there directly.
 const (
 	callbackTrainingEditPrefix   = "training:edit:"
 	callbackTrainingDeletePrefix = "training:delete:"
@@ -113,12 +112,7 @@ func notesKeyboard() dto.Keyboard {
 }
 
 func confirmationText(t *model.Training) string {
-	return fmt.Sprintf(
-		"✅ Тренировка сохранена!\n\n📅 %s\n%s\n⏱ %s",
-		formatDate(t.Date),
-		trainingTypeLabel(t.TrainingType),
-		formatDuration(t.DurationMinutes),
-	)
+	return "✅ Тренировка сохранена!\n\n" + info.Body(t)
 }
 
 func confirmationKeyboard(trainingID int64) dto.Keyboard {
@@ -127,47 +121,5 @@ func confirmationKeyboard(trainingID int64) dto.Keyboard {
 			dto.Button{Label: "✏️ Изменить", Data: fmt.Sprintf("%s%d", callbackTrainingEditPrefix, trainingID)},
 			dto.Button{Label: "🗑 Удалить", Data: fmt.Sprintf("%s%d", callbackTrainingDeletePrefix, trainingID)},
 		),
-	}
-}
-
-func trainingTypeLabel(t model.TrainingType) string {
-	switch t {
-	case model.TrainingTypeGi:
-		return "🥋 Gi"
-	case model.TrainingTypeNoGi:
-		return "🥷 No-Gi"
-	case model.TrainingTypeOpenMat:
-		return "🤼 Open Mat"
-	default:
-		return string(t)
-	}
-}
-
-var russianMonthsGenitive = [...]string{
-	"января", "февраля", "марта", "апреля", "мая", "июня",
-	"июля", "августа", "сентября", "октября", "ноября", "декабря",
-}
-
-func formatDate(d time.Time) string {
-	return fmt.Sprintf("%d %s", d.Day(), russianMonthsGenitive[d.Month()-1])
-}
-
-func formatDuration(minutes int32) string {
-	return fmt.Sprintf("%d %s", minutes, minutesWord(minutes))
-}
-
-// minutesWord picks the right Russian plural form of "минута" for n.
-func minutesWord(n int32) string {
-	if n%100 >= 11 && n%100 <= 14 {
-		return "минут"
-	}
-
-	switch n % 10 {
-	case 1:
-		return "минута"
-	case 2, 3, 4:
-		return "минуты"
-	default:
-		return "минут"
 	}
 }
