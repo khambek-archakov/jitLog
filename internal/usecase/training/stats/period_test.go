@@ -74,6 +74,31 @@ func TestPeriodStart(t *testing.T) {
 	assert.True(t, periodStart(periodAll, now).IsZero())
 }
 
+// TestPeriodStart_IgnoresNowsLocation guards against the regression where
+// periodStart/mondayOf were built using now.Location() instead of
+// time.UTC: a server running in any non-UTC timezone would then compute a
+// boundary offset from the training dates coming back from the repository
+// (always UTC-located, see internal/repository/training), wrongly
+// excluding trainings from the current period near a day boundary.
+func TestPeriodStart_IgnoresNowsLocation(t *testing.T) {
+	t.Parallel()
+
+	utc := time.Date(2026, 3, 18, 20, 0, 0, 0, time.UTC)
+
+	// A timezone well behind UTC: same wall-clock date (2026-03-18), but a
+	// much earlier absolute instant than the UTC equivalent above.
+	behindUTC := time.FixedZone("UTC-8", -8*3600)
+	local := time.Date(2026, 3, 18, 12, 0, 0, 0, behindUTC)
+
+	for _, p := range []period{periodWeek, periodMonth, periodYear} {
+		assert.Equal(
+			t, periodStart(p, utc).Format("2006-01-02"), periodStart(p, local).Format("2006-01-02"),
+			"period %s should resolve to the same calendar boundary regardless of now's location", p,
+		)
+		assert.True(t, periodStart(p, local).Location() == time.UTC, "period %s boundary must be UTC-located", p)
+	}
+}
+
 func TestPeriodRangeText(t *testing.T) {
 	t.Parallel()
 

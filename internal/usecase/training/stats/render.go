@@ -50,7 +50,8 @@ func statsText(p period, now time.Time, c counts, streakWeeks int) string {
 	b.WriteString(typeLine("🤼 Open Mat", c.OpenMatCount, c))
 
 	if s := streakLine(streakWeeks); s != "" {
-		b.WriteString("\n" + s)
+		b.WriteString("\n")
+		b.WriteString(s)
 	}
 
 	return b.String()

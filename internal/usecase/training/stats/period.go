@@ -48,28 +48,34 @@ func periodLabel(p period) string {
 }
 
 // periodStart is the inclusive lower bound of p, anchored at now. periodAll
-// has no lower bound.
+// has no lower bound. Always built in time.UTC — training dates come back
+// from the repository as UTC-located time.Time (see
+// internal/repository/training's scanTraining), so comparing against a
+// boundary built in now's local Location would drift the cutoff by the
+// server's own UTC offset.
 func periodStart(p period, now time.Time) time.Time {
 	switch p {
 	case periodWeek:
 		return mondayOf(now)
 	case periodMonth:
-		return time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		return time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	case periodYear:
-		return time.Date(now.Year(), 1, 1, 0, 0, 0, 0, now.Location())
+		return time.Date(now.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
 	default:
 		return time.Time{}
 	}
 }
 
-// mondayOf returns the Monday (00:00) of d's calendar week.
+// mondayOf returns the Monday (00:00 UTC) of d's calendar week, using d's
+// own (local) year/month/day — same UTC-normalization reasoning as
+// periodStart.
 func mondayOf(d time.Time) time.Time {
 	weekday := int(d.Weekday())
 	if weekday == 0 {
 		weekday = 7 // time.Sunday == 0 — shift so Monday=1..Sunday=7.
 	}
 
-	day := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, d.Location())
+	day := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.UTC)
 
 	return day.AddDate(0, 0, -(weekday - 1))
 }

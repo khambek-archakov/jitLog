@@ -53,6 +53,24 @@ func TestFilterByPeriod(t *testing.T) {
 	}
 }
 
+// TestFilterByPeriod_NowInNonUTCLocation guards the same regression as
+// TestPeriodStart_IgnoresNowsLocation, but end-to-end: a training logged
+// "today" must stay in the "month"/"week" period even when now carries a
+// timezone behind UTC.
+func TestFilterByPeriod_NowInNonUTCLocation(t *testing.T) {
+	t.Parallel()
+
+	behindUTC := time.FixedZone("UTC-8", -8*3600)
+	now := time.Date(2026, 3, 18, 7, 0, 0, 0, behindUTC) // wall-clock 2026-03-18
+
+	today := trainingOn("2026-03-18", model.TrainingTypeGi, 60)
+
+	for _, p := range []period{periodWeek, periodMonth, periodYear} {
+		got := filterByPeriod([]*model.Training{today}, p, now)
+		assert.Len(t, got, 1, "period %s should still include a training logged today", p)
+	}
+}
+
 func TestCountStats(t *testing.T) {
 	t.Parallel()
 
