@@ -76,7 +76,7 @@ func typeKeyboard() dto.Keyboard {
 		dto.Row(
 			dto.Button{Label: "🤼 Open Mat", Data: callbackTrainingTypeOpenMat},
 		),
-		dto.Row(backButton()),
+		dto.Row(backButton(), cancelButton()),
 	}
 }
 

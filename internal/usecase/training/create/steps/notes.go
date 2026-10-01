@@ -114,7 +114,7 @@ func notesKeyboard() dto.Keyboard {
 	return dto.Keyboard{
 		dto.Row(dto.Button{Label: "✏️ Добавить заметку", Data: callbackAddNotes}),
 		dto.Row(dto.Button{Label: "Пропустить", Data: callbackSkipNotes}),
-		dto.Row(backButton()),
+		dto.Row(backButton(), cancelButton()),
 	}
 }
 

@@ -125,6 +125,42 @@ func TestUseCase_Continue(t *testing.T) {
 				assert.NoError(t, err)
 			},
 		},
+
+		{
+			name: "cancel deletes the draft and shows the main menu, regardless of step",
+			d:    &model.TrainingDraft{ID: 1, UserID: 42, Step: model.TrainingDraftStepAwaitingDuration},
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "training:cancel"},
+			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
+				repo.EXPECT().
+					DeleteDraft(gomock.Any(), int64(42)).
+					Return(nil)
+
+				sender.EXPECT().
+					AnswerCallback("cb-1").
+					Return(nil)
+
+				sender.EXPECT().
+					SendWithKeyboard(chatID, "Вот что я умею:", gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "failed to delete draft on cancel",
+			d:    &model.TrainingDraft{ID: 1, UserID: 42, Step: model.TrainingDraftStepAwaitingDate},
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "training:cancel"},
+			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
+				repo.EXPECT().
+					DeleteDraft(gomock.Any(), int64(42)).
+					Return(errors.New("fail"))
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.Error(t, err)
+			},
+		},
 	}
 
 	for _, tc := range tests {

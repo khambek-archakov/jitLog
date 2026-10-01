@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
@@ -74,7 +75,15 @@ func TestTypeStep_Handle(t *testing.T) {
 
 				sender.EXPECT().
 					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
-					Return(nil)
+					DoAndReturn(func(_ int64, _ string, keyboard dto.Keyboard) error {
+						last := keyboard[len(keyboard)-1]
+						require.Len(t, last, 2)
+						assert.Equal(t, "Назад", last[0].Label)
+						assert.Equal(t, "❌ Отмена", last[1].Label)
+						assert.Equal(t, "training:cancel", last[1].Data)
+
+						return nil
+					})
 			},
 			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
 				assert.NoError(t, err)

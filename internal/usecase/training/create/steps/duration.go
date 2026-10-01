@@ -105,7 +105,7 @@ func durationKeyboard() dto.Keyboard {
 			dto.Button{Label: "120 мин", Data: callbackDuration120},
 		),
 		dto.Row(dto.Button{Label: "Другое", Data: callbackDurationOther}),
-		dto.Row(backButton()),
+		dto.Row(backButton(), cancelButton()),
 	}
 }
 

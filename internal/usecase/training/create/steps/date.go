@@ -155,6 +155,7 @@ func dateKeyboard() dto.Keyboard {
 			dto.Button{Label: "Вчера", Data: callbackDateYesterday},
 		),
 		dto.Row(dto.Button{Label: "📅 Другая дата", Data: callbackDateOther}),
+		dto.Row(cancelButton()),
 	}
 }
 
