@@ -12,14 +12,6 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/steps"
 )
 
-// callbackMenuSchedule mirrors steps' own private constant, same reasoning
-// as callbackSkipAge/callbackBack in age_test.go. callbackMenuAddTraining,
-// callbackMenuMyTrainings, training:view:*, training:edit:* and
-// training:delete:* are deliberately not tested here anymore — they're
-// intercepted upstream by the router before CompletedStep ever sees them
-// (see internal/usecase/router).
-const callbackMenuSchedule = "menu:schedule"
-
 func TestCompletedStep_Handle(t *testing.T) {
 	t.Parallel()
 
@@ -58,19 +50,6 @@ func TestCompletedStep_Handle(t *testing.T) {
 
 				sender.EXPECT().
 					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
-					Return(nil)
-			},
-			expected: func(t assert.TestingT, err error) {
-				assert.NoError(t, err)
-			},
-		},
-
-		{
-			name: "tapping a not-yet-built menu action shows a toast",
-			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackMenuSchedule},
-			prepare: func(sender *Mocksender) {
-				sender.EXPECT().
-					AnswerCallbackWithText("cb-1", gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {

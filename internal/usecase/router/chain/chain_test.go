@@ -21,27 +21,42 @@ import (
 // an unexpected call.
 
 type mocks struct {
-	onboarding *Mockonboarding
-	create     *MocktrainingCreate
-	info       *MocktrainingInfo
-	history    *MocktrainingHistory
-	update     *MocktrainingUpdate
-	delete     *MocktrainingDelete
-	stats      *MocktrainingStats
-	profile    *Mockprofile
-	drafts     *MocktrainingDraft
-	edits      *MocktrainingEditDraft
+	onboarding     *Mockonboarding
+	create         *MocktrainingCreate
+	info           *MocktrainingInfo
+	history        *MocktrainingHistory
+	update         *MocktrainingUpdate
+	delete         *MocktrainingDelete
+	stats          *MocktrainingStats
+	profile        *Mockprofile
+	scheduleCreate *MockscheduleCreate
+	scheduleList   *MockscheduleList
+	scheduleInfo   *MockscheduleInfo
+	scheduleUpdate *MockscheduleUpdate
+	scheduleDelete *MockscheduleDelete
+	drafts         *MocktrainingDraft
+	edits          *MocktrainingEditDraft
+	scheduleDrafts *MockscheduleDraft
+	scheduleEdits  *MockscheduleEditDraft
 }
 
-// noActiveDrafts stubs both the training draft and edit draft lookups to
-// "none in progress" — the shared setup every case reaching the
-// callback-prefix triggers needs.
+// noActiveDrafts stubs the training draft, training edit draft, schedule
+// draft and schedule edit draft lookups to "none in progress" — the shared
+// setup every case reaching the callback-prefix triggers needs.
 func noActiveDrafts(m mocks, userID int64) {
 	m.drafts.EXPECT().
 		GetDraftByUserID(gomock.Any(), userID).
 		Return(nil, model.ErrNotFound)
 
 	m.edits.EXPECT().
+		GetEditDraftByUserID(gomock.Any(), userID).
+		Return(nil, model.ErrNotFound)
+
+	m.scheduleDrafts.EXPECT().
+		GetDraftByUserID(gomock.Any(), userID).
+		Return(nil, model.ErrNotFound)
+
+	m.scheduleEdits.EXPECT().
 		GetEditDraftByUserID(gomock.Any(), userID).
 		Return(nil, model.ErrNotFound)
 }
@@ -66,22 +81,31 @@ func run(t *testing.T, u *model.User, in dto.Input, prepare func(m mocks)) error
 	ctrl := gomock.NewController(t)
 
 	m := mocks{
-		onboarding: NewMockonboarding(ctrl),
-		create:     NewMocktrainingCreate(ctrl),
-		info:       NewMocktrainingInfo(ctrl),
-		history:    NewMocktrainingHistory(ctrl),
-		update:     NewMocktrainingUpdate(ctrl),
-		delete:     NewMocktrainingDelete(ctrl),
-		stats:      NewMocktrainingStats(ctrl),
-		profile:    NewMockprofile(ctrl),
-		drafts:     NewMocktrainingDraft(ctrl),
-		edits:      NewMocktrainingEditDraft(ctrl),
+		onboarding:     NewMockonboarding(ctrl),
+		create:         NewMocktrainingCreate(ctrl),
+		info:           NewMocktrainingInfo(ctrl),
+		history:        NewMocktrainingHistory(ctrl),
+		update:         NewMocktrainingUpdate(ctrl),
+		delete:         NewMocktrainingDelete(ctrl),
+		stats:          NewMocktrainingStats(ctrl),
+		profile:        NewMockprofile(ctrl),
+		scheduleCreate: NewMockscheduleCreate(ctrl),
+		scheduleList:   NewMockscheduleList(ctrl),
+		scheduleInfo:   NewMockscheduleInfo(ctrl),
+		scheduleUpdate: NewMockscheduleUpdate(ctrl),
+		scheduleDelete: NewMockscheduleDelete(ctrl),
+		drafts:         NewMocktrainingDraft(ctrl),
+		edits:          NewMocktrainingEditDraft(ctrl),
+		scheduleDrafts: NewMockscheduleDraft(ctrl),
+		scheduleEdits:  NewMockscheduleEditDraft(ctrl),
 	}
 
 	prepare(m)
 
 	handlers := chain.New(
-		m.onboarding, m.create, m.info, m.history, m.update, m.delete, m.stats, m.profile, m.drafts, m.edits,
+		m.onboarding, m.create, m.info, m.history, m.update, m.delete, m.stats, m.profile,
+		m.scheduleCreate, m.scheduleList, m.scheduleInfo, m.scheduleUpdate, m.scheduleDelete,
+		m.drafts, m.edits, m.scheduleDrafts, m.scheduleEdits,
 	).Default()
 
 	return dispatch(context.Background(), handlers, u, in)

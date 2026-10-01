@@ -350,6 +350,224 @@ func (mr *MockprofileMockRecorder) Handle(ctx, u, in any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*Mockprofile)(nil).Handle), ctx, u, in)
 }
 
+// MockscheduleCreate is a mock of scheduleCreate interface.
+type MockscheduleCreate struct {
+	ctrl     *gomock.Controller
+	recorder *MockscheduleCreateMockRecorder
+	isgomock struct{}
+}
+
+// MockscheduleCreateMockRecorder is the mock recorder for MockscheduleCreate.
+type MockscheduleCreateMockRecorder struct {
+	mock *MockscheduleCreate
+}
+
+// NewMockscheduleCreate creates a new mock instance.
+func NewMockscheduleCreate(ctrl *gomock.Controller) *MockscheduleCreate {
+	mock := &MockscheduleCreate{ctrl: ctrl}
+	mock.recorder = &MockscheduleCreateMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockscheduleCreate) EXPECT() *MockscheduleCreateMockRecorder {
+	return m.recorder
+}
+
+// Begin mocks base method.
+func (m *MockscheduleCreate) Begin(ctx context.Context, userID int64, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Begin", ctx, userID, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Begin indicates an expected call of Begin.
+func (mr *MockscheduleCreateMockRecorder) Begin(ctx, userID, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Begin", reflect.TypeOf((*MockscheduleCreate)(nil).Begin), ctx, userID, in)
+}
+
+// Continue mocks base method.
+func (m *MockscheduleCreate) Continue(ctx context.Context, d *model.ScheduleDraft, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Continue", ctx, d, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Continue indicates an expected call of Continue.
+func (mr *MockscheduleCreateMockRecorder) Continue(ctx, d, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Continue", reflect.TypeOf((*MockscheduleCreate)(nil).Continue), ctx, d, in)
+}
+
+// MockscheduleList is a mock of scheduleList interface.
+type MockscheduleList struct {
+	ctrl     *gomock.Controller
+	recorder *MockscheduleListMockRecorder
+	isgomock struct{}
+}
+
+// MockscheduleListMockRecorder is the mock recorder for MockscheduleList.
+type MockscheduleListMockRecorder struct {
+	mock *MockscheduleList
+}
+
+// NewMockscheduleList creates a new mock instance.
+func NewMockscheduleList(ctrl *gomock.Controller) *MockscheduleList {
+	mock := &MockscheduleList{ctrl: ctrl}
+	mock.recorder = &MockscheduleListMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockscheduleList) EXPECT() *MockscheduleListMockRecorder {
+	return m.recorder
+}
+
+// Handle mocks base method.
+func (m *MockscheduleList) Handle(ctx context.Context, userID int64, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, userID, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MockscheduleListMockRecorder) Handle(ctx, userID, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockscheduleList)(nil).Handle), ctx, userID, in)
+}
+
+// MockscheduleInfo is a mock of scheduleInfo interface.
+type MockscheduleInfo struct {
+	ctrl     *gomock.Controller
+	recorder *MockscheduleInfoMockRecorder
+	isgomock struct{}
+}
+
+// MockscheduleInfoMockRecorder is the mock recorder for MockscheduleInfo.
+type MockscheduleInfoMockRecorder struct {
+	mock *MockscheduleInfo
+}
+
+// NewMockscheduleInfo creates a new mock instance.
+func NewMockscheduleInfo(ctrl *gomock.Controller) *MockscheduleInfo {
+	mock := &MockscheduleInfo{ctrl: ctrl}
+	mock.recorder = &MockscheduleInfoMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockscheduleInfo) EXPECT() *MockscheduleInfoMockRecorder {
+	return m.recorder
+}
+
+// Handle mocks base method.
+func (m *MockscheduleInfo) Handle(ctx context.Context, userID int64, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, userID, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MockscheduleInfoMockRecorder) Handle(ctx, userID, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockscheduleInfo)(nil).Handle), ctx, userID, in)
+}
+
+// MockscheduleUpdate is a mock of scheduleUpdate interface.
+type MockscheduleUpdate struct {
+	ctrl     *gomock.Controller
+	recorder *MockscheduleUpdateMockRecorder
+	isgomock struct{}
+}
+
+// MockscheduleUpdateMockRecorder is the mock recorder for MockscheduleUpdate.
+type MockscheduleUpdateMockRecorder struct {
+	mock *MockscheduleUpdate
+}
+
+// NewMockscheduleUpdate creates a new mock instance.
+func NewMockscheduleUpdate(ctrl *gomock.Controller) *MockscheduleUpdate {
+	mock := &MockscheduleUpdate{ctrl: ctrl}
+	mock.recorder = &MockscheduleUpdateMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockscheduleUpdate) EXPECT() *MockscheduleUpdateMockRecorder {
+	return m.recorder
+}
+
+// Continue mocks base method.
+func (m *MockscheduleUpdate) Continue(ctx context.Context, d *model.ScheduleEditDraft, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Continue", ctx, d, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Continue indicates an expected call of Continue.
+func (mr *MockscheduleUpdateMockRecorder) Continue(ctx, d, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Continue", reflect.TypeOf((*MockscheduleUpdate)(nil).Continue), ctx, d, in)
+}
+
+// Handle mocks base method.
+func (m *MockscheduleUpdate) Handle(ctx context.Context, userID int64, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, userID, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MockscheduleUpdateMockRecorder) Handle(ctx, userID, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockscheduleUpdate)(nil).Handle), ctx, userID, in)
+}
+
+// MockscheduleDelete is a mock of scheduleDelete interface.
+type MockscheduleDelete struct {
+	ctrl     *gomock.Controller
+	recorder *MockscheduleDeleteMockRecorder
+	isgomock struct{}
+}
+
+// MockscheduleDeleteMockRecorder is the mock recorder for MockscheduleDelete.
+type MockscheduleDeleteMockRecorder struct {
+	mock *MockscheduleDelete
+}
+
+// NewMockscheduleDelete creates a new mock instance.
+func NewMockscheduleDelete(ctrl *gomock.Controller) *MockscheduleDelete {
+	mock := &MockscheduleDelete{ctrl: ctrl}
+	mock.recorder = &MockscheduleDeleteMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockscheduleDelete) EXPECT() *MockscheduleDeleteMockRecorder {
+	return m.recorder
+}
+
+// Handle mocks base method.
+func (m *MockscheduleDelete) Handle(ctx context.Context, userID int64, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, userID, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MockscheduleDeleteMockRecorder) Handle(ctx, userID, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockscheduleDelete)(nil).Handle), ctx, userID, in)
+}
+
 // MocktrainingDraft is a mock of trainingDraft interface.
 type MocktrainingDraft struct {
 	ctrl     *gomock.Controller
@@ -426,4 +644,82 @@ func (m *MocktrainingEditDraft) GetEditDraftByUserID(ctx context.Context, userID
 func (mr *MocktrainingEditDraftMockRecorder) GetEditDraftByUserID(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEditDraftByUserID", reflect.TypeOf((*MocktrainingEditDraft)(nil).GetEditDraftByUserID), ctx, userID)
+}
+
+// MockscheduleDraft is a mock of scheduleDraft interface.
+type MockscheduleDraft struct {
+	ctrl     *gomock.Controller
+	recorder *MockscheduleDraftMockRecorder
+	isgomock struct{}
+}
+
+// MockscheduleDraftMockRecorder is the mock recorder for MockscheduleDraft.
+type MockscheduleDraftMockRecorder struct {
+	mock *MockscheduleDraft
+}
+
+// NewMockscheduleDraft creates a new mock instance.
+func NewMockscheduleDraft(ctrl *gomock.Controller) *MockscheduleDraft {
+	mock := &MockscheduleDraft{ctrl: ctrl}
+	mock.recorder = &MockscheduleDraftMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockscheduleDraft) EXPECT() *MockscheduleDraftMockRecorder {
+	return m.recorder
+}
+
+// GetDraftByUserID mocks base method.
+func (m *MockscheduleDraft) GetDraftByUserID(ctx context.Context, userID int64) (*model.ScheduleDraft, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDraftByUserID", ctx, userID)
+	ret0, _ := ret[0].(*model.ScheduleDraft)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDraftByUserID indicates an expected call of GetDraftByUserID.
+func (mr *MockscheduleDraftMockRecorder) GetDraftByUserID(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDraftByUserID", reflect.TypeOf((*MockscheduleDraft)(nil).GetDraftByUserID), ctx, userID)
+}
+
+// MockscheduleEditDraft is a mock of scheduleEditDraft interface.
+type MockscheduleEditDraft struct {
+	ctrl     *gomock.Controller
+	recorder *MockscheduleEditDraftMockRecorder
+	isgomock struct{}
+}
+
+// MockscheduleEditDraftMockRecorder is the mock recorder for MockscheduleEditDraft.
+type MockscheduleEditDraftMockRecorder struct {
+	mock *MockscheduleEditDraft
+}
+
+// NewMockscheduleEditDraft creates a new mock instance.
+func NewMockscheduleEditDraft(ctrl *gomock.Controller) *MockscheduleEditDraft {
+	mock := &MockscheduleEditDraft{ctrl: ctrl}
+	mock.recorder = &MockscheduleEditDraftMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockscheduleEditDraft) EXPECT() *MockscheduleEditDraftMockRecorder {
+	return m.recorder
+}
+
+// GetEditDraftByUserID mocks base method.
+func (m *MockscheduleEditDraft) GetEditDraftByUserID(ctx context.Context, userID int64) (*model.ScheduleEditDraft, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEditDraftByUserID", ctx, userID)
+	ret0, _ := ret[0].(*model.ScheduleEditDraft)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEditDraftByUserID indicates an expected call of GetEditDraftByUserID.
+func (mr *MockscheduleEditDraftMockRecorder) GetEditDraftByUserID(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEditDraftByUserID", reflect.TypeOf((*MockscheduleEditDraft)(nil).GetEditDraftByUserID), ctx, userID)
 }

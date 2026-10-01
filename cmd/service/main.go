@@ -17,12 +17,18 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/configure"
 	tgbotapigateway "github.com/khambek-archakov/jitLog/internal/gateway/tgbotapi"
 	updatehandler "github.com/khambek-archakov/jitLog/internal/handler/update"
+	schedulerepo "github.com/khambek-archakov/jitLog/internal/repository/schedule"
 	trainingrepo "github.com/khambek-archakov/jitLog/internal/repository/training"
 	userrepo "github.com/khambek-archakov/jitLog/internal/repository/user"
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding"
 	"github.com/khambek-archakov/jitLog/internal/usecase/profile"
 	"github.com/khambek-archakov/jitLog/internal/usecase/router"
 	"github.com/khambek-archakov/jitLog/internal/usecase/router/chain"
+	schedulecreate "github.com/khambek-archakov/jitLog/internal/usecase/schedule/create"
+	scheduledelete "github.com/khambek-archakov/jitLog/internal/usecase/schedule/delete"
+	scheduleinfo "github.com/khambek-archakov/jitLog/internal/usecase/schedule/info"
+	schedulelist "github.com/khambek-archakov/jitLog/internal/usecase/schedule/list"
+	scheduleupdate "github.com/khambek-archakov/jitLog/internal/usecase/schedule/update"
 	"github.com/khambek-archakov/jitLog/internal/usecase/training/create"
 	trainingdelete "github.com/khambek-archakov/jitLog/internal/usecase/training/delete"
 	"github.com/khambek-archakov/jitLog/internal/usecase/training/history"
@@ -92,6 +98,7 @@ func run() int {
 
 	users := userrepo.New(DB)
 	trainings := trainingrepo.New(DB)
+	schedules := schedulerepo.New(DB)
 	gateway := tgbotapigateway.New(bot)
 
 	onboardingUseCase := onboarding.New(gateway, users)
@@ -102,10 +109,17 @@ func run() int {
 	trainingDeleteUseCase := trainingdelete.New(gateway, trainings)
 	trainingStatsUseCase := stats.New(gateway, trainings, users)
 	profileUseCase := profile.New(gateway, users)
+	scheduleCreateUseCase := schedulecreate.New(gateway, schedules)
+	scheduleListUseCase := schedulelist.New(gateway, schedules)
+	scheduleInfoUseCase := scheduleinfo.New(gateway, schedules)
+	scheduleUpdateUseCase := scheduleupdate.New(gateway, schedules)
+	scheduleDeleteUseCase := scheduledelete.New(gateway, schedules)
 
 	handlers := chain.New(
 		onboardingUseCase, trainingCreateUseCase, trainingInfoUseCase, trainingHistoryUseCase, trainingUpdateUseCase,
-		trainingDeleteUseCase, trainingStatsUseCase, profileUseCase, trainings, trainings,
+		trainingDeleteUseCase, trainingStatsUseCase, profileUseCase, scheduleCreateUseCase, scheduleListUseCase,
+		scheduleInfoUseCase, scheduleUpdateUseCase, scheduleDeleteUseCase,
+		trainings, trainings, schedules, schedules,
 	).Default()
 	appRouter := router.New(handlers, users)
 

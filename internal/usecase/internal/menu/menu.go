@@ -12,7 +12,7 @@ const Text = "Вот что я умею:"
 const (
 	callbackAddTraining = "menu:add_training"
 	callbackMyTrainings = "training:history:page:0"
-	callbackSchedule    = "menu:schedule"
+	callbackSchedule    = "schedule:list"
 	callbackStats       = "stats:period:week"
 	callbackProfile     = "profile:show"
 )

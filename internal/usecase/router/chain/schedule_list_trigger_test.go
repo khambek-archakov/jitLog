@@ -10,40 +10,41 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
 
-func TestProfileTrigger(t *testing.T) {
+func TestScheduleListTrigger(t *testing.T) {
 	t.Parallel()
 
 	const userID, chatID int64 = 42, 777
 
 	u := &model.User{ID: userID, OnboardingStep: model.OnboardingStepCompleted}
 
-	t.Run("profile:* delegates to profile.Handle", func(t *testing.T) {
+	t.Run("schedule:list delegates to list.Handle", func(t *testing.T) {
 		t.Parallel()
 
-		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "profile:show"}
+		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "schedule:list"}
 
 		err := run(t, u, in, func(m mocks) {
 			noActiveDrafts(m, userID)
 
-			m.profile.EXPECT().
-				Handle(gomock.Any(), u, in).
+			m.scheduleList.EXPECT().
+				Handle(gomock.Any(), userID, in).
 				Return(nil)
 		})
 
 		assert.NoError(t, err)
 	})
 
-	t.Run("any other callback skips to the next link", func(t *testing.T) {
+	t.Run("any other callback skips to the fallback", func(t *testing.T) {
 		t.Parallel()
 
-		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "schedule:add"}
+		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "junk"}
 
 		err := run(t, u, in, func(m mocks) {
 			noActiveDrafts(m, userID)
 
-			// Reaching scheduleAddTrigger is what proves this link skipped.
-			m.scheduleCreate.EXPECT().
-				Begin(gomock.Any(), userID, in).
+			// Reaching onboardingFallback is what proves this link skipped —
+			// it's the chain's last link.
+			m.onboarding.EXPECT().
+				Handle(gomock.Any(), u, in).
 				Return(nil)
 		})
 
