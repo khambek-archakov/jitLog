@@ -70,8 +70,8 @@ func sendMainMenu(bot sender, chatID int64, text string) error {
 
 func mainMenuKeyboard() dto.Keyboard {
 	return dto.Keyboard{
-		dto.Row(dto.Button{Label: "🥋 Добавить тренировку", Data: callbackMenuAddTraining}),
-		dto.Row(dto.Button{Label: "📋 Мои тренировки", Data: callbackMenuMyTrainings}),
+		dto.Row(dto.Button{Label: "➕ Добавить тренировку", Data: callbackMenuAddTraining}),
+		dto.Row(dto.Button{Label: "🗒️ Мои тренировки", Data: callbackMenuMyTrainings}),
 		dto.Row(dto.Button{Label: "📅 Расписание", Data: callbackMenuSchedule}),
 		dto.Row(dto.Button{Label: "📊 Статистика", Data: callbackMenuStats}),
 	}

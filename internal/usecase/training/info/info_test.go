@@ -114,7 +114,7 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().
 					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ int64, _ int, text string, keyboard dto.Keyboard) error {
-						assert.Contains(t, text, "🥋 Тренировка")
+						assert.Contains(t, text, "Тренировка")
 						assert.Contains(t, text, "30 сентября 2026")
 						assert.Contains(t, text, "🥷 No-Gi")
 						assert.Contains(t, text, "90 минут")

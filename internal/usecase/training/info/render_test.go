@@ -47,7 +47,7 @@ func TestCard(t *testing.T) {
 		Date: time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC), TrainingType: model.TrainingTypeNoGi, DurationMinutes: 90,
 	})
 
-	assert.Contains(t, card, "🥋 Тренировка")
+	assert.Contains(t, card, "Тренировка")
 	assert.Contains(t, card, "30 сентября 2026")
 }
 

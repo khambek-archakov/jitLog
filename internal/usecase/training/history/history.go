@@ -1,6 +1,6 @@
 // Package history owns the paginated list of a user's already-logged
 // trainings — the training:history:page:{n} entry point, reached both from
-// the "📋 Мои тренировки" main-menu button and from a card's "← Назад"
+// the "🗒️ Мои тренировки" main-menu button and from a card's "← Назад"
 // button (see internal/usecase/training/info). It never creates or mutates
 // anything; tapping a row hands off to info via its own training:view:{id}
 // callback.
@@ -62,7 +62,7 @@ func listText(trainings []*model.Training) string {
 		return "Тренировок пока нет."
 	}
 
-	return "📋 Мои тренировки"
+	return "🗒️ Мои тренировки"
 }
 
 func listKeyboard(trainings []*model.Training, page int, hasMore bool) dto.Keyboard {

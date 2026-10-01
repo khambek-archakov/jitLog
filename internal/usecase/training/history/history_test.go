@@ -102,7 +102,7 @@ func TestUseCase_Handle(t *testing.T) {
 					Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), "📋 Мои тренировки", gomock.Any()).
+					EditMessageWithKeyboard(chatID, int(messageID), "🗒️ Мои тренировки", gomock.Any()).
 					DoAndReturn(func(_ int64, _ int, _ string, keyboard dto.Keyboard) error {
 						require.Len(t, keyboard, 3)
 

@@ -19,7 +19,7 @@ const (
 
 // Card is the full single-training view: a headline plus Body.
 func Card(t *model.Training) string {
-	return "🥋 Тренировка\n\n" + Body(t)
+	return "Тренировка\n\n" + Body(t)
 }
 
 // Body formats a training's date/type/duration/notes — shared by the card
