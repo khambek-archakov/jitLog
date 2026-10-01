@@ -5,7 +5,7 @@
 // of building its own copy, so the four buttons never drift between places.
 package menu
 
-import "github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
+import "github.com/khambek-archakov/jitLog/internal/usecase/dto"
 
 const Text = "Вот что я умею:"
 

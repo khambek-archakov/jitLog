@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
-	"github.com/khambek-archakov/jitLog/internal/usecase/menu"
-	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/internal/menu"
 )
 
 const (

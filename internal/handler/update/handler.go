@@ -6,7 +6,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
-	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
 
 // UseCase is what this handler translates and dispatches updates to — the

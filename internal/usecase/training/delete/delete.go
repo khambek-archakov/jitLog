@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
-	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 	"github.com/khambek-archakov/jitLog/internal/usecase/training/info"
 )
 

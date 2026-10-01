@@ -1,7 +1,7 @@
 package steps
 
 import (
-	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
 
 const callbackBack = "start:back"

@@ -15,7 +15,7 @@ import (
 	time "time"
 
 	model "github.com/khambek-archakov/jitLog/internal/model"
-	dto "github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
+	dto "github.com/khambek-archakov/jitLog/internal/usecase/dto"
 	gomock "go.uber.org/mock/gomock"
 )
 

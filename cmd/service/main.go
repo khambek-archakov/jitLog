@@ -21,6 +21,7 @@ import (
 	userrepo "github.com/khambek-archakov/jitLog/internal/repository/user"
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding"
 	"github.com/khambek-archakov/jitLog/internal/usecase/router"
+	"github.com/khambek-archakov/jitLog/internal/usecase/router/chain"
 	"github.com/khambek-archakov/jitLog/internal/usecase/training/create"
 	trainingdelete "github.com/khambek-archakov/jitLog/internal/usecase/training/delete"
 	"github.com/khambek-archakov/jitLog/internal/usecase/training/history"
@@ -97,10 +98,12 @@ func run() int {
 	trainingHistoryUseCase := history.New(gateway, trainings)
 	trainingUpdateUseCase := update.New(gateway, trainings)
 	trainingDeleteUseCase := trainingdelete.New(gateway, trainings)
-	appRouter := router.New(
+
+	handlers := chain.New(
 		onboardingUseCase, trainingCreateUseCase, trainingInfoUseCase, trainingHistoryUseCase, trainingUpdateUseCase,
-		trainingDeleteUseCase, users, trainings, trainings,
-	)
+		trainingDeleteUseCase, trainings, trainings,
+	).Default()
+	appRouter := router.New(handlers, users)
 
 	updateHandler := updatehandler.New(appRouter, logger)
 

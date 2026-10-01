@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
 
 // Callbacks is the caller's callback-data namespace for one calendar

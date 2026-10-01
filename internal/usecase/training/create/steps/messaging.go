@@ -1,7 +1,7 @@
 package steps
 
 import (
-	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
 
 // callbackBack is shared by every step after the first (date) — pressing it

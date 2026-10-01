@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/khambek-archakov/jitLog/internal/usecase/training/calendar"
+	"github.com/khambek-archakov/jitLog/internal/usecase/training/internal/calendar"
 )
 
 func TestText(t *testing.T) {

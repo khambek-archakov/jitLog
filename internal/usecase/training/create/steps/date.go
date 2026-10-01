@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
-	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
-	"github.com/khambek-archakov/jitLog/internal/usecase/training/calendar"
+	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/training/internal/calendar"
 )
 
 const (

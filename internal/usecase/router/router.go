@@ -1,54 +1,27 @@
-// Package router is the only place in the usecase layer allowed to know
-// that more than one scenario (onboarding, the training sub-scenarios)
-// exists. Each scenario package stays oblivious to the others — Router just
-// resolves the current user once and decides who handles the update.
+// Package router resolves the current user once per update and walks a
+// chain of responsibility (see internal/usecase/router/chain) to decide
+// which scenario handles it. Router itself knows nothing about onboarding
+// or training — that knowledge, and the order it must be tried in, lives
+// entirely in the chain package.
 package router
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
-	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/dto"
-)
-
-const (
-	callbackMenuAddTraining      = "menu:add_training"
-	callbackTrainingViewPrefix   = "training:view:"
-	callbackTrainingEditPrefix   = "training:edit:"
-	callbackTrainingDeletePrefix = "training:delete:"
-	callbackHistoryPagePrefix    = "training:history:page:"
+	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/router/chain"
 )
 
 type Router struct {
-	onboarding onboarding
-	create     trainingCreate
-	info       trainingInfo
-	history    trainingHistory
-	update     trainingUpdate
-	delete     trainingDelete
-	user       user
-	drafts     trainingDraft
-	edits      trainingEditDraft
+	handlers []chain.Handler
+	user     user
 }
 
-func New(
-	onboarding onboarding,
-	create trainingCreate,
-	info trainingInfo,
-	history trainingHistory,
-	update trainingUpdate,
-	del trainingDelete,
-	user user,
-	drafts trainingDraft,
-	edits trainingEditDraft,
-) *Router {
-	return &Router{
-		onboarding: onboarding, create: create, info: info, history: history, update: update, delete: del,
-		user: user, drafts: drafts, edits: edits,
-	}
+func New(handlers []chain.Handler, user user) *Router {
+	return &Router{handlers: handlers, user: user}
 }
 
 func (r *Router) Route(ctx context.Context, in dto.Input) error {
@@ -60,42 +33,13 @@ func (r *Router) Route(ctx context.Context, in dto.Input) error {
 		return nil
 	}
 
-	if u.OnboardingStep != model.OnboardingStepCompleted {
-		return r.onboarding.Handle(ctx, u, in)
-	}
-
-	draft, err := r.drafts.GetDraftByUserID(ctx, u.ID)
-	if err == nil {
-		return r.create.Continue(ctx, draft, in)
-	}
-	if !errors.Is(err, model.ErrNotFound) {
-		return fmt.Errorf("get training draft: %w", err)
-	}
-
-	editDraft, err := r.edits.GetEditDraftByUserID(ctx, u.ID)
-	if err == nil {
-		return r.update.Continue(ctx, editDraft, in)
-	}
-	if !errors.Is(err, model.ErrNotFound) {
-		return fmt.Errorf("get training edit draft: %w", err)
-	}
-
-	if in.HasCallback {
-		switch {
-		case in.CallbackData == callbackMenuAddTraining:
-			return r.create.Begin(ctx, u.ID, in)
-		case strings.HasPrefix(in.CallbackData, callbackTrainingViewPrefix):
-			return r.info.Handle(ctx, u.ID, in)
-		case strings.HasPrefix(in.CallbackData, callbackHistoryPagePrefix):
-			return r.history.Handle(ctx, u.ID, in)
-		case strings.HasPrefix(in.CallbackData, callbackTrainingEditPrefix):
-			return r.update.Handle(ctx, u.ID, in)
-		case strings.HasPrefix(in.CallbackData, callbackTrainingDeletePrefix):
-			return r.delete.Handle(ctx, u.ID, in)
+	for _, h := range r.handlers {
+		if err := h.Handle(ctx, u, in); !errors.Is(err, chain.ErrSkip) {
+			return err
 		}
 	}
 
-	return r.onboarding.Handle(ctx, u, in)
+	return nil
 }
 
 func (r *Router) getOrCreateUser(ctx context.Context, in dto.Input) (*model.User, error) {

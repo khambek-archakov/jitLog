@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/khambek-archakov/jitLog/internal/usecase/menu"
+	"github.com/khambek-archakov/jitLog/internal/usecase/internal/menu"
 )
 
 func TestKeyboard(t *testing.T) {
