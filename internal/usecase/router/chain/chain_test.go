@@ -28,6 +28,7 @@ type mocks struct {
 	update     *MocktrainingUpdate
 	delete     *MocktrainingDelete
 	stats      *MocktrainingStats
+	profile    *Mockprofile
 	drafts     *MocktrainingDraft
 	edits      *MocktrainingEditDraft
 }
@@ -72,6 +73,7 @@ func run(t *testing.T, u *model.User, in dto.Input, prepare func(m mocks)) error
 		update:     NewMocktrainingUpdate(ctrl),
 		delete:     NewMocktrainingDelete(ctrl),
 		stats:      NewMocktrainingStats(ctrl),
+		profile:    NewMockprofile(ctrl),
 		drafts:     NewMocktrainingDraft(ctrl),
 		edits:      NewMocktrainingEditDraft(ctrl),
 	}
@@ -79,7 +81,7 @@ func run(t *testing.T, u *model.User, in dto.Input, prepare func(m mocks)) error
 	prepare(m)
 
 	handlers := chain.New(
-		m.onboarding, m.create, m.info, m.history, m.update, m.delete, m.stats, m.drafts, m.edits,
+		m.onboarding, m.create, m.info, m.history, m.update, m.delete, m.stats, m.profile, m.drafts, m.edits,
 	).Default()
 
 	return dispatch(context.Background(), handlers, u, in)

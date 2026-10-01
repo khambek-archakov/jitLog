@@ -2,6 +2,7 @@ package steps
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
@@ -54,6 +55,15 @@ func (s *BeltStep) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 
 	if err := s.user.Update(ctx, u); err != nil {
 		return fmt.Errorf("update user belt: %w", err)
+	}
+
+	// The very first belt_promotion row — profile's own belt-change flow
+	// adds every one after this. Backdated to signup, not "now", so
+	// as-of lookups against it (once something needs them) clamp to this
+	// belt for anything logged before the user ever changes it.
+	err := s.user.AddBeltPromotion(ctx, u.ID, belt, u.CreatedAt)
+	if err != nil && !errors.Is(err, model.ErrDuplicateBeltPromotion) {
+		return fmt.Errorf("add belt promotion: %w", err)
 	}
 
 	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {

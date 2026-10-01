@@ -105,6 +105,10 @@ func TestBeltStep_Handle(t *testing.T) {
 					Update(gomock.Any(), gomock.Any()).
 					Return(nil)
 
+				user.EXPECT().
+					AddBeltPromotion(gomock.Any(), int64(1), model.BeltWhite, gomock.Any()).
+					Return(nil)
+
 				sender.EXPECT().
 					AnswerCallback("cb-1").
 					Return(nil)
@@ -121,12 +125,56 @@ func TestBeltStep_Handle(t *testing.T) {
 		},
 
 		{
+			name: "belt already recorded is not an error — onboarding still completes",
+			u:    &model.User{ID: 1, Name: &name},
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackBeltWhite},
+			prepare: func(user *Mockuser, sender *Mocksender) {
+				user.EXPECT().
+					Update(gomock.Any(), gomock.Any()).
+					Return(nil)
+
+				user.EXPECT().
+					AddBeltPromotion(gomock.Any(), int64(1), model.BeltWhite, gomock.Any()).
+					Return(model.ErrDuplicateBeltPromotion)
+
+				sender.EXPECT().
+					AnswerCallback("cb-1").
+					Return(nil)
+
+				sender.EXPECT().
+					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
 			name: "failed to persist belt",
 			u:    &model.User{ID: 1, Name: &name},
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackBeltWhite},
 			prepare: func(user *Mockuser, sender *Mocksender) {
 				user.EXPECT().
 					Update(gomock.Any(), gomock.Any()).
+					Return(errors.New("fail"))
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.Error(t, err)
+			},
+		},
+
+		{
+			name: "failed to add belt promotion",
+			u:    &model.User{ID: 1, Name: &name},
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackBeltWhite},
+			prepare: func(user *Mockuser, sender *Mocksender) {
+				user.EXPECT().
+					Update(gomock.Any(), gomock.Any()).
+					Return(nil)
+
+				user.EXPECT().
+					AddBeltPromotion(gomock.Any(), int64(1), model.BeltWhite, gomock.Any()).
 					Return(errors.New("fail"))
 			},
 			expected: func(t assert.TestingT, u *model.User, err error) {

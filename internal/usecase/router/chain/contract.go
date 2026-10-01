@@ -53,6 +53,13 @@ type trainingStats interface {
 	Handle(ctx context.Context, userID int64, in dto.Input) error
 }
 
+// profile shows the "👤 Профиль" screen and its belt-change flow
+// (profile:*). Needs the full *model.User, same as onboarding — it reads
+// and mutates it directly, not just the ID.
+type profile interface {
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
+}
+
 type trainingDraft interface {
 	GetDraftByUserID(ctx context.Context, userID int64) (*model.TrainingDraft, error)
 }

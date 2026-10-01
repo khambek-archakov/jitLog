@@ -312,6 +312,44 @@ func (mr *MocktrainingStatsMockRecorder) Handle(ctx, userID, in any) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MocktrainingStats)(nil).Handle), ctx, userID, in)
 }
 
+// Mockprofile is a mock of profile interface.
+type Mockprofile struct {
+	ctrl     *gomock.Controller
+	recorder *MockprofileMockRecorder
+	isgomock struct{}
+}
+
+// MockprofileMockRecorder is the mock recorder for Mockprofile.
+type MockprofileMockRecorder struct {
+	mock *Mockprofile
+}
+
+// NewMockprofile creates a new mock instance.
+func NewMockprofile(ctrl *gomock.Controller) *Mockprofile {
+	mock := &Mockprofile{ctrl: ctrl}
+	mock.recorder = &MockprofileMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *Mockprofile) EXPECT() *MockprofileMockRecorder {
+	return m.recorder
+}
+
+// Handle mocks base method.
+func (m *Mockprofile) Handle(ctx context.Context, u *model.User, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, u, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MockprofileMockRecorder) Handle(ctx, u, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*Mockprofile)(nil).Handle), ctx, u, in)
+}
+
 // MocktrainingDraft is a mock of trainingDraft interface.
 type MocktrainingDraft struct {
 	ctrl     *gomock.Controller

@@ -33,16 +33,32 @@ func TestStatsTrigger(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("any other callback skips to the fallback", func(t *testing.T) {
+	t.Run("stats:belts also delegates to stats.Handle", func(t *testing.T) {
 		t.Parallel()
 
-		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "junk"}
+		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "stats:belts"}
 
 		err := run(t, u, in, func(m mocks) {
 			noActiveDrafts(m, userID)
 
-			// Reaching onboardingFallback is what proves this link skipped.
-			m.onboarding.EXPECT().
+			m.stats.EXPECT().
+				Handle(gomock.Any(), userID, in).
+				Return(nil)
+		})
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("any other callback skips to the next link", func(t *testing.T) {
+		t.Parallel()
+
+		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "profile:show"}
+
+		err := run(t, u, in, func(m mocks) {
+			noActiveDrafts(m, userID)
+
+			// Reaching profileTrigger is what proves this link skipped.
+			m.profile.EXPECT().
 				Handle(gomock.Any(), u, in).
 				Return(nil)
 		})

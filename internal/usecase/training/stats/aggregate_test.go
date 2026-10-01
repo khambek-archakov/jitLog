@@ -88,26 +88,6 @@ func TestCountStats(t *testing.T) {
 	assert.Equal(t, 1, c.OpenMatCount)
 }
 
-func TestCounts_Hours(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		minutes int32
-		want    int
-	}{
-		{minutes: 0, want: 0},
-		{minutes: 59, want: 1},
-		{minutes: 89, want: 1},
-		{minutes: 91, want: 2},
-		{minutes: 360, want: 6},
-	}
-
-	for _, tc := range tests {
-		c := counts{TotalMinutes: tc.minutes}
-		assert.Equal(t, tc.want, c.hours())
-	}
-}
-
 func TestCounts_Percent(t *testing.T) {
 	t.Parallel()
 

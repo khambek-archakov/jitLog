@@ -25,13 +25,13 @@ func TestUseCase_Handle(t *testing.T) {
 	tests := []struct {
 		name     string
 		in       dto.Input
-		prepare  func(sender *Mocksender, repo *MocktrainingRepo)
+		prepare  func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo)
 		expected func(t assert.TestingT, err error)
 	}{
 		{
 			name:    "no callback — no-op",
 			in:      dto.Input{ChatID: chatID},
-			prepare: func(sender *Mocksender, repo *MocktrainingRepo) {},
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
 			},
@@ -40,7 +40,7 @@ func TestUseCase_Handle(t *testing.T) {
 		{
 			name: "malformed period is just acknowledged",
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "stats:period:bogus"},
-			prepare: func(sender *Mocksender, repo *MocktrainingRepo) {
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
 				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -51,7 +51,7 @@ func TestUseCase_Handle(t *testing.T) {
 		{
 			name: "failed to list trainings",
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "stats:period:week"},
-			prepare: func(sender *Mocksender, repo *MocktrainingRepo) {
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
 				repo.EXPECT().
 					ListAllTrainings(gomock.Any(), userID).
 					Return(nil, errors.New("fail"))
@@ -62,12 +62,12 @@ func TestUseCase_Handle(t *testing.T) {
 		},
 
 		{
-			name: "no trainings ever shows the empty state",
+			name: "no trainings ever shows the empty state, belts never fetched",
 			in: dto.Input{
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
 				CallbackData: "stats:period:week",
 			},
-			prepare: func(sender *Mocksender, repo *MocktrainingRepo) {
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
 				repo.EXPECT().
 					ListAllTrainings(gomock.Any(), userID).
 					Return(nil, nil)
@@ -94,18 +94,39 @@ func TestUseCase_Handle(t *testing.T) {
 		},
 
 		{
-			name: "shows stats for the requested period",
+			name: "failed to list belt promotions",
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "stats:period:week"},
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
+				repo.EXPECT().
+					ListAllTrainings(gomock.Any(), userID).
+					Return([]*model.Training{{Date: today, DurationMinutes: 60}}, nil)
+
+				belts.EXPECT().
+					ListBeltPromotions(gomock.Any(), userID).
+					Return(nil, errors.New("fail"))
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.Error(t, err)
+			},
+		},
+
+		{
+			name: "shows stats for the requested period, mode switch hidden with one belt",
 			in: dto.Input{
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
 				CallbackData: "stats:period:all",
 			},
-			prepare: func(sender *Mocksender, repo *MocktrainingRepo) {
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
 				repo.EXPECT().
 					ListAllTrainings(gomock.Any(), userID).
 					Return([]*model.Training{
 						{Date: today, TrainingType: model.TrainingTypeGi, DurationMinutes: 60},
 						{Date: today, TrainingType: model.TrainingTypeNoGi, DurationMinutes: 90},
 					}, nil)
+
+				belts.EXPECT().
+					ListBeltPromotions(gomock.Any(), userID).
+					Return([]*model.BeltPromotion{{Belt: model.BeltWhite}}, nil)
 
 				sender.EXPECT().
 					AnswerCallback("cb-1").
@@ -117,7 +138,7 @@ func TestUseCase_Handle(t *testing.T) {
 						assert.Contains(t, text, "Тренировок: 2")
 						assert.Contains(t, text, "Всё время")
 
-						require.Len(t, kb, 2)
+						require.Len(t, kb, 2) // no mode-switch row
 						assert.Equal(t, "• Всё время •", kb[0][3].Label)
 
 						return nil
@@ -125,6 +146,165 @@ func TestUseCase_Handle(t *testing.T) {
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "mode switch shown with two or more belts",
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "stats:period:week",
+			},
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
+				repo.EXPECT().
+					ListAllTrainings(gomock.Any(), userID).
+					Return([]*model.Training{{Date: today, DurationMinutes: 60}}, nil)
+
+				belts.EXPECT().
+					ListBeltPromotions(gomock.Any(), userID).
+					Return([]*model.BeltPromotion{{Belt: model.BeltWhite}, {Belt: model.BeltBlue}}, nil)
+
+				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ int64, _ int, _ string, kb dto.Keyboard) error {
+						require.Len(t, kb, 3) // period row + mode-switch row + back row
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "stats:belts with fewer than two belts falls back to the default period view",
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "stats:belts",
+			},
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
+				belts.EXPECT().
+					ListBeltPromotions(gomock.Any(), userID).
+					Return([]*model.BeltPromotion{{Belt: model.BeltWhite}}, nil)
+
+				repo.EXPECT().
+					ListAllTrainings(gomock.Any(), userID).
+					Return([]*model.Training{{Date: today, DurationMinutes: 60}}, nil)
+
+				// handlePeriod re-fetches belts of its own accord.
+				belts.EXPECT().
+					ListBeltPromotions(gomock.Any(), userID).
+					Return([]*model.BeltPromotion{{Belt: model.BeltWhite}}, nil)
+
+				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ int64, _ int, text string, _ dto.Keyboard) error {
+						assert.Contains(t, text, "Неделя")
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "stats:belts shows the breakdown with two or more belts",
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "stats:belts",
+			},
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
+				belts.EXPECT().
+					ListBeltPromotions(gomock.Any(), userID).
+					Return([]*model.BeltPromotion{
+						{Belt: model.BeltWhite, PromotedAt: today.AddDate(-1, 0, 0)},
+						{Belt: model.BeltBlue, PromotedAt: today},
+					}, nil)
+
+				repo.EXPECT().
+					ListAllTrainings(gomock.Any(), userID).
+					Return([]*model.Training{{Date: today, TrainingType: model.TrainingTypeGi, DurationMinutes: 60}}, nil)
+
+				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ int64, _ int, text string, kb dto.Keyboard) error {
+						assert.Contains(t, text, "По поясам")
+						assert.Equal(t, "• По поясам •", kb[0][1].Label)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "stats:belts with no trainings shows the empty state",
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "stats:belts",
+			},
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
+				belts.EXPECT().
+					ListBeltPromotions(gomock.Any(), userID).
+					Return([]*model.BeltPromotion{{Belt: model.BeltWhite}, {Belt: model.BeltBlue}}, nil)
+
+				repo.EXPECT().
+					ListAllTrainings(gomock.Any(), userID).
+					Return(nil, nil)
+
+				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ int64, _ int, text string, _ dto.Keyboard) error {
+						assert.Contains(t, text, "Пока нет ни одной тренировки")
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "stats:belts failed to list belt promotions",
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "stats:belts"},
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
+				belts.EXPECT().
+					ListBeltPromotions(gomock.Any(), userID).
+					Return(nil, errors.New("fail"))
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.Error(t, err)
+			},
+		},
+
+		{
+			name: "stats:belts failed to list trainings",
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "stats:belts"},
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
+				belts.EXPECT().
+					ListBeltPromotions(gomock.Any(), userID).
+					Return([]*model.BeltPromotion{{Belt: model.BeltWhite}, {Belt: model.BeltBlue}}, nil)
+
+				repo.EXPECT().
+					ListAllTrainings(gomock.Any(), userID).
+					Return(nil, errors.New("fail"))
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.Error(t, err)
 			},
 		},
 	}
@@ -137,10 +317,11 @@ func TestUseCase_Handle(t *testing.T) {
 
 			mockSender := NewMocksender(ctrl)
 			mockRepo := NewMocktrainingRepo(ctrl)
+			mockBelts := NewMockbeltRepo(ctrl)
 
-			tc.prepare(mockSender, mockRepo)
+			tc.prepare(mockSender, mockRepo, mockBelts)
 
-			uc := stats.New(mockSender, mockRepo)
+			uc := stats.New(mockSender, mockRepo, mockBelts)
 
 			err := uc.Handle(context.Background(), userID, tc.in)
 

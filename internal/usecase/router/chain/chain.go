@@ -36,6 +36,7 @@ type Chain struct {
 	update     trainingUpdate
 	delete     trainingDelete
 	stats      trainingStats
+	profile    profile
 	drafts     trainingDraft
 	edits      trainingEditDraft
 }
@@ -48,12 +49,13 @@ func New(
 	update trainingUpdate,
 	del trainingDelete,
 	stats trainingStats,
+	prof profile,
 	drafts trainingDraft,
 	edits trainingEditDraft,
 ) *Chain {
 	return &Chain{
 		onboarding: onboarding, create: create, info: info, history: history, update: update, delete: del,
-		stats: stats, drafts: drafts, edits: edits,
+		stats: stats, profile: prof, drafts: drafts, edits: edits,
 	}
 }
 
@@ -70,6 +72,7 @@ func (c *Chain) Default() []Handler {
 		&editTrigger{update: c.update},
 		&deleteTrigger{delete: c.delete},
 		&statsTrigger{stats: c.stats},
+		&profileTrigger{profile: c.profile},
 		&onboardingFallback{onboarding: c.onboarding},
 	}
 }

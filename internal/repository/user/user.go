@@ -4,12 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 )
+
+// pgUniqueViolation is Postgres's standard SQLSTATE code for a unique
+// constraint violation (23505) — stable across versions, no extra
+// dependency needed just to name it.
+const pgUniqueViolation = "23505"
 
 type Repository struct {
 	db *pgxpool.Pool
@@ -65,6 +72,80 @@ func (r *Repository) Update(ctx context.Context, u *model.User) error {
 	}
 
 	return nil
+}
+
+// AddBeltPromotion records a belt as having started on promotedAt. Each
+// belt can only be recorded once per user (see the unique constraint on
+// belt_promotion) — ErrDuplicateBeltPromotion signals that this belt was
+// already recorded for this user, which callers should turn into a toast
+// rather than a hard failure.
+func (r *Repository) AddBeltPromotion(ctx context.Context, userID int64, belt model.Belt, promotedAt time.Time) error {
+	const query = `
+		insert into belt_promotion (user_id, belt, promoted_at)
+		values ($1, $2, $3)
+	`
+
+	_, err := r.db.Exec(ctx, query, userID, beltToDB(belt), promotedAt)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgUniqueViolation {
+			return model.ErrDuplicateBeltPromotion
+		}
+
+		return fmt.Errorf("add belt promotion: %w", err)
+	}
+
+	return nil
+}
+
+// ListBeltPromotions returns every belt promotion for userID, oldest
+// first — the order an "as of" lookup needs.
+func (r *Repository) ListBeltPromotions(ctx context.Context, userID int64) ([]*model.BeltPromotion, error) {
+	const query = `
+		select id, user_id, belt, promoted_at, created_at
+		from belt_promotion
+		where user_id = $1
+		order by promoted_at asc
+	`
+
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list belt promotions: %w", err)
+	}
+	defer rows.Close()
+
+	var promotions []*model.BeltPromotion
+
+	for rows.Next() {
+		p, err := scanBeltPromotion(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan belt promotion: %w", err)
+		}
+
+		promotions = append(promotions, p)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list belt promotions: %w", err)
+	}
+
+	return promotions, nil
+}
+
+func scanBeltPromotion(row pgx.Row) (*model.BeltPromotion, error) {
+	var (
+		p    model.BeltPromotion
+		belt int16
+	)
+
+	err := row.Scan(&p.ID, &p.UserID, &belt, &p.PromotedAt, &p.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	p.Belt = beltFromDB(belt)
+
+	return &p, nil
 }
 
 func scanUser(row pgx.Row) (*model.User, error) {

@@ -22,3 +22,10 @@ type trainingRepo interface {
 	// the streak, which spans further back than any single period.
 	ListAllTrainings(ctx context.Context, userID int64) ([]*model.Training, error)
 }
+
+type beltRepo interface {
+	// ListBeltPromotions returns userID's belt history, oldest first —
+	// used both to drive the "По поясам" breakdown and to decide whether
+	// the mode switcher should show at all (only once there are ≥2).
+	ListBeltPromotions(ctx context.Context, userID int64) ([]*model.BeltPromotion, error)
+}

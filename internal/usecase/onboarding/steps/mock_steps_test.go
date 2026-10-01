@@ -12,6 +12,7 @@ package steps_test
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	model "github.com/khambek-archakov/jitLog/internal/model"
 	dto "github.com/khambek-archakov/jitLog/internal/usecase/dto"
@@ -134,6 +135,20 @@ func NewMockuser(ctrl *gomock.Controller) *Mockuser {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *Mockuser) EXPECT() *MockuserMockRecorder {
 	return m.recorder
+}
+
+// AddBeltPromotion mocks base method.
+func (m *Mockuser) AddBeltPromotion(ctx context.Context, userID int64, belt model.Belt, promotedAt time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddBeltPromotion", ctx, userID, belt, promotedAt)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddBeltPromotion indicates an expected call of AddBeltPromotion.
+func (mr *MockuserMockRecorder) AddBeltPromotion(ctx, userID, belt, promotedAt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBeltPromotion", reflect.TypeOf((*Mockuser)(nil).AddBeltPromotion), ctx, userID, belt, promotedAt)
 }
 
 // Create mocks base method.

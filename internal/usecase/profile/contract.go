@@ -1,5 +1,5 @@
 //go:generate mockgen -source=$GOFILE -destination=mock_${GOPACKAGE}_test.go -package=${GOPACKAGE}_test
-package steps
+package profile
 
 import (
 	"context"
@@ -18,11 +18,9 @@ type sender interface {
 }
 
 type user interface {
-	GetByTelegramID(ctx context.Context, telegramID int64) (*model.User, error)
-	Create(ctx context.Context, telegramID int64) (*model.User, error)
 	Update(ctx context.Context, u *model.User) error
-	// AddBeltPromotion mirrors internal/usecase/profile's own private
-	// contract — onboarding's own belt step uses it too, to backfill the
-	// very first belt_promotion row once the user picks their starting belt.
+	// AddBeltPromotion mirrors internal/usecase/onboarding/steps' own
+	// private contract — onboarding backfills the very first row,
+	// profile adds every one after.
 	AddBeltPromotion(ctx context.Context, userID int64, belt model.Belt, promotedAt time.Time) error
 }

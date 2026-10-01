@@ -12,6 +12,10 @@ import (
 // period-tab button's callback.
 const callbackStatsPeriodPrefix = "stats:period:"
 
+// callbackStatsBelts is the "По поясам" screen's own entry point — see
+// the mode switcher in render.go.
+const callbackStatsBelts = "stats:belts"
+
 type period string
 
 const (
