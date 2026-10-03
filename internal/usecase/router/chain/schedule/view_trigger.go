@@ -1,4 +1,4 @@
-package chain
+package schedule
 
 import (
 	"context"
@@ -8,16 +8,16 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
 
-const callbackTrainingViewPrefix = "training:view:"
+const callbackViewPrefix = "schedule:view:"
 
-// viewTrigger opens a single training's card (training:view:{id}).
+// viewTrigger opens a single slot's card (schedule:view:{id}).
 type viewTrigger struct {
-	info trainingInfo
+	info scheduleInfo
 }
 
 func (h *viewTrigger) Handle(ctx context.Context, u *model.User, in dto.Input) error {
-	if !in.HasCallback || !strings.HasPrefix(in.CallbackData, callbackTrainingViewPrefix) {
-		return ErrSkip
+	if !in.HasCallback || !strings.HasPrefix(in.CallbackData, callbackViewPrefix) {
+		return model.ErrSkip
 	}
 
 	return h.info.Handle(ctx, u.ID, in)

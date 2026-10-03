@@ -35,7 +35,7 @@ func TestUseCase_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, IsStartCmd: true},
 			prepare: func(user *Mockuser, sender *Mocksender) {
 				sender.EXPECT().
-					Send(chatID, gomock.Any()).
+					Send(gomock.Any(), chatID, gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -49,7 +49,7 @@ func TestUseCase_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, IsStartCmd: true},
 			prepare: func(user *Mockuser, sender *Mocksender) {
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {

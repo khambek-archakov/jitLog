@@ -38,16 +38,16 @@ func (s *DurationStep) Handle(ctx context.Context, d *model.TrainingDraft, in dt
 		}
 
 		if in.CallbackData == callbackDurationOther {
-			if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+			if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 				return err
 			}
 
-			return s.bot.Send(in.ChatID, "Напиши длительность в минутах, например: 45")
+			return s.bot.Send(ctx, in.ChatID, "Напиши длительность в минутах, например: 45")
 		}
 
 		minutes, ok := durationFromCallback(in.CallbackData)
 		if !ok {
-			return s.bot.AnswerCallback(in.CallbackID)
+			return s.bot.AnswerCallback(ctx, in.CallbackID)
 		}
 
 		return s.saveDuration(ctx, d, in, minutes)
@@ -59,7 +59,7 @@ func (s *DurationStep) Handle(ctx context.Context, d *model.TrainingDraft, in dt
 
 	minutes, err := strconv.Atoi(strings.TrimSpace(in.Text))
 	if err != nil || minutes <= 0 {
-		return s.bot.Send(in.ChatID, durationNotParsed)
+		return s.bot.Send(ctx, in.ChatID, durationNotParsed)
 	}
 
 	return s.saveDuration(ctx, d, in, minutes)
@@ -75,12 +75,12 @@ func (s *DurationStep) saveDuration(ctx context.Context, d *model.TrainingDraft,
 	}
 
 	if in.HasCallback {
-		if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+		if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}
 	}
 
-	return s.bot.SendWithKeyboard(in.ChatID, notesQuestion, notesKeyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, notesQuestion, notesKeyboard())
 }
 
 func (s *DurationStep) handleBack(ctx context.Context, d *model.TrainingDraft, in dto.Input) error {
@@ -90,11 +90,11 @@ func (s *DurationStep) handleBack(ctx context.Context, d *model.TrainingDraft, i
 		return fmt.Errorf("update training draft: %w", err)
 	}
 
-	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return s.bot.SendWithKeyboard(in.ChatID, typeQuestion, typeKeyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, typeQuestion, typeKeyboard())
 }
 
 func durationKeyboard() dto.Keyboard {

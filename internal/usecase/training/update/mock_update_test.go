@@ -44,73 +44,73 @@ func (m *Mocksender) EXPECT() *MocksenderMockRecorder {
 }
 
 // AnswerCallback mocks base method.
-func (m *Mocksender) AnswerCallback(callbackID string) error {
+func (m *Mocksender) AnswerCallback(ctx context.Context, callbackID string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AnswerCallback", callbackID)
+	ret := m.ctrl.Call(m, "AnswerCallback", ctx, callbackID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // AnswerCallback indicates an expected call of AnswerCallback.
-func (mr *MocksenderMockRecorder) AnswerCallback(callbackID any) *gomock.Call {
+func (mr *MocksenderMockRecorder) AnswerCallback(ctx, callbackID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AnswerCallback", reflect.TypeOf((*Mocksender)(nil).AnswerCallback), callbackID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AnswerCallback", reflect.TypeOf((*Mocksender)(nil).AnswerCallback), ctx, callbackID)
 }
 
 // AnswerCallbackWithText mocks base method.
-func (m *Mocksender) AnswerCallbackWithText(callbackID, text string) error {
+func (m *Mocksender) AnswerCallbackWithText(ctx context.Context, callbackID, text string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AnswerCallbackWithText", callbackID, text)
+	ret := m.ctrl.Call(m, "AnswerCallbackWithText", ctx, callbackID, text)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // AnswerCallbackWithText indicates an expected call of AnswerCallbackWithText.
-func (mr *MocksenderMockRecorder) AnswerCallbackWithText(callbackID, text any) *gomock.Call {
+func (mr *MocksenderMockRecorder) AnswerCallbackWithText(ctx, callbackID, text any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AnswerCallbackWithText", reflect.TypeOf((*Mocksender)(nil).AnswerCallbackWithText), callbackID, text)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AnswerCallbackWithText", reflect.TypeOf((*Mocksender)(nil).AnswerCallbackWithText), ctx, callbackID, text)
 }
 
 // EditMessageWithKeyboard mocks base method.
-func (m *Mocksender) EditMessageWithKeyboard(chatID int64, messageID int, text string, keyboard dto.Keyboard) error {
+func (m *Mocksender) EditMessageWithKeyboard(ctx context.Context, chatID int64, messageID int, text string, keyboard dto.Keyboard) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EditMessageWithKeyboard", chatID, messageID, text, keyboard)
+	ret := m.ctrl.Call(m, "EditMessageWithKeyboard", ctx, chatID, messageID, text, keyboard)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // EditMessageWithKeyboard indicates an expected call of EditMessageWithKeyboard.
-func (mr *MocksenderMockRecorder) EditMessageWithKeyboard(chatID, messageID, text, keyboard any) *gomock.Call {
+func (mr *MocksenderMockRecorder) EditMessageWithKeyboard(ctx, chatID, messageID, text, keyboard any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EditMessageWithKeyboard", reflect.TypeOf((*Mocksender)(nil).EditMessageWithKeyboard), chatID, messageID, text, keyboard)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EditMessageWithKeyboard", reflect.TypeOf((*Mocksender)(nil).EditMessageWithKeyboard), ctx, chatID, messageID, text, keyboard)
 }
 
 // Send mocks base method.
-func (m *Mocksender) Send(chatID int64, text string) error {
+func (m *Mocksender) Send(ctx context.Context, chatID int64, text string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Send", chatID, text)
+	ret := m.ctrl.Call(m, "Send", ctx, chatID, text)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Send indicates an expected call of Send.
-func (mr *MocksenderMockRecorder) Send(chatID, text any) *gomock.Call {
+func (mr *MocksenderMockRecorder) Send(ctx, chatID, text any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*Mocksender)(nil).Send), chatID, text)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*Mocksender)(nil).Send), ctx, chatID, text)
 }
 
 // SendWithKeyboard mocks base method.
-func (m *Mocksender) SendWithKeyboard(chatID int64, text string, keyboard dto.Keyboard) error {
+func (m *Mocksender) SendWithKeyboard(ctx context.Context, chatID int64, text string, keyboard dto.Keyboard) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendWithKeyboard", chatID, text, keyboard)
+	ret := m.ctrl.Call(m, "SendWithKeyboard", ctx, chatID, text, keyboard)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SendWithKeyboard indicates an expected call of SendWithKeyboard.
-func (mr *MocksenderMockRecorder) SendWithKeyboard(chatID, text, keyboard any) *gomock.Call {
+func (mr *MocksenderMockRecorder) SendWithKeyboard(ctx, chatID, text, keyboard any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendWithKeyboard", reflect.TypeOf((*Mocksender)(nil).SendWithKeyboard), chatID, text, keyboard)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendWithKeyboard", reflect.TypeOf((*Mocksender)(nil).SendWithKeyboard), ctx, chatID, text, keyboard)
 }
 
 // MocktrainingRepo is a mock of trainingRepo interface.

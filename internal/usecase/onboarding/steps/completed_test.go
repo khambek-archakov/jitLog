@@ -28,8 +28,8 @@ func TestCompletedStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, IsStartCmd: true},
 			prepare: func(sender *Mocksender) {
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ string, keyboard dto.Keyboard) error {
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ string, keyboard dto.Keyboard) error {
 						assert.Equal(t, "training:history:page:0", keyboard[1][0].Data)
 
 						return nil
@@ -45,11 +45,11 @@ func TestCompletedStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "menu:back"},
 			prepare: func(sender *Mocksender) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -62,7 +62,7 @@ func TestCompletedStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "junk"},
 			prepare: func(sender *Mocksender) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -75,7 +75,7 @@ func TestCompletedStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasMessage: true, Text: "привет"},
 			prepare: func(sender *Mocksender) {
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {

@@ -34,7 +34,7 @@ func NewBelt(bot sender, user user) *BeltStep {
 
 func (s *BeltStep) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	if in.IsStartCmd {
-		return s.bot.SendWithKeyboard(in.ChatID, beltQuestion, beltKeyboard())
+		return s.bot.SendWithKeyboard(ctx, in.ChatID, beltQuestion, beltKeyboard())
 	}
 
 	if !in.HasCallback {
@@ -47,7 +47,7 @@ func (s *BeltStep) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 
 	belt, ok := beltFromCallback(in.CallbackData)
 	if !ok {
-		return s.bot.AnswerCallback(in.CallbackID)
+		return s.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	u.Belt = belt
@@ -66,11 +66,11 @@ func (s *BeltStep) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 		return fmt.Errorf("add belt promotion: %w", err)
 	}
 
-	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return sendMainMenu(s.bot, in.ChatID, doneText)
+	return sendMainMenu(ctx, s.bot, in.ChatID, doneText)
 }
 
 func (s *BeltStep) handleBack(ctx context.Context, u *model.User, in dto.Input) error {
@@ -80,11 +80,11 @@ func (s *BeltStep) handleBack(ctx context.Context, u *model.User, in dto.Input) 
 		return fmt.Errorf("update user: %w", err)
 	}
 
-	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return s.bot.SendWithKeyboard(in.ChatID, ageQuestion(*u.Name), ageKeyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, ageQuestion(*u.Name), ageKeyboard())
 }
 
 func beltKeyboard() dto.Keyboard {

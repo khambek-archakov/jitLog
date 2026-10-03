@@ -34,7 +34,7 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 	}
 
 	if in.CallbackData != callbackScheduleList {
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	slots, err := uc.repo.ListSlots(ctx, userID)
@@ -42,9 +42,9 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 		return fmt.Errorf("list schedule slots: %w", err)
 	}
 
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, listText(slots), listKeyboard(slots))
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, listText(slots), listKeyboard(slots))
 }

@@ -41,7 +41,7 @@ func TestUseCase_Handle(t *testing.T) {
 			name: "malformed period is just acknowledged",
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "stats:period:bogus"},
 			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
-				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
@@ -73,12 +73,12 @@ func TestUseCase_Handle(t *testing.T) {
 					Return(nil, nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, text string, kb dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
 						assert.Contains(t, text, "Пока нет ни одной тренировки")
 
 						require.Len(t, kb, 2)
@@ -129,12 +129,12 @@ func TestUseCase_Handle(t *testing.T) {
 					Return([]*model.BeltPromotion{{Belt: model.BeltWhite}}, nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, text string, kb dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
 						assert.Contains(t, text, "Тренировок: 2")
 						assert.Contains(t, text, "Всё время")
 
@@ -164,11 +164,11 @@ func TestUseCase_Handle(t *testing.T) {
 					ListBeltPromotions(gomock.Any(), userID).
 					Return([]*model.BeltPromotion{{Belt: model.BeltWhite}, {Belt: model.BeltBlue}}, nil)
 
-				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, _ string, kb dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
 						require.Len(t, kb, 3) // period row + mode-switch row + back row
 
 						return nil
@@ -199,11 +199,11 @@ func TestUseCase_Handle(t *testing.T) {
 					ListBeltPromotions(gomock.Any(), userID).
 					Return([]*model.BeltPromotion{{Belt: model.BeltWhite}}, nil)
 
-				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, text string, _ dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, _ dto.Keyboard) error {
 						assert.Contains(t, text, "Неделя")
 
 						return nil
@@ -232,11 +232,11 @@ func TestUseCase_Handle(t *testing.T) {
 					ListAllTrainings(gomock.Any(), userID).
 					Return([]*model.Training{{Date: today, TrainingType: model.TrainingTypeGi, DurationMinutes: 60}}, nil)
 
-				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, text string, kb dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
 						assert.Contains(t, text, "По поясам")
 						assert.Equal(t, "• По поясам •", kb[0][1].Label)
 
@@ -263,11 +263,11 @@ func TestUseCase_Handle(t *testing.T) {
 					ListAllTrainings(gomock.Any(), userID).
 					Return(nil, nil)
 
-				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, text string, _ dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, _ dto.Keyboard) error {
 						assert.Contains(t, text, "Пока нет ни одной тренировки")
 
 						return nil

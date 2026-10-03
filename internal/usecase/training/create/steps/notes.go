@@ -43,23 +43,23 @@ func (s *NotesStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.I
 	// "Добавить заметку" is just a nudge — it doesn't finish the dialog,
 	// the user still types the actual note as a normal message afterwards.
 	if in.HasCallback && in.CallbackData == callbackAddNotes {
-		if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+		if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}
 
-		return s.bot.Send(in.ChatID, "Напиши заметку:")
+		return s.bot.Send(ctx, in.ChatID, "Напиши заметку:")
 	}
 
 	var notes *string
 
 	switch {
 	case in.HasCallback && in.CallbackData == callbackSkipNotes:
-		if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+		if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}
 
 	case in.HasCallback:
-		return s.bot.AnswerCallback(in.CallbackID)
+		return s.bot.AnswerCallback(ctx, in.CallbackID)
 
 	case in.HasMessage:
 		text := strings.TrimSpace(in.Text)
@@ -87,13 +87,13 @@ func (s *NotesStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.I
 		return fmt.Errorf("delete training draft: %w", err)
 	}
 
-	if err := s.bot.SendWithKeyboard(in.ChatID, confirmationText(t), confirmationKeyboard(t.ID)); err != nil {
+	if err := s.bot.SendWithKeyboard(ctx, in.ChatID, confirmationText(t), confirmationKeyboard(t.ID)); err != nil {
 		return err
 	}
 
 	// A nudge towards what's next — without this the user has nothing left
 	// on screen to tap after saving.
-	return s.bot.SendWithKeyboard(in.ChatID, menu.Text, menu.Keyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, menu.Text, menu.Keyboard())
 }
 
 func (s *NotesStep) handleBack(ctx context.Context, d *model.TrainingDraft, in dto.Input) error {
@@ -103,11 +103,11 @@ func (s *NotesStep) handleBack(ctx context.Context, d *model.TrainingDraft, in d
 		return fmt.Errorf("update training draft: %w", err)
 	}
 
-	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return s.bot.SendWithKeyboard(in.ChatID, durationQuestion, durationKeyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, durationQuestion, durationKeyboard())
 }
 
 func notesKeyboard() dto.Keyboard {

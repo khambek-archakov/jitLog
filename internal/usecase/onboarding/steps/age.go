@@ -25,7 +25,7 @@ func NewAge(bot sender, user user) *AgeStep {
 
 func (s *AgeStep) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	if in.IsStartCmd {
-		return s.bot.SendWithKeyboard(in.ChatID, ageQuestion(*u.Name), ageKeyboard())
+		return s.bot.SendWithKeyboard(ctx, in.ChatID, ageQuestion(*u.Name), ageKeyboard())
 	}
 
 	if in.HasCallback {
@@ -51,16 +51,16 @@ func (s *AgeStep) handleBack(ctx context.Context, u *model.User, in dto.Input) e
 		return fmt.Errorf("update user: %w", err)
 	}
 
-	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return s.bot.Send(in.ChatID, askNameAgain)
+	return s.bot.Send(ctx, in.ChatID, askNameAgain)
 }
 
 func (s *AgeStep) handleSkip(ctx context.Context, u *model.User, in dto.Input) error {
 	if in.CallbackData != callbackSkipAge {
-		return s.bot.AnswerCallback(in.CallbackID)
+		return s.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	u.OnboardingStep = model.OnboardingStepAwaitingBelt
@@ -69,11 +69,11 @@ func (s *AgeStep) handleSkip(ctx context.Context, u *model.User, in dto.Input) e
 		return fmt.Errorf("update user: %w", err)
 	}
 
-	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return s.bot.SendWithKeyboard(in.ChatID, beltQuestion, beltKeyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, beltQuestion, beltKeyboard())
 }
 
 func (s *AgeStep) handleAnswer(ctx context.Context, u *model.User, in dto.Input) error {
@@ -85,11 +85,11 @@ func (s *AgeStep) handleAnswer(ctx context.Context, u *model.User, in dto.Input)
 			return fmt.Errorf("update user: %w", err)
 		}
 
-		if err := s.bot.Send(in.ChatID, ageNotParsed); err != nil {
+		if err := s.bot.Send(ctx, in.ChatID, ageNotParsed); err != nil {
 			return err
 		}
 
-		return s.bot.SendWithKeyboard(in.ChatID, beltQuestion, beltKeyboard())
+		return s.bot.SendWithKeyboard(ctx, in.ChatID, beltQuestion, beltKeyboard())
 	}
 
 	parsedAge := int16(age)
@@ -99,7 +99,7 @@ func (s *AgeStep) handleAnswer(ctx context.Context, u *model.User, in dto.Input)
 		return fmt.Errorf("update user age: %w", err)
 	}
 
-	return s.bot.SendWithKeyboard(in.ChatID, beltQuestion, beltKeyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, beltQuestion, beltKeyboard())
 }
 
 func ageQuestion(name string) string {

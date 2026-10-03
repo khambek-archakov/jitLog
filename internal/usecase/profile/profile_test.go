@@ -48,7 +48,7 @@ func TestUseCase_Handle(t *testing.T) {
 			u:    baseUser(),
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "junk"},
 			prepare: func(sender *Mocksender, user *Mockuser) {
-				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 			},
 			expected: func(t assert.TestingT, u *model.User, err error) {
 				assert.NoError(t, err)
@@ -63,11 +63,11 @@ func TestUseCase_Handle(t *testing.T) {
 				CallbackData: "profile:show",
 			},
 			prepare: func(sender *Mocksender, user *Mockuser) {
-				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, text string, kb dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
 						assert.Contains(t, text, "Имя: test")
 						assert.Contains(t, text, "Возраст: 28")
 						assert.Contains(t, text, "🔵 Синий")
@@ -92,11 +92,11 @@ func TestUseCase_Handle(t *testing.T) {
 				CallbackData: "profile:belt:edit",
 			},
 			prepare: func(sender *Mocksender, user *Mockuser) {
-				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, _ string, kb dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
 						require.Len(t, kb, 5) // 4 belts (blue excluded) + back row
 
 						var labels []string
@@ -134,11 +134,11 @@ func TestUseCase_Handle(t *testing.T) {
 					AddBeltPromotion(gomock.Any(), int64(42), model.BeltPurple, gomock.Any()).
 					Return(nil)
 
-				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, text string, _ dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, _ dto.Keyboard) error {
 						assert.Contains(t, text, "🟣 Пурпурный")
 
 						return nil
@@ -166,10 +166,10 @@ func TestUseCase_Handle(t *testing.T) {
 					AddBeltPromotion(gomock.Any(), int64(42), model.BeltPurple, gomock.Any()).
 					Return(model.ErrDuplicateBeltPromotion)
 
-				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, u *model.User, err error) {
@@ -184,7 +184,7 @@ func TestUseCase_Handle(t *testing.T) {
 				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "profile:belt:set:bogus",
 			},
 			prepare: func(sender *Mocksender, user *Mockuser) {
-				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 			},
 			expected: func(t assert.TestingT, u *model.User, err error) {
 				assert.NoError(t, err)

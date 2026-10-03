@@ -1,4 +1,4 @@
-package chain
+package schedule
 
 import (
 	"context"
@@ -8,17 +8,17 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
 
-const callbackTrainingDeletePrefix = "training:delete:"
+const callbackDeletePrefix = "schedule:delete:"
 
-// deleteTrigger covers training:delete:* — the confirm screen and the
+// deleteTrigger covers schedule:delete:* — the confirm screen and the
 // actual delete.
 type deleteTrigger struct {
-	delete trainingDelete
+	delete scheduleDelete
 }
 
 func (h *deleteTrigger) Handle(ctx context.Context, u *model.User, in dto.Input) error {
-	if !in.HasCallback || !strings.HasPrefix(in.CallbackData, callbackTrainingDeletePrefix) {
-		return ErrSkip
+	if !in.HasCallback || !strings.HasPrefix(in.CallbackData, callbackDeletePrefix) {
+		return model.ErrSkip
 	}
 
 	return h.delete.Handle(ctx, u.ID, in)

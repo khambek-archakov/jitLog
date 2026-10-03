@@ -33,17 +33,19 @@ func TestProfileTrigger(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("any other callback skips to the next link", func(t *testing.T) {
+	t.Run("any other callback skips to the fallback", func(t *testing.T) {
 		t.Parallel()
 
-		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "schedule:add"}
+		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "junk"}
 
 		err := run(t, u, in, func(m mocks) {
 			noActiveDrafts(m, userID)
 
-			// Reaching scheduleAddTrigger is what proves this link skipped.
-			m.scheduleCreate.EXPECT().
-				Begin(gomock.Any(), userID, in).
+			// Reaching onboarding (as the chain's last link) is what proves
+			// this link skipped — profileTrigger is the last trigger before
+			// it in the handler list.
+			m.onboarding.EXPECT().
+				Handle(gomock.Any(), u, in).
 				Return(nil)
 		})
 

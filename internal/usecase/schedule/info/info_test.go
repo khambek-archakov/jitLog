@@ -38,7 +38,7 @@ func TestUseCase_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "schedule:view:bogus"},
 			prepare: func(sender *Mocksender, repo *MockslotRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -57,11 +57,11 @@ func TestUseCase_Handle(t *testing.T) {
 					}, nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -78,7 +78,7 @@ func TestUseCase_Handle(t *testing.T) {
 					Return(nil, model.ErrNotFound)
 
 				sender.EXPECT().
-					AnswerCallbackWithText("cb-1", "Слот не найден.").
+					AnswerCallbackWithText(gomock.Any(), "cb-1", "Слот не найден.").
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -95,7 +95,7 @@ func TestUseCase_Handle(t *testing.T) {
 					Return(&model.ScheduleSlot{ID: 5, UserID: 999}, nil)
 
 				sender.EXPECT().
-					AnswerCallbackWithText("cb-1", "Слот не найден.").
+					AnswerCallbackWithText(gomock.Any(), "cb-1", "Слот не найден.").
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {

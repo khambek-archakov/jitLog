@@ -54,18 +54,3 @@ func (mr *MocktransportMockRecorder) Request(c any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Request", reflect.TypeOf((*Mocktransport)(nil).Request), c)
 }
-
-// Send mocks base method.
-func (m *Mocktransport) Send(c tgbotapi.Chattable) (tgbotapi.Message, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Send", c)
-	ret0, _ := ret[0].(tgbotapi.Message)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Send indicates an expected call of Send.
-func (mr *MocktransportMockRecorder) Send(c any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*Mocktransport)(nil).Send), c)
-}

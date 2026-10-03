@@ -25,16 +25,16 @@ func NewName(bot sender, user user) *NameStep {
 
 func (s *NameStep) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	if in.IsStartCmd {
-		return s.bot.Send(in.ChatID, greetingText)
+		return s.bot.Send(ctx, in.ChatID, greetingText)
 	}
 
 	if !in.HasMessage {
-		return s.bot.AnswerCallback(in.CallbackID)
+		return s.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	name := strings.TrimSpace(in.Text)
 	if name == "" {
-		return s.bot.Send(in.ChatID, askNameAgain)
+		return s.bot.Send(ctx, in.ChatID, askNameAgain)
 	}
 
 	u.Name = &name
@@ -44,5 +44,5 @@ func (s *NameStep) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 		return fmt.Errorf("update user name: %w", err)
 	}
 
-	return s.bot.SendWithKeyboard(in.ChatID, ageQuestion(name), ageKeyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, ageQuestion(name), ageKeyboard())
 }

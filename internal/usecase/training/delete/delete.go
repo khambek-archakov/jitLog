@@ -49,7 +49,7 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 
 	id, ok := parseID(in.CallbackData, callbackDeletePrefix)
 	if !ok {
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	t, err := uc.getOwnTraining(ctx, id, userID)
@@ -57,20 +57,20 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 		return err
 	}
 	if t == nil {
-		return uc.bot.AnswerCallbackWithText(in.CallbackID, notFoundText)
+		return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, notFoundText)
 	}
 
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, confirmText(t), confirmKeyboard(t.ID))
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, confirmText(t), confirmKeyboard(t.ID))
 }
 
 func (uc *UseCase) confirm(ctx context.Context, userID int64, in dto.Input) error {
 	id, ok := parseID(in.CallbackData, callbackDeleteConfirmPrefix)
 	if !ok {
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	t, err := uc.getOwnTraining(ctx, id, userID)
@@ -78,18 +78,18 @@ func (uc *UseCase) confirm(ctx context.Context, userID int64, in dto.Input) erro
 		return err
 	}
 	if t == nil {
-		return uc.bot.AnswerCallbackWithText(in.CallbackID, notFoundText)
+		return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, notFoundText)
 	}
 
 	if err := uc.repo.DeleteTraining(ctx, id); err != nil {
 		return fmt.Errorf("delete training: %w", err)
 	}
 
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, "🗑 Тренировка удалена.", deletedKeyboard())
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "🗑 Тренировка удалена.", deletedKeyboard())
 }
 
 // getOwnTraining fetches a training and checks it belongs to userID,

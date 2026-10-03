@@ -49,11 +49,11 @@ func TestNotesStep_Handle(t *testing.T) {
 					Return(nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -72,7 +72,7 @@ func TestNotesStep_Handle(t *testing.T) {
 			in: dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackSkipNotes},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				repo.EXPECT().
@@ -84,11 +84,11 @@ func TestNotesStep_Handle(t *testing.T) {
 					Return(nil)
 
 				confirmation := sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, "Вот что я умею:", gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, "Вот что я умею:", gomock.Any()).
 					After(confirmation).
 					Return(nil)
 			},
@@ -103,11 +103,11 @@ func TestNotesStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackAddNotes},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					Send(chatID, gomock.Any()).
+					Send(gomock.Any(), chatID, gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -121,7 +121,7 @@ func TestNotesStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "junk"},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -161,11 +161,11 @@ func TestNotesStep_Handle(t *testing.T) {
 					Return(nil)
 
 				confirmation := sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, "Вот что я умею:", gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, "Вот что я умею:", gomock.Any()).
 					After(confirmation).
 					Return(nil)
 			},
@@ -183,7 +183,7 @@ func TestNotesStep_Handle(t *testing.T) {
 			in: dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackSkipNotes},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				repo.EXPECT().
@@ -195,8 +195,8 @@ func TestNotesStep_Handle(t *testing.T) {
 					Return(nil)
 
 				confirmation := sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, text string, keyboard dto.Keyboard) error {
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, text string, keyboard dto.Keyboard) error {
 						assert.Contains(t, text, "15 марта")
 						assert.Contains(t, text, "🤼 Open Mat")
 						assert.Contains(t, text, "60 минут")
@@ -212,7 +212,7 @@ func TestNotesStep_Handle(t *testing.T) {
 					})
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, "Вот что я умею:", gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, "Вот что я умею:", gomock.Any()).
 					After(confirmation).
 					Return(nil)
 			},
@@ -230,7 +230,7 @@ func TestNotesStep_Handle(t *testing.T) {
 			in: dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackSkipNotes},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				repo.EXPECT().

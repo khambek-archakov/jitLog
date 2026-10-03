@@ -49,7 +49,7 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 
 	id, ok := parseID(in.CallbackData, callbackDeletePrefix)
 	if !ok {
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	s, err := uc.getOwnSlot(ctx, id, userID)
@@ -57,20 +57,20 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 		return err
 	}
 	if s == nil {
-		return uc.bot.AnswerCallbackWithText(in.CallbackID, notFoundText)
+		return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, notFoundText)
 	}
 
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, confirmText(s), confirmKeyboard(s.ID))
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, confirmText(s), confirmKeyboard(s.ID))
 }
 
 func (uc *UseCase) confirm(ctx context.Context, userID int64, in dto.Input) error {
 	id, ok := parseID(in.CallbackData, callbackDeleteConfirmPrefix)
 	if !ok {
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	s, err := uc.getOwnSlot(ctx, id, userID)
@@ -78,18 +78,18 @@ func (uc *UseCase) confirm(ctx context.Context, userID int64, in dto.Input) erro
 		return err
 	}
 	if s == nil {
-		return uc.bot.AnswerCallbackWithText(in.CallbackID, notFoundText)
+		return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, notFoundText)
 	}
 
 	if err := uc.repo.DeleteSlot(ctx, id); err != nil {
 		return fmt.Errorf("delete schedule slot: %w", err)
 	}
 
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, "🗑 Слот удалён.", deletedKeyboard())
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "🗑 Слот удалён.", deletedKeyboard())
 }
 
 // getOwnSlot fetches a slot and checks it belongs to userID, returning

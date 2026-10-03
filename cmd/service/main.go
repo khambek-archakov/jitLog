@@ -88,7 +88,15 @@ func run() int {
 	logger.Info("postgres connected")
 
 	// telegram bot
-	bot, err := tgbotapi.NewBotAPI(token)
+	//
+	// A client-side timeout is required here: tgbotapi's own NewBotAPI
+	// uses a bare &http.Client{} with no Timeout, so a stalled connection
+	// to Telegram would otherwise hang forever (per-update context
+	// deadlines in internal/handler/update only bound DB calls — pgx
+	// respects ctx, this http.Client doesn't see it at all). Kept above
+	// updateConfig.Timeout (30s, the long-poll's own server-side wait
+	// below) so it never races a legitimate long poll.
+	bot, err := tgbotapi.NewBotAPIWithClient(token, tgbotapi.APIEndpoint, &http.Client{Timeout: 45 * time.Second})
 	if err != nil {
 		logger.Error("failed to init telegram bot", "error", err)
 		return fail
@@ -115,13 +123,26 @@ func run() int {
 	scheduleUpdateUseCase := scheduleupdate.New(gateway, schedules)
 	scheduleDeleteUseCase := scheduledelete.New(gateway, schedules)
 
-	handlers := chain.New(
-		onboardingUseCase, trainingCreateUseCase, trainingInfoUseCase, trainingHistoryUseCase, trainingUpdateUseCase,
-		trainingDeleteUseCase, trainingStatsUseCase, profileUseCase, scheduleCreateUseCase, scheduleListUseCase,
-		scheduleInfoUseCase, scheduleUpdateUseCase, scheduleDeleteUseCase,
-		trainings, trainings, schedules, schedules,
-	).Default()
-	appRouter := router.New(handlers, users)
+	appChain := chain.New(chain.Dependencies{
+		Onboarding:        onboardingUseCase,
+		TrainingCreate:    trainingCreateUseCase,
+		TrainingInfo:      trainingInfoUseCase,
+		TrainingHistory:   trainingHistoryUseCase,
+		TrainingUpdate:    trainingUpdateUseCase,
+		TrainingDelete:    trainingDeleteUseCase,
+		TrainingStats:     trainingStatsUseCase,
+		Profile:           profileUseCase,
+		ScheduleCreate:    scheduleCreateUseCase,
+		ScheduleList:      scheduleListUseCase,
+		ScheduleInfo:      scheduleInfoUseCase,
+		ScheduleUpdate:    scheduleUpdateUseCase,
+		ScheduleDelete:    scheduleDeleteUseCase,
+		TrainingDraft:     trainings,
+		TrainingEditDraft: trainings,
+		ScheduleDraft:     schedules,
+		ScheduleEditDraft: schedules,
+	})
+	appRouter := router.New(appChain, users)
 
 	updateHandler := updatehandler.New(appRouter, logger)
 

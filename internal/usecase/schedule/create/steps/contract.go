@@ -9,11 +9,11 @@ import (
 )
 
 type sender interface {
-	Send(chatID int64, text string) error
-	SendWithKeyboard(chatID int64, text string, keyboard dto.Keyboard) error
-	EditMessageWithKeyboard(chatID int64, messageID int, text string, keyboard dto.Keyboard) error
-	AnswerCallback(callbackID string) error
-	AnswerCallbackWithText(callbackID, text string) error
+	Send(ctx context.Context, chatID int64, text string) error
+	SendWithKeyboard(ctx context.Context, chatID int64, text string, keyboard dto.Keyboard) error
+	EditMessageWithKeyboard(ctx context.Context, chatID int64, messageID int, text string, keyboard dto.Keyboard) error
+	AnswerCallback(ctx context.Context, callbackID string) error
+	AnswerCallbackWithText(ctx context.Context, callbackID, text string) error
 }
 
 // draftRepo is what a step needs from the schedule_draft/schedule_slot

@@ -36,12 +36,12 @@ func TestDayStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackScheduleAdd},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ string, keyboard dto.Keyboard) error {
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ string, keyboard dto.Keyboard) error {
 						require.Len(t, keyboard, 2) // 7 weekdays in one row + cancel row
 						require.Len(t, keyboard[0], 7)
 						assert.Equal(t, "Пн", keyboard[0][0].Label)
@@ -75,7 +75,7 @@ func TestDayStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "junk"},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 			},
 			expected: func(t *testing.T, d *model.ScheduleDraft, err error) {
@@ -93,11 +93,11 @@ func TestDayStep_Handle(t *testing.T) {
 					Return(nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t *testing.T, d *model.ScheduleDraft, err error) {
@@ -114,7 +114,7 @@ func TestDayStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "schedule:draft:day:8"},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 			},
 			expected: func(t *testing.T, d *model.ScheduleDraft, err error) {

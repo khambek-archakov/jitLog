@@ -35,7 +35,7 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 
 	p, ok := parsePeriod(in.CallbackData)
 	if !ok {
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	return uc.handlePeriod(ctx, userID, in, p)
@@ -48,11 +48,11 @@ func (uc *UseCase) handlePeriod(ctx context.Context, userID int64, in dto.Input,
 	}
 
 	if len(all) == 0 {
-		if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+		if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}
 
-		return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, emptyStateText(), emptyStateKeyboard())
+		return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, emptyStateText(), emptyStateKeyboard())
 	}
 
 	// Only needed to decide whether the mode switch shows at all, so it's
@@ -62,7 +62,7 @@ func (uc *UseCase) handlePeriod(ctx context.Context, userID int64, in dto.Input,
 		return fmt.Errorf("list belt promotions: %w", err)
 	}
 
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
@@ -72,7 +72,7 @@ func (uc *UseCase) handlePeriod(ctx context.Context, userID int64, in dto.Input,
 	showModeSwitch := len(promotions) >= 2
 
 	return uc.bot.EditMessageWithKeyboard(
-		in.ChatID, in.MessageID, statsText(p, now, c, weeks), statsKeyboard(p, showModeSwitch),
+		ctx, in.ChatID, in.MessageID, statsText(p, now, c, weeks), statsKeyboard(p, showModeSwitch),
 	)
 }
 
@@ -94,16 +94,16 @@ func (uc *UseCase) handleBelts(ctx context.Context, userID int64, in dto.Input) 
 		return fmt.Errorf("list all trainings: %w", err)
 	}
 
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
 	if len(all) == 0 {
-		return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, emptyStateText(), emptyStateKeyboard())
+		return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, emptyStateText(), emptyStateKeyboard())
 	}
 
 	c := countByBelt(all, promotions)
 	weeks := streak(all, time.Now())
 
-	return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, beltsText(c, promotions, weeks), beltsKeyboard())
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, beltsText(c, promotions, weeks), beltsKeyboard())
 }

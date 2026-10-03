@@ -40,7 +40,7 @@ func TestUseCase_Handle(t *testing.T) {
 			name: "malformed id is just acknowledged",
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "training:view:nope"},
 			prepare: func(sender *Mocksender, repo *MocktrainingRepo) {
-				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
@@ -56,7 +56,7 @@ func TestUseCase_Handle(t *testing.T) {
 					Return(nil, model.ErrNotFound)
 
 				sender.EXPECT().
-					AnswerCallbackWithText("cb-1", "Тренировка не найдена.").
+					AnswerCallbackWithText(gomock.Any(), "cb-1", "Тренировка не найдена.").
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -73,7 +73,7 @@ func TestUseCase_Handle(t *testing.T) {
 					Return(&model.Training{ID: 7, UserID: userID + 1}, nil)
 
 				sender.EXPECT().
-					AnswerCallbackWithText("cb-1", "Тренировка не найдена.").
+					AnswerCallbackWithText(gomock.Any(), "cb-1", "Тренировка не найдена.").
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -108,12 +108,12 @@ func TestUseCase_Handle(t *testing.T) {
 					}, nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, text string, keyboard dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, keyboard dto.Keyboard) error {
 						assert.Contains(t, text, "Тренировка")
 						assert.Contains(t, text, "30 сентября 2026")
 						assert.Contains(t, text, "🥷 No-Gi")

@@ -40,22 +40,22 @@ func (s *TimeStep) Handle(ctx context.Context, d *model.ScheduleDraft, in dto.In
 			return s.handleBack(ctx, d, in)
 
 		case in.CallbackData == callbackTimeOther:
-			if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+			if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 				return err
 			}
 
-			return s.bot.Send(in.ChatID, "Напиши время в формате ЧЧ:ММ, например: 18:30")
+			return s.bot.Send(ctx, in.ChatID, "Напиши время в формате ЧЧ:ММ, например: 18:30")
 
 		case strings.HasPrefix(in.CallbackData, callbackTimePresetPrefix):
 			minutes, ok := parseTimeToken(strings.TrimPrefix(in.CallbackData, callbackTimePresetPrefix))
 			if !ok {
-				return s.bot.AnswerCallback(in.CallbackID)
+				return s.bot.AnswerCallback(ctx, in.CallbackID)
 			}
 
 			return s.saveTime(ctx, d, in, minutes)
 
 		default:
-			return s.bot.AnswerCallback(in.CallbackID)
+			return s.bot.AnswerCallback(ctx, in.CallbackID)
 		}
 	}
 
@@ -65,7 +65,7 @@ func (s *TimeStep) Handle(ctx context.Context, d *model.ScheduleDraft, in dto.In
 
 	minutes, ok := parseTimeText(strings.TrimSpace(in.Text))
 	if !ok {
-		return s.bot.Send(in.ChatID, timeNotParsed)
+		return s.bot.Send(ctx, in.ChatID, timeNotParsed)
 	}
 
 	return s.saveTime(ctx, d, in, minutes)
@@ -80,12 +80,12 @@ func (s *TimeStep) saveTime(ctx context.Context, d *model.ScheduleDraft, in dto.
 	}
 
 	if in.HasCallback {
-		if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+		if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}
 	}
 
-	return s.bot.SendWithKeyboard(in.ChatID, typeQuestion, typeKeyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, typeQuestion, typeKeyboard())
 }
 
 func (s *TimeStep) handleBack(ctx context.Context, d *model.ScheduleDraft, in dto.Input) error {
@@ -95,11 +95,11 @@ func (s *TimeStep) handleBack(ctx context.Context, d *model.ScheduleDraft, in dt
 		return fmt.Errorf("update schedule draft: %w", err)
 	}
 
-	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return s.bot.SendWithKeyboard(in.ChatID, dayQuestion, dayKeyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, dayQuestion, dayKeyboard())
 }
 
 func timeKeyboard() dto.Keyboard {

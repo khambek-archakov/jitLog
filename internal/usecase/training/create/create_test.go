@@ -50,11 +50,11 @@ func TestUseCase_Begin(t *testing.T) {
 					Return(&model.TrainingDraft{ID: 1, UserID: userID, Step: model.TrainingDraftStepAwaitingDate}, nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -108,7 +108,7 @@ func TestUseCase_Continue(t *testing.T) {
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -136,11 +136,11 @@ func TestUseCase_Continue(t *testing.T) {
 					Return(nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, "Вот что я умею:", gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, "Вот что я умею:", gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {

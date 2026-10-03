@@ -36,26 +36,26 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 
 	id, ok := parseTrainingID(in.CallbackData, callbackTrainingViewPrefix)
 	if !ok {
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	t, err := uc.repo.GetTraining(ctx, id)
 	if errors.Is(err, model.ErrNotFound) {
-		return uc.bot.AnswerCallbackWithText(in.CallbackID, notFoundText)
+		return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, notFoundText)
 	}
 	if err != nil {
 		return fmt.Errorf("get training: %w", err)
 	}
 
 	if t.UserID != userID {
-		return uc.bot.AnswerCallbackWithText(in.CallbackID, notFoundText)
+		return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, notFoundText)
 	}
 
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, Card(t), Keyboard(t.ID))
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, Card(t), Keyboard(t.ID))
 }
 
 func parseTrainingID(data, prefix string) (int64, bool) {

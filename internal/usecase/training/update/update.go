@@ -54,24 +54,24 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	t, err := uc.repo.GetTraining(ctx, id)
 	if errors.Is(err, model.ErrNotFound) {
-		return uc.bot.AnswerCallbackWithText(in.CallbackID, notFoundText)
+		return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, notFoundText)
 	}
 	if err != nil {
 		return fmt.Errorf("get training: %w", err)
 	}
 
 	if t.UserID != userID {
-		return uc.bot.AnswerCallbackWithText(in.CallbackID, notFoundText)
+		return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, notFoundText)
 	}
 
 	switch {
 	case action == "":
-		return uc.showMenu(in, t.ID)
+		return uc.showMenu(ctx, in, t.ID)
 
 	case action == "date" || strings.HasPrefix(action, "date:"):
 		return uc.handleDate(ctx, in, t, strings.TrimPrefix(action, "date"))
@@ -86,7 +86,7 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 		return uc.promptNotes(ctx, in, t)
 
 	default:
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 }
 
@@ -109,7 +109,7 @@ func (uc *UseCase) Continue(ctx context.Context, d *model.TrainingEditDraft, in 
 	case model.TrainingEditFieldDuration:
 		minutes, err := strconv.Atoi(strings.TrimSpace(in.Text))
 		if err != nil || minutes <= 0 {
-			return uc.bot.Send(in.ChatID, "Не смог разобрать число, напиши длительность в минутах цифрами.")
+			return uc.bot.Send(ctx, in.ChatID, "Не смог разобрать число, напиши длительность в минутах цифрами.")
 		}
 
 		return uc.finishEdit(ctx, in, d, t.Date, t.TrainingType, int32(minutes), t.Notes)
@@ -124,63 +124,63 @@ func (uc *UseCase) Continue(ctx context.Context, d *model.TrainingEditDraft, in 
 	}
 }
 
-func (uc *UseCase) showMenu(in dto.Input, id int64) error {
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+func (uc *UseCase) showMenu(ctx context.Context, in dto.Input, id int64) error {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, "✏️ Что изменить?", editMenuKeyboard(id))
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "✏️ Что изменить?", editMenuKeyboard(id))
 }
 
 func (uc *UseCase) handleDate(ctx context.Context, in dto.Input, t *model.Training, sub string) error {
 	switch {
 	case sub == "":
 		now := time.Now()
-		return uc.showCalendar(in, t.ID, now.Year(), now.Month())
+		return uc.showCalendar(ctx, in, t.ID, now.Year(), now.Month())
 
 	case strings.HasPrefix(sub, ":cal:"):
 		year, month, ok := calendar.ParseYearMonth(strings.TrimPrefix(sub, ":cal:"))
 		if !ok {
-			return uc.bot.AnswerCallback(in.CallbackID)
+			return uc.bot.AnswerCallback(ctx, in.CallbackID)
 		}
 
-		return uc.showCalendar(in, t.ID, year, month)
+		return uc.showCalendar(ctx, in, t.ID, year, month)
 
 	case strings.HasPrefix(sub, ":pick:"):
 		date, ok := calendar.ParseDate(strings.TrimPrefix(sub, ":pick:"))
 		if !ok {
-			return uc.bot.AnswerCallback(in.CallbackID)
+			return uc.bot.AnswerCallback(ctx, in.CallbackID)
 		}
 
 		return uc.applyUpdate(ctx, in, t, date, t.TrainingType, t.DurationMinutes, t.Notes)
 
 	default:
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 }
 
-func (uc *UseCase) showCalendar(in dto.Input, id int64, year int, month time.Month) error {
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+func (uc *UseCase) showCalendar(ctx context.Context, in dto.Input, id int64, year int, month time.Month) error {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
 	return uc.bot.EditMessageWithKeyboard(
-		in.ChatID, in.MessageID, calendar.Text(year, month), calendar.Keyboard(year, month, dateCalendarCallbacks(id)),
+		ctx, in.ChatID, in.MessageID, calendar.Text(year, month), calendar.Keyboard(year, month, dateCalendarCallbacks(id)),
 	)
 }
 
 func (uc *UseCase) handleType(ctx context.Context, in dto.Input, t *model.Training, sub string) error {
 	if sub == "" {
-		if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+		if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}
 
-		return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, "Какой тип тренировки?", typeKeyboard(t.ID))
+		return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "Какой тип тренировки?", typeKeyboard(t.ID))
 	}
 
 	newType, ok := trainingTypeFromToken(strings.TrimPrefix(sub, ":"))
 	if !ok {
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	return uc.applyUpdate(ctx, in, t, t.Date, newType, t.DurationMinutes, t.Notes)
@@ -188,11 +188,11 @@ func (uc *UseCase) handleType(ctx context.Context, in dto.Input, t *model.Traini
 
 func (uc *UseCase) handleDuration(ctx context.Context, in dto.Input, t *model.Training, sub string) error {
 	if sub == "" {
-		if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+		if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}
 
-		return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, "⏱ Сколько длилась тренировка?", durationKeyboard(t.ID))
+		return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "⏱ Сколько длилась тренировка?", durationKeyboard(t.ID))
 	}
 
 	value := strings.TrimPrefix(sub, ":")
@@ -202,16 +202,16 @@ func (uc *UseCase) handleDuration(ctx context.Context, in dto.Input, t *model.Tr
 			return fmt.Errorf("set training edit draft: %w", err)
 		}
 
-		if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+		if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}
 
-		return uc.bot.Send(in.ChatID, "Напиши длительность в минутах, например: 45")
+		return uc.bot.Send(ctx, in.ChatID, "Напиши длительность в минутах, например: 45")
 	}
 
 	minutes, err := strconv.Atoi(value)
 	if err != nil {
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	return uc.applyUpdate(ctx, in, t, t.Date, t.TrainingType, int32(minutes), t.Notes)
@@ -222,11 +222,11 @@ func (uc *UseCase) promptNotes(ctx context.Context, in dto.Input, t *model.Train
 		return fmt.Errorf("set training edit draft: %w", err)
 	}
 
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.Send(in.ChatID, "Напиши новую заметку:")
+	return uc.bot.Send(ctx, in.ChatID, "Напиши новую заметку:")
 }
 
 func (uc *UseCase) applyUpdate(
@@ -238,11 +238,11 @@ func (uc *UseCase) applyUpdate(
 		return fmt.Errorf("update training: %w", err)
 	}
 
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, info.Card(updated), info.Keyboard(updated.ID))
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, info.Card(updated), info.Keyboard(updated.ID))
 }
 
 func (uc *UseCase) finishEdit(
@@ -258,7 +258,7 @@ func (uc *UseCase) finishEdit(
 		return fmt.Errorf("delete training edit draft: %w", err)
 	}
 
-	return uc.bot.SendWithKeyboard(in.ChatID, info.Card(updated), info.Keyboard(updated.ID))
+	return uc.bot.SendWithKeyboard(ctx, in.ChatID, info.Card(updated), info.Keyboard(updated.ID))
 }
 
 func editMenuKeyboard(id int64) dto.Keyboard {

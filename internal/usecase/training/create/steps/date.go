@@ -51,11 +51,11 @@ func NewDate(bot sender, repo draftRepo) *DateStep {
 
 func (s *DateStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.Input) error {
 	if in.HasCallback && in.CallbackData == callbackMenuAddTraining {
-		if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+		if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}
 
-		return s.bot.SendWithKeyboard(in.ChatID, dateQuestion, dateKeyboard())
+		return s.bot.SendWithKeyboard(ctx, in.ChatID, dateQuestion, dateKeyboard())
 	}
 
 	if in.HasCallback {
@@ -68,7 +68,7 @@ func (s *DateStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.In
 
 	parsed, ok := parseDate(strings.TrimSpace(in.Text))
 	if !ok {
-		return s.bot.Send(in.ChatID, dateNotParsed)
+		return s.bot.Send(ctx, in.ChatID, dateNotParsed)
 	}
 
 	return s.pickDate(ctx, d, in, parsed)
@@ -77,7 +77,7 @@ func (s *DateStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.In
 func (s *DateStep) handleCallback(ctx context.Context, d *model.TrainingDraft, in dto.Input) error {
 	switch {
 	case in.CallbackData == callbackDateNoop:
-		return s.bot.AnswerCallback(in.CallbackID)
+		return s.bot.AnswerCallback(ctx, in.CallbackID)
 
 	case in.CallbackData == callbackDateToday:
 		return s.pickDate(ctx, d, in, time.Now())
@@ -87,33 +87,33 @@ func (s *DateStep) handleCallback(ctx context.Context, d *model.TrainingDraft, i
 
 	case in.CallbackData == callbackDateOther:
 		now := time.Now()
-		return s.showCalendar(in, now.Year(), now.Month())
+		return s.showCalendar(ctx, in, now.Year(), now.Month())
 
 	case in.CallbackData == callbackDateCancel:
-		if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+		if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}
 
-		return s.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, dateQuestion, dateKeyboard())
+		return s.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, dateQuestion, dateKeyboard())
 
 	case strings.HasPrefix(in.CallbackData, callbackDateCalendarPrefix):
 		year, month, ok := calendar.ParseYearMonth(strings.TrimPrefix(in.CallbackData, callbackDateCalendarPrefix))
 		if !ok {
-			return s.bot.AnswerCallback(in.CallbackID)
+			return s.bot.AnswerCallback(ctx, in.CallbackID)
 		}
 
-		return s.showCalendar(in, year, month)
+		return s.showCalendar(ctx, in, year, month)
 
 	case strings.HasPrefix(in.CallbackData, callbackDatePickPrefix):
 		date, ok := calendar.ParseDate(strings.TrimPrefix(in.CallbackData, callbackDatePickPrefix))
 		if !ok {
-			return s.bot.AnswerCallback(in.CallbackID)
+			return s.bot.AnswerCallback(ctx, in.CallbackID)
 		}
 
 		return s.pickDate(ctx, d, in, date)
 
 	default:
-		return s.bot.AnswerCallback(in.CallbackID)
+		return s.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 }
 
@@ -121,13 +121,13 @@ func (s *DateStep) handleCallback(ctx context.Context, d *model.TrainingDraft, i
 // year/month, in place — used both for the first "📅 Другая дата" tap and
 // for every ‹/› navigation afterwards, so paging months never spams the chat
 // with new messages.
-func (s *DateStep) showCalendar(in dto.Input, year int, month time.Month) error {
-	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+func (s *DateStep) showCalendar(ctx context.Context, in dto.Input, year int, month time.Month) error {
+	if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
 	return s.bot.EditMessageWithKeyboard(
-		in.ChatID, in.MessageID, calendar.Text(year, month), calendar.Keyboard(year, month, dateCalendarCallbacks),
+		ctx, in.ChatID, in.MessageID, calendar.Text(year, month), calendar.Keyboard(year, month, dateCalendarCallbacks),
 	)
 }
 
@@ -140,12 +140,12 @@ func (s *DateStep) pickDate(ctx context.Context, d *model.TrainingDraft, in dto.
 	}
 
 	if in.HasCallback {
-		if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+		if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}
 	}
 
-	return s.bot.SendWithKeyboard(in.ChatID, typeQuestion, typeKeyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, typeQuestion, typeKeyboard())
 }
 
 func dateKeyboard() dto.Keyboard {

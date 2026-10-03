@@ -67,9 +67,9 @@ func (uc *UseCase) cancel(ctx context.Context, d *model.ScheduleDraft, in dto.In
 		return fmt.Errorf("delete schedule draft: %w", err)
 	}
 
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.SendWithKeyboard(in.ChatID, menu.Text, menu.Keyboard())
+	return uc.bot.SendWithKeyboard(ctx, in.ChatID, menu.Text, menu.Keyboard())
 }

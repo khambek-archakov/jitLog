@@ -19,7 +19,7 @@ type scheduleEditDraftContinuation struct {
 func (h *scheduleEditDraftContinuation) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	draft, err := h.edits.GetEditDraftByUserID(ctx, u.ID)
 	if errors.Is(err, model.ErrNotFound) {
-		return ErrSkip
+		return model.ErrSkip
 	}
 	if err != nil {
 		return fmt.Errorf("get schedule edit draft: %w", err)

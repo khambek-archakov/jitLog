@@ -1,8 +1,9 @@
-// Package router resolves the current user once per update and walks a
-// chain of responsibility (see internal/usecase/router/chain) to decide
-// which scenario handles it. Router itself knows nothing about onboarding
-// or training — that knowledge, and the order it must be tried in, lives
-// entirely in the chain package.
+// Package router resolves the current user once per update and hands it to
+// the assembled chain of responsibility (see internal/usecase/router/chain)
+// to decide which scenario handles it. Router itself knows nothing about
+// onboarding or training, nor even that "the chain" is a walked list at
+// all — that's entirely chain.Chain's own concern, reached through its one
+// exported Handle method.
 package router
 
 import (
@@ -12,16 +13,15 @@ import (
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
-	"github.com/khambek-archakov/jitLog/internal/usecase/router/chain"
 )
 
 type Router struct {
-	handlers []chain.Handler
-	user     user
+	chain chain
+	user  user
 }
 
-func New(handlers []chain.Handler, user user) *Router {
-	return &Router{handlers: handlers, user: user}
+func New(c chain, user user) *Router {
+	return &Router{chain: c, user: user}
 }
 
 func (r *Router) Route(ctx context.Context, in dto.Input) error {
@@ -33,13 +33,7 @@ func (r *Router) Route(ctx context.Context, in dto.Input) error {
 		return nil
 	}
 
-	for _, h := range r.handlers {
-		if err := h.Handle(ctx, u, in); !errors.Is(err, chain.ErrSkip) {
-			return err
-		}
-	}
-
-	return nil
+	return r.chain.Handle(ctx, u, in)
 }
 
 func (r *Router) getOrCreateUser(ctx context.Context, in dto.Input) (*model.User, error) {

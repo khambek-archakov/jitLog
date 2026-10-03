@@ -41,7 +41,7 @@ func TestUseCase_Handle(t *testing.T) {
 			name: "malformed page is just acknowledged",
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "junk"},
 			prepare: func(sender *Mocksender, repo *MocktrainingRepo) {
-				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
@@ -70,12 +70,12 @@ func TestUseCase_Handle(t *testing.T) {
 					Return(nil, false, nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), "Тренировок пока нет.", gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, _ string, keyboard dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "Тренировок пока нет.", gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, keyboard dto.Keyboard) error {
 						require.Len(t, keyboard, 1)
 						assert.Equal(t, "menu:back", keyboard[0][0].Data)
 
@@ -98,12 +98,12 @@ func TestUseCase_Handle(t *testing.T) {
 					}, true, nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), "🗒️ Мои тренировки", gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, _ string, keyboard dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "🗒️ Мои тренировки", gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, keyboard dto.Keyboard) error {
 						require.Len(t, keyboard, 3)
 
 						assert.Equal(t, "training:view:7", keyboard[0][0].Data)
@@ -135,12 +135,12 @@ func TestUseCase_Handle(t *testing.T) {
 					}, true, nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, _ string, keyboard dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, keyboard dto.Keyboard) error {
 						require.Len(t, keyboard[1], 2)
 						assert.Equal(t, "‹", keyboard[1][0].Label)
 						assert.Equal(t, "training:history:page:0", keyboard[1][0].Data)
@@ -166,12 +166,12 @@ func TestUseCase_Handle(t *testing.T) {
 					}, false, nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, _ string, keyboard dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, keyboard dto.Keyboard) error {
 						require.Len(t, keyboard[1], 1)
 						assert.Equal(t, "‹", keyboard[1][0].Label)
 						assert.Equal(t, "training:history:page:1", keyboard[1][0].Data)

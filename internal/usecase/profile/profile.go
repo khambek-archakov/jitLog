@@ -36,39 +36,39 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 
 	switch {
 	case in.CallbackData == callbackProfileShow:
-		return uc.showProfile(u, in)
+		return uc.showProfile(ctx, u, in)
 
 	case in.CallbackData == callbackProfileBeltEdit:
-		return uc.showBeltPicker(u, in)
+		return uc.showBeltPicker(ctx, u, in)
 
 	case strings.HasPrefix(in.CallbackData, callbackProfileBeltSetPrefix):
 		return uc.setBelt(ctx, u, in)
 
 	default:
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 }
 
-func (uc *UseCase) showProfile(u *model.User, in dto.Input) error {
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+func (uc *UseCase) showProfile(ctx context.Context, u *model.User, in dto.Input) error {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, profileText(u), profileKeyboard())
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, profileText(u), profileKeyboard())
 }
 
-func (uc *UseCase) showBeltPicker(u *model.User, in dto.Input) error {
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+func (uc *UseCase) showBeltPicker(ctx context.Context, u *model.User, in dto.Input) error {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, beltPickerText, beltPickerKeyboard(u.Belt))
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, beltPickerText, beltPickerKeyboard(u.Belt))
 }
 
 func (uc *UseCase) setBelt(ctx context.Context, u *model.User, in dto.Input) error {
 	belt, ok := beltFromToken(strings.TrimPrefix(in.CallbackData, callbackProfileBeltSetPrefix))
 	if !ok {
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	u.Belt = belt
@@ -82,9 +82,9 @@ func (uc *UseCase) setBelt(ctx context.Context, u *model.User, in dto.Input) err
 		return fmt.Errorf("add belt promotion: %w", err)
 	}
 
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, profileText(u), profileKeyboard())
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, profileText(u), profileKeyboard())
 }

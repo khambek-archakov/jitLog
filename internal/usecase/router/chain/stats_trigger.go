@@ -21,7 +21,7 @@ type statsTrigger struct {
 
 func (h *statsTrigger) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	if !in.HasCallback || !strings.HasPrefix(in.CallbackData, callbackStatsPrefix) {
-		return ErrSkip
+		return model.ErrSkip
 	}
 
 	return h.stats.Handle(ctx, u.ID, in)

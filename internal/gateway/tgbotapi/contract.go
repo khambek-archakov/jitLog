@@ -7,8 +7,9 @@ import (
 
 // transport is what Gateway needs from a Telegram bot client — satisfied by
 // *tgbotapi.BotAPI, but kept as an interface so Gateway doesn't depend on
-// the concrete type (and can be tested with a fake).
+// the concrete type (and can be tested with a fake). Request alone covers
+// every call Gateway makes — it never needs Send's extra step of parsing
+// the response into a tgbotapi.Message, since no caller uses that value.
 type transport interface {
-	Send(c tgbotapi.Chattable) (tgbotapi.Message, error)
 	Request(c tgbotapi.Chattable) (*tgbotapi.APIResponse, error)
 }

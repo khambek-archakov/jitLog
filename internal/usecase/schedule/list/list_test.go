@@ -45,11 +45,11 @@ func TestUseCase_Handle(t *testing.T) {
 					}, nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, messageID, gomock.Any(), gomock.Any()).
+					EditMessageWithKeyboard(gomock.Any(), chatID, messageID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -75,7 +75,7 @@ func TestUseCase_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "junk"},
 			prepare: func(sender *Mocksender, repo *MockslotRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {

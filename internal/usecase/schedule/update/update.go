@@ -53,24 +53,24 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	s, err := uc.repo.GetSlot(ctx, id)
 	if errors.Is(err, model.ErrNotFound) {
-		return uc.bot.AnswerCallbackWithText(in.CallbackID, notFoundText)
+		return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, notFoundText)
 	}
 	if err != nil {
 		return fmt.Errorf("get schedule slot: %w", err)
 	}
 
 	if s.UserID != userID {
-		return uc.bot.AnswerCallbackWithText(in.CallbackID, notFoundText)
+		return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, notFoundText)
 	}
 
 	switch {
 	case action == "":
-		return uc.showMenu(in, s.ID)
+		return uc.showMenu(ctx, in, s.ID)
 
 	case action == "day" || strings.HasPrefix(action, "day:"):
 		return uc.handleDay(ctx, in, s, strings.TrimPrefix(action, "day"))
@@ -82,7 +82,7 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 		return uc.handleType(ctx, in, s, strings.TrimPrefix(action, "type"))
 
 	default:
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 }
 
@@ -103,32 +103,32 @@ func (uc *UseCase) Continue(ctx context.Context, d *model.ScheduleEditDraft, in 
 
 	minutes, ok := parseTimeText(strings.TrimSpace(in.Text))
 	if !ok {
-		return uc.bot.Send(in.ChatID, timeNotParsed)
+		return uc.bot.Send(ctx, in.ChatID, timeNotParsed)
 	}
 
 	return uc.finishEdit(ctx, in, d, s.DayOfWeek, minutes, s.TrainingType)
 }
 
-func (uc *UseCase) showMenu(in dto.Input, id int64) error {
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+func (uc *UseCase) showMenu(ctx context.Context, in dto.Input, id int64) error {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, "✏️ Что изменить?", editMenuKeyboard(id))
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "✏️ Что изменить?", editMenuKeyboard(id))
 }
 
 func (uc *UseCase) handleDay(ctx context.Context, in dto.Input, s *model.ScheduleSlot, sub string) error {
 	if sub == "" {
-		if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+		if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}
 
-		return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, "📅 Какой день недели?", dayKeyboard(s.ID))
+		return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "📅 Какой день недели?", dayKeyboard(s.ID))
 	}
 
 	day, ok := dayFromToken(strings.TrimPrefix(sub, ":"))
 	if !ok {
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	return uc.applyUpdate(ctx, in, s, day, s.TimeMinutes, s.TrainingType)
@@ -137,48 +137,48 @@ func (uc *UseCase) handleDay(ctx context.Context, in dto.Input, s *model.Schedul
 func (uc *UseCase) handleTime(ctx context.Context, in dto.Input, s *model.ScheduleSlot, sub string) error {
 	switch {
 	case sub == "":
-		if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+		if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}
 
-		return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, "🕐 Во сколько?", timeKeyboard(s.ID))
+		return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "🕐 Во сколько?", timeKeyboard(s.ID))
 
 	case sub == ":other":
 		if err := uc.repo.SetEditDraft(ctx, s.UserID, s.ID); err != nil {
 			return fmt.Errorf("set schedule edit draft: %w", err)
 		}
 
-		if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+		if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}
 
-		return uc.bot.Send(in.ChatID, "Напиши время в формате ЧЧ:ММ, например: 18:30")
+		return uc.bot.Send(ctx, in.ChatID, "Напиши время в формате ЧЧ:ММ, например: 18:30")
 
 	case strings.HasPrefix(sub, ":preset:"):
 		minutes, ok := parseTimeToken(strings.TrimPrefix(sub, ":preset:"))
 		if !ok {
-			return uc.bot.AnswerCallback(in.CallbackID)
+			return uc.bot.AnswerCallback(ctx, in.CallbackID)
 		}
 
 		return uc.applyUpdate(ctx, in, s, s.DayOfWeek, minutes, s.TrainingType)
 
 	default:
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 }
 
 func (uc *UseCase) handleType(ctx context.Context, in dto.Input, s *model.ScheduleSlot, sub string) error {
 	if sub == "" {
-		if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+		if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}
 
-		return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, "Какой тип тренировки?", typeKeyboard(s.ID))
+		return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "Какой тип тренировки?", typeKeyboard(s.ID))
 	}
 
 	newType, ok := trainingTypeFromToken(strings.TrimPrefix(sub, ":"))
 	if !ok {
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	return uc.applyUpdate(ctx, in, s, s.DayOfWeek, s.TimeMinutes, newType)
@@ -192,11 +192,11 @@ func (uc *UseCase) applyUpdate(
 		return fmt.Errorf("update schedule slot: %w", err)
 	}
 
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, info.Card(updated), info.Keyboard(updated.ID))
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, info.Card(updated), info.Keyboard(updated.ID))
 }
 
 func (uc *UseCase) finishEdit(
@@ -211,7 +211,7 @@ func (uc *UseCase) finishEdit(
 		return fmt.Errorf("delete schedule edit draft: %w", err)
 	}
 
-	return uc.bot.SendWithKeyboard(in.ChatID, info.Card(updated), info.Keyboard(updated.ID))
+	return uc.bot.SendWithKeyboard(ctx, in.ChatID, info.Card(updated), info.Keyboard(updated.ID))
 }
 
 func editMenuKeyboard(id int64) dto.Keyboard {

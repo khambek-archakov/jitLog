@@ -38,26 +38,26 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 
 	id, ok := parseSlotID(in.CallbackData, callbackViewPrefix)
 	if !ok {
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	s, err := uc.repo.GetSlot(ctx, id)
 	if errors.Is(err, model.ErrNotFound) {
-		return uc.bot.AnswerCallbackWithText(in.CallbackID, notFoundText)
+		return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, notFoundText)
 	}
 	if err != nil {
 		return fmt.Errorf("get schedule slot: %w", err)
 	}
 
 	if s.UserID != userID {
-		return uc.bot.AnswerCallbackWithText(in.CallbackID, notFoundText)
+		return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, notFoundText)
 	}
 
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, Card(s), Keyboard(s.ID))
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, Card(s), Keyboard(s.ID))
 }
 
 func parseSlotID(data, prefix string) (int64, bool) {

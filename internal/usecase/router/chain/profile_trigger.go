@@ -19,7 +19,7 @@ type profileTrigger struct {
 
 func (h *profileTrigger) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	if !in.HasCallback || !strings.HasPrefix(in.CallbackData, callbackProfilePrefix) {
-		return ErrSkip
+		return model.ErrSkip
 	}
 
 	return h.profile.Handle(ctx, u, in)

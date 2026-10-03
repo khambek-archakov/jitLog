@@ -42,7 +42,7 @@ func TestUseCase_Handle(t *testing.T) {
 			name: "malformed id is just acknowledged",
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "training:delete:nope"},
 			prepare: func(sender *Mocksender, repo *MocktrainingRepo) {
-				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
@@ -54,7 +54,7 @@ func TestUseCase_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "training:delete:7"},
 			prepare: func(sender *Mocksender, repo *MocktrainingRepo) {
 				repo.EXPECT().GetTraining(gomock.Any(), int64(7)).Return(nil, model.ErrNotFound)
-				sender.EXPECT().AnswerCallbackWithText("cb-1", "Тренировка не найдена.").Return(nil)
+				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Тренировка не найдена.").Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
@@ -68,7 +68,7 @@ func TestUseCase_Handle(t *testing.T) {
 				other := *training
 				other.UserID = userID + 1
 				repo.EXPECT().GetTraining(gomock.Any(), int64(7)).Return(&other, nil)
-				sender.EXPECT().AnswerCallbackWithText("cb-1", "Тренировка не найдена.").Return(nil)
+				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Тренировка не найдена.").Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
@@ -94,11 +94,11 @@ func TestUseCase_Handle(t *testing.T) {
 			prepare: func(sender *Mocksender, repo *MocktrainingRepo) {
 				repo.EXPECT().GetTraining(gomock.Any(), int64(7)).Return(training, nil)
 
-				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, text string, kb dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
 						assert.Contains(t, text, "Удалить тренировку?")
 						assert.Equal(t, "training:delete:confirm:7", kb[0][0].Data)
 						assert.Equal(t, "training:view:7", kb[1][0].Data)
@@ -121,11 +121,11 @@ func TestUseCase_Handle(t *testing.T) {
 				repo.EXPECT().GetTraining(gomock.Any(), int64(7)).Return(training, nil)
 				repo.EXPECT().DeleteTraining(gomock.Any(), int64(7)).Return(nil)
 
-				sender.EXPECT().AnswerCallback("cb-1").Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, int(messageID), "🗑 Тренировка удалена.", gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, _ string, kb dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "🗑 Тренировка удалена.", gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
 						require.Len(t, kb, 1)
 						assert.Equal(t, "training:history:page:0", kb[0][0].Data)
 
@@ -146,7 +146,7 @@ func TestUseCase_Handle(t *testing.T) {
 				other := *training
 				other.UserID = userID + 1
 				repo.EXPECT().GetTraining(gomock.Any(), int64(7)).Return(&other, nil)
-				sender.EXPECT().AnswerCallbackWithText("cb-1", "Тренировка не найдена.").Return(nil)
+				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Тренировка не найдена.").Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)

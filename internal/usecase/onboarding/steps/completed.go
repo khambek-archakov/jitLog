@@ -24,9 +24,9 @@ func NewCompleted(bot sender) *CompletedStep {
 	return &CompletedStep{bot: bot}
 }
 
-func (s *CompletedStep) Handle(_ context.Context, _ *model.User, in dto.Input) error {
+func (s *CompletedStep) Handle(ctx context.Context, _ *model.User, in dto.Input) error {
 	if in.IsStartCmd {
-		return sendMainMenu(s.bot, in.ChatID, welcomeBack)
+		return sendMainMenu(ctx, s.bot, in.ChatID, welcomeBack)
 	}
 
 	if in.HasCallback {
@@ -36,23 +36,23 @@ func (s *CompletedStep) Handle(_ context.Context, _ *model.User, in dto.Input) e
 		// training:delete:* are intercepted upstream by the router before
 		// they ever reach here (see internal/usecase/router).
 		case callbackMenuBack:
-			if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+			if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 				return err
 			}
 
-			return sendMainMenu(s.bot, in.ChatID, menu.Text)
+			return sendMainMenu(ctx, s.bot, in.ChatID, menu.Text)
 		default:
-			return s.bot.AnswerCallback(in.CallbackID)
+			return s.bot.AnswerCallback(ctx, in.CallbackID)
 		}
 	}
 
 	if in.HasMessage {
-		return sendMainMenu(s.bot, in.ChatID, menu.Text)
+		return sendMainMenu(ctx, s.bot, in.ChatID, menu.Text)
 	}
 
 	return nil
 }
 
-func sendMainMenu(bot sender, chatID int64, text string) error {
-	return bot.SendWithKeyboard(chatID, text, menu.Keyboard())
+func sendMainMenu(ctx context.Context, bot sender, chatID int64, text string) error {
+	return bot.SendWithKeyboard(ctx, chatID, text, menu.Keyboard())
 }

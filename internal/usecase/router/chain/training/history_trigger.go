@@ -1,4 +1,4 @@
-package chain
+package training
 
 import (
 	"context"
@@ -17,7 +17,7 @@ type historyTrigger struct {
 
 func (h *historyTrigger) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	if !in.HasCallback || !strings.HasPrefix(in.CallbackData, callbackHistoryPagePrefix) {
-		return ErrSkip
+		return model.ErrSkip
 	}
 
 	return h.history.Handle(ctx, u.ID, in)

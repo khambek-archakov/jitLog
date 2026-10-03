@@ -43,11 +43,11 @@ func TestTimeStep_Handle(t *testing.T) {
 					Return(nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t *testing.T, d *model.ScheduleDraft, err error) {
@@ -76,11 +76,11 @@ func TestTimeStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackTimeOther},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					Send(chatID, gomock.Any()).
+					Send(gomock.Any(), chatID, gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t *testing.T, d *model.ScheduleDraft, err error) {
@@ -98,11 +98,11 @@ func TestTimeStep_Handle(t *testing.T) {
 					Return(nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t *testing.T, d *model.ScheduleDraft, err error) {
@@ -119,7 +119,7 @@ func TestTimeStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "schedule:draft:time:preset:bogus"},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 			},
 			expected: func(t *testing.T, d *model.ScheduleDraft, err error) {
@@ -134,7 +134,7 @@ func TestTimeStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "junk"},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 			},
 			expected: func(t *testing.T, d *model.ScheduleDraft, err error) {
@@ -162,7 +162,7 @@ func TestTimeStep_Handle(t *testing.T) {
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t *testing.T, d *model.ScheduleDraft, err error) {
@@ -179,7 +179,7 @@ func TestTimeStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasMessage: true, Text: "not a time"},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					Send(chatID, gomock.Any()).
+					Send(gomock.Any(), chatID, gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t *testing.T, d *model.ScheduleDraft, err error) {

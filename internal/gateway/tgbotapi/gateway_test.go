@@ -1,8 +1,10 @@
 package tgbotapi_test
 
 import (
+	"context"
 	"errors"
 	"testing"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/stretchr/testify/assert"
@@ -27,8 +29,8 @@ func TestGateway_Send(t *testing.T) {
 			name: "success",
 			prepare: func(transport *Mocktransport) {
 				transport.EXPECT().
-					Send(gomock.Any()).
-					Return(tgbotapi.Message{}, nil)
+					Request(gomock.Any()).
+					Return(&tgbotapi.APIResponse{}, nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
@@ -39,8 +41,8 @@ func TestGateway_Send(t *testing.T) {
 			name: "transport error",
 			prepare: func(transport *Mocktransport) {
 				transport.EXPECT().
-					Send(gomock.Any()).
-					Return(tgbotapi.Message{}, errors.New("fail"))
+					Request(gomock.Any()).
+					Return(nil, errors.New("fail"))
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.Error(t, err)
@@ -60,7 +62,7 @@ func TestGateway_Send(t *testing.T) {
 
 			g := gateway.New(mockTransport)
 
-			err := g.Send(chatID, "hello")
+			err := g.Send(context.Background(), chatID, "hello")
 
 			tc.expected(t, err)
 		})
@@ -87,8 +89,8 @@ func TestGateway_SendWithKeyboard(t *testing.T) {
 			name: "keyboard is translated row by row",
 			prepare: func(transport *Mocktransport) {
 				transport.EXPECT().
-					Send(gomock.Any()).
-					DoAndReturn(func(c tgbotapi.Chattable) (tgbotapi.Message, error) {
+					Request(gomock.Any()).
+					DoAndReturn(func(c tgbotapi.Chattable) (*tgbotapi.APIResponse, error) {
 						msg, ok := c.(tgbotapi.MessageConfig)
 						require.True(t, ok)
 
@@ -104,7 +106,7 @@ func TestGateway_SendWithKeyboard(t *testing.T) {
 						assert.Equal(t, "Синий", markup.InlineKeyboard[1][1].Text)
 						assert.Equal(t, "belt:blue", *markup.InlineKeyboard[1][1].CallbackData)
 
-						return tgbotapi.Message{}, nil
+						return &tgbotapi.APIResponse{}, nil
 					})
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -116,8 +118,8 @@ func TestGateway_SendWithKeyboard(t *testing.T) {
 			name: "transport error",
 			prepare: func(transport *Mocktransport) {
 				transport.EXPECT().
-					Send(gomock.Any()).
-					Return(tgbotapi.Message{}, errors.New("fail"))
+					Request(gomock.Any()).
+					Return(nil, errors.New("fail"))
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.Error(t, err)
@@ -137,7 +139,7 @@ func TestGateway_SendWithKeyboard(t *testing.T) {
 
 			g := gateway.New(mockTransport)
 
-			err := g.SendWithKeyboard(chatID, "pick one", keyboard)
+			err := g.SendWithKeyboard(context.Background(), chatID, "pick one", keyboard)
 
 			tc.expected(t, err)
 		})
@@ -162,14 +164,14 @@ func TestGateway_EditMessageWithKeyboard(t *testing.T) {
 			name: "success",
 			prepare: func(transport *Mocktransport) {
 				transport.EXPECT().
-					Send(gomock.Any()).
-					DoAndReturn(func(c tgbotapi.Chattable) (tgbotapi.Message, error) {
+					Request(gomock.Any()).
+					DoAndReturn(func(c tgbotapi.Chattable) (*tgbotapi.APIResponse, error) {
 						edit, ok := c.(tgbotapi.EditMessageTextConfig)
 						require.True(t, ok)
 						assert.Equal(t, chatID, edit.ChatID)
 						assert.Equal(t, messageID, edit.MessageID)
 
-						return tgbotapi.Message{}, nil
+						return &tgbotapi.APIResponse{}, nil
 					})
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -181,8 +183,8 @@ func TestGateway_EditMessageWithKeyboard(t *testing.T) {
 			name: "transport error",
 			prepare: func(transport *Mocktransport) {
 				transport.EXPECT().
-					Send(gomock.Any()).
-					Return(tgbotapi.Message{}, errors.New("fail"))
+					Request(gomock.Any()).
+					Return(nil, errors.New("fail"))
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.Error(t, err)
@@ -202,7 +204,7 @@ func TestGateway_EditMessageWithKeyboard(t *testing.T) {
 
 			g := gateway.New(mockTransport)
 
-			err := g.EditMessageWithKeyboard(chatID, messageID, "new text", keyboard)
+			err := g.EditMessageWithKeyboard(context.Background(), chatID, messageID, "new text", keyboard)
 
 			tc.expected(t, err)
 		})
@@ -266,7 +268,7 @@ func TestGateway_AnswerCallback(t *testing.T) {
 
 			g := gateway.New(mockTransport)
 
-			err := g.AnswerCallback(tc.callbackID)
+			err := g.AnswerCallback(context.Background(), tc.callbackID)
 
 			tc.expected(t, err)
 		})
@@ -330,9 +332,54 @@ func TestGateway_AnswerCallbackWithText(t *testing.T) {
 
 			g := gateway.New(mockTransport)
 
-			err := g.AnswerCallbackWithText(tc.callbackID, "Скоро!")
+			err := g.AnswerCallbackWithText(context.Background(), tc.callbackID, "Скоро!")
 
 			tc.expected(t, err)
 		})
 	}
+}
+
+func TestGateway_RespectsContext(t *testing.T) {
+	t.Parallel()
+
+	t.Run("a cancelled context returns immediately instead of waiting for a stalled transport call", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+
+		mockTransport := NewMocktransport(ctrl)
+
+		started := make(chan struct{})
+		release := make(chan struct{})
+		t.Cleanup(func() { close(release) })
+
+		mockTransport.EXPECT().
+			Request(gomock.Any()).
+			DoAndReturn(func(tgbotapi.Chattable) (*tgbotapi.APIResponse, error) {
+				close(started) // prove the call genuinely started before ctx fires
+
+				<-release // never sent during this test — simulates a stalled call
+
+				return &tgbotapi.APIResponse{}, nil
+			})
+
+		g := gateway.New(mockTransport)
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		// Cancel only once the transport call is confirmed in-flight —
+		// cancelling upfront would race the goroutine that calls
+		// bot.Request, since ctx.Done() could already be selected before
+		// that goroutine is even scheduled.
+		go func() {
+			<-started
+			cancel()
+		}()
+
+		start := time.Now()
+		err := g.Send(ctx, chatID, "hello")
+
+		assert.ErrorIs(t, err, context.Canceled)
+		assert.Less(t, time.Since(start), time.Second)
+	})
 }

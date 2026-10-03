@@ -42,7 +42,7 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 
 	page, ok := parsePage(in.CallbackData)
 	if !ok {
-		return uc.bot.AnswerCallback(in.CallbackID)
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	trainings, hasMore, err := uc.repo.ListTrainings(ctx, userID, pageSize, page*pageSize)
@@ -50,11 +50,11 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 		return fmt.Errorf("list trainings: %w", err)
 	}
 
-	if err := uc.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(in.ChatID, in.MessageID, listText(trainings), listKeyboard(trainings, page, hasMore))
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, listText(trainings), listKeyboard(trainings, page, hasMore))
 }
 
 func listText(trainings []*model.Training) string {

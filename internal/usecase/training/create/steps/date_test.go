@@ -47,12 +47,12 @@ func TestDateStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackMenuAddTraining},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ string, keyboard dto.Keyboard) error {
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ string, keyboard dto.Keyboard) error {
 						last := keyboard[len(keyboard)-1]
 						require.Len(t, last, 1)
 						assert.Equal(t, "❌ Отмена", last[0].Label)
@@ -83,7 +83,7 @@ func TestDateStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "junk"},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
@@ -101,11 +101,11 @@ func TestDateStep_Handle(t *testing.T) {
 					Return(nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
@@ -126,11 +126,11 @@ func TestDateStep_Handle(t *testing.T) {
 					Return(nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
@@ -147,7 +147,7 @@ func TestDateStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasMessage: true, Text: "not a date"},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					Send(chatID, gomock.Any()).
+					Send(gomock.Any(), chatID, gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
@@ -166,7 +166,7 @@ func TestDateStep_Handle(t *testing.T) {
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
@@ -198,12 +198,12 @@ func TestDateStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, MessageID: messageID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackDateOther},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, messageID, gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, text string, keyboard dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, messageID, gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, keyboard dto.Keyboard) error {
 						now := time.Now()
 						assert.Contains(t, text, now.Format("2006"))
 
@@ -234,12 +234,12 @@ func TestDateStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, MessageID: messageID, HasCallback: true, CallbackID: "cb-1", CallbackData: "training:date:cal:2020-01"},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, messageID, "📅 Январь 2020", gomock.Any()).
-					DoAndReturn(func(_ int64, _ int, _ string, keyboard dto.Keyboard) error {
+					EditMessageWithKeyboard(gomock.Any(), chatID, messageID, "📅 Январь 2020", gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, keyboard dto.Keyboard) error {
 						// January 2020 is fully in the past, so every day 1-31
 						// is a real, pickable button somewhere in the grid.
 						found := map[string]bool{}
@@ -270,7 +270,7 @@ func TestDateStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "training:date:cal:not-a-month"},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
@@ -288,11 +288,11 @@ func TestDateStep_Handle(t *testing.T) {
 					Return(nil)
 
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
@@ -310,7 +310,7 @@ func TestDateStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "training:date:pick:not-a-date"},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
@@ -324,11 +324,11 @@ func TestDateStep_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, MessageID: messageID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackDateCancel},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				sender.EXPECT().
-					AnswerCallback("cb-1").
+					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(chatID, messageID, "Когда была тренировка?", gomock.Any()).
+					EditMessageWithKeyboard(gomock.Any(), chatID, messageID, "Когда была тренировка?", gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {

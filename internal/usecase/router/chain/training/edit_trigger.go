@@ -1,4 +1,4 @@
-package chain
+package training
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
 
-const callbackTrainingEditPrefix = "training:edit:"
+const callbackEditPrefix = "training:edit:"
 
 // editTrigger covers every training:edit:* callback — the menu, each
 // field's picker, and the stateless quick-value picks.
@@ -17,8 +17,8 @@ type editTrigger struct {
 }
 
 func (h *editTrigger) Handle(ctx context.Context, u *model.User, in dto.Input) error {
-	if !in.HasCallback || !strings.HasPrefix(in.CallbackData, callbackTrainingEditPrefix) {
-		return ErrSkip
+	if !in.HasCallback || !strings.HasPrefix(in.CallbackData, callbackEditPrefix) {
+		return model.ErrSkip
 	}
 
 	return h.update.Handle(ctx, u.ID, in)

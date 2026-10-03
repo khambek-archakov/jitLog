@@ -33,11 +33,11 @@ func NewDay(bot sender, repo draftRepo) *DayStep {
 
 func (s *DayStep) Handle(ctx context.Context, d *model.ScheduleDraft, in dto.Input) error {
 	if in.HasCallback && in.CallbackData == callbackScheduleAdd {
-		if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+		if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}
 
-		return s.bot.SendWithKeyboard(in.ChatID, dayQuestion, dayKeyboard())
+		return s.bot.SendWithKeyboard(ctx, in.ChatID, dayQuestion, dayKeyboard())
 	}
 
 	if !in.HasCallback {
@@ -46,7 +46,7 @@ func (s *DayStep) Handle(ctx context.Context, d *model.ScheduleDraft, in dto.Inp
 
 	day, ok := dayFromCallback(in.CallbackData)
 	if !ok {
-		return s.bot.AnswerCallback(in.CallbackID)
+		return s.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	d.DayOfWeek = &day
@@ -56,11 +56,11 @@ func (s *DayStep) Handle(ctx context.Context, d *model.ScheduleDraft, in dto.Inp
 		return fmt.Errorf("update schedule draft: %w", err)
 	}
 
-	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return s.bot.SendWithKeyboard(in.ChatID, timeQuestion, timeKeyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, timeQuestion, timeKeyboard())
 }
 
 func dayKeyboard() dto.Keyboard {

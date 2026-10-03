@@ -41,7 +41,7 @@ func (s *TypeStep) Handle(ctx context.Context, d *model.ScheduleDraft, in dto.In
 
 	trainingType, ok := trainingTypeFromCallback(in.CallbackData)
 	if !ok {
-		return s.bot.AnswerCallback(in.CallbackID)
+		return s.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	if d.DayOfWeek == nil {
@@ -60,11 +60,11 @@ func (s *TypeStep) Handle(ctx context.Context, d *model.ScheduleDraft, in dto.In
 		return fmt.Errorf("delete schedule draft: %w", err)
 	}
 
-	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return s.bot.SendWithKeyboard(in.ChatID, confirmationText(slot), confirmationKeyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, confirmationText(slot), confirmationKeyboard())
 }
 
 func (s *TypeStep) handleBack(ctx context.Context, d *model.ScheduleDraft, in dto.Input) error {
@@ -74,11 +74,11 @@ func (s *TypeStep) handleBack(ctx context.Context, d *model.ScheduleDraft, in dt
 		return fmt.Errorf("update schedule draft: %w", err)
 	}
 
-	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return s.bot.SendWithKeyboard(in.ChatID, timeQuestion, timeKeyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, timeQuestion, timeKeyboard())
 }
 
 func typeKeyboard() dto.Keyboard {

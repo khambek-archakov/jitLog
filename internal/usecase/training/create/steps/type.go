@@ -36,7 +36,7 @@ func (s *TypeStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.In
 
 	trainingType, ok := trainingTypeFromCallback(in.CallbackData)
 	if !ok {
-		return s.bot.AnswerCallback(in.CallbackID)
+		return s.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
 	d.TrainingType = trainingType
@@ -46,11 +46,11 @@ func (s *TypeStep) Handle(ctx context.Context, d *model.TrainingDraft, in dto.In
 		return fmt.Errorf("update training draft: %w", err)
 	}
 
-	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return s.bot.SendWithKeyboard(in.ChatID, durationQuestion, durationKeyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, durationQuestion, durationKeyboard())
 }
 
 func (s *TypeStep) handleBack(ctx context.Context, d *model.TrainingDraft, in dto.Input) error {
@@ -60,11 +60,11 @@ func (s *TypeStep) handleBack(ctx context.Context, d *model.TrainingDraft, in dt
 		return fmt.Errorf("update training draft: %w", err)
 	}
 
-	if err := s.bot.AnswerCallback(in.CallbackID); err != nil {
+	if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return s.bot.SendWithKeyboard(in.ChatID, dateQuestion, dateKeyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, dateQuestion, dateKeyboard())
 }
 
 func typeKeyboard() dto.Keyboard {

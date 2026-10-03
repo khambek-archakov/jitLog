@@ -11,23 +11,22 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 	"github.com/khambek-archakov/jitLog/internal/usecase/router"
-	"github.com/khambek-archakov/jitLog/internal/usecase/router/chain"
 )
 
-// fakeHandler is a minimal hand-written chain.Handler — the chain's actual
-// routing logic (what's handled, and in what order) is covered by
-// internal/usecase/router/chain's own tests. Router's tests only need to
-// prove the loop itself: the first non-ErrSkip outcome wins, an
-// error stops the walk, and an unclaimed input is a no-op.
-type fakeHandler struct {
+// fakeChain is a minimal hand-written stand-in for Router's own chain
+// dependency — the chain's actual routing logic (what's handled, and in
+// what order) is covered by internal/usecase/router/chain's own tests.
+// Router's tests only need to prove it resolves the user correctly and
+// forwards to (or never reaches) the chain.
+type fakeChain struct {
 	err    error
 	called bool
 }
 
-func (h *fakeHandler) Handle(context.Context, *model.User, dto.Input) error {
-	h.called = true
+func (c *fakeChain) Handle(context.Context, *model.User, dto.Input) error {
+	c.called = true
 
-	return h.err
+	return c.err
 }
 
 func TestRouter_Route(t *testing.T) {
@@ -39,8 +38,8 @@ func TestRouter_Route(t *testing.T) {
 		name     string
 		in       dto.Input
 		prepare  func(user *Mockuser)
-		handlers []chain.Handler
-		expected func(t assert.TestingT, err error)
+		chain    *fakeChain
+		expected func(t assert.TestingT, c *fakeChain, err error)
 	}{
 		{
 			name: "failed to fetch user",
@@ -50,8 +49,10 @@ func TestRouter_Route(t *testing.T) {
 					GetByTelegramID(gomock.Any(), telegramID).
 					Return(nil, errors.New("fail"))
 			},
-			expected: func(t assert.TestingT, err error) {
+			chain: &fakeChain{},
+			expected: func(t assert.TestingT, c *fakeChain, err error) {
 				assert.Error(t, err)
+				assert.False(t, c.called)
 			},
 		},
 
@@ -63,40 +64,40 @@ func TestRouter_Route(t *testing.T) {
 					GetByTelegramID(gomock.Any(), telegramID).
 					Return(nil, model.ErrNotFound)
 			},
-			handlers: []chain.Handler{&fakeHandler{err: nil}},
-			expected: func(t assert.TestingT, err error) {
+			chain: &fakeChain{},
+			expected: func(t assert.TestingT, c *fakeChain, err error) {
 				assert.NoError(t, err)
+				assert.False(t, c.called)
 			},
 		},
 
 		{
-			name: "an error from a handler stops the chain and propagates",
+			name: "an error from the chain propagates",
 			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, IsStartCmd: true},
 			prepare: func(user *Mockuser) {
 				user.EXPECT().
 					GetByTelegramID(gomock.Any(), telegramID).
 					Return(&model.User{ID: userID}, nil)
 			},
-			handlers: []chain.Handler{
-				&fakeHandler{err: errors.New("fail")},
-				&fakeHandler{err: nil},
-			},
-			expected: func(t assert.TestingT, err error) {
+			chain: &fakeChain{err: errors.New("fail")},
+			expected: func(t assert.TestingT, c *fakeChain, err error) {
 				assert.Error(t, err)
+				assert.True(t, c.called)
 			},
 		},
 
 		{
-			name: "no handler claims it — no-op",
+			name: "nothing in the chain claims it — no-op",
 			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, IsStartCmd: true},
 			prepare: func(user *Mockuser) {
 				user.EXPECT().
 					GetByTelegramID(gomock.Any(), telegramID).
 					Return(&model.User{ID: userID}, nil)
 			},
-			handlers: []chain.Handler{&fakeHandler{err: chain.ErrSkip}},
-			expected: func(t assert.TestingT, err error) {
+			chain: &fakeChain{err: nil},
+			expected: func(t assert.TestingT, c *fakeChain, err error) {
 				assert.NoError(t, err)
+				assert.True(t, c.called)
 			},
 		},
 	}
@@ -111,37 +112,11 @@ func TestRouter_Route(t *testing.T) {
 
 			tc.prepare(mockUser)
 
-			r := router.New(tc.handlers, mockUser)
+			r := router.New(tc.chain, mockUser)
 
 			err := r.Route(context.Background(), tc.in)
 
-			tc.expected(t, err)
+			tc.expected(t, tc.chain, err)
 		})
 	}
-}
-
-func TestRouter_Route_StopsAtFirstHandled(t *testing.T) {
-	t.Parallel()
-
-	const telegramID, userID, chatID int64 = 123, 42, 777
-
-	ctrl := gomock.NewController(t)
-
-	mockUser := NewMockuser(ctrl)
-	mockUser.EXPECT().
-		GetByTelegramID(gomock.Any(), telegramID).
-		Return(&model.User{ID: userID}, nil)
-
-	skipped := &fakeHandler{err: chain.ErrSkip}
-	claims := &fakeHandler{err: nil}
-	neverReached := &fakeHandler{err: nil}
-
-	r := router.New([]chain.Handler{skipped, claims, neverReached}, mockUser)
-
-	err := r.Route(context.Background(), dto.Input{TelegramID: telegramID, ChatID: chatID, IsStartCmd: true})
-
-	assert.NoError(t, err)
-	assert.True(t, skipped.called)
-	assert.True(t, claims.called)
-	assert.False(t, neverReached.called)
 }
