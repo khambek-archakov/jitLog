@@ -13,14 +13,10 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/steps"
 )
 
-// callbackSkipAge and callbackBack mirror steps' own private constants —
-// they're part of the bot's wire contract with itself, not exported, so
-// black-box tests have to know the literal values.
-const (
-	callbackSkipAge = "start:age:skip"
-	callbackBack    = "start:back"
-)
-
+// AgeStep no longer asks anything — the age question was removed from
+// onboarding. It only exists so a user whose onboarding_step was already
+// stuck at awaiting_age before this shipped gets silently forwarded to the
+// belt step on their very next message, regardless of what that input is.
 func TestAgeStep_Handle(t *testing.T) {
 	t.Parallel()
 
@@ -29,74 +25,17 @@ func TestAgeStep_Handle(t *testing.T) {
 	name := "test"
 
 	tests := []struct {
-		name    string
-		u       *model.User
-		in      dto.Input
-		prepare func(
-			user *Mockuser,
-			sender *Mocksender,
-		)
+		name     string
+		in       dto.Input
+		prepare  func(user *Mockuser, sender *Mocksender)
 		expected func(t assert.TestingT, u *model.User, err error)
 	}{
 		{
-			name: "/start re-asks the age question",
-			u:    &model.User{ID: 1, Name: &name},
+			name: "/start forwards straight to the belt question",
 			in:   dto.Input{ChatID: chatID, IsStartCmd: true},
 			prepare: func(user *Mockuser, sender *Mocksender) {
-				sender.EXPECT().
-					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
-					Return(nil)
-			},
-			expected: func(t assert.TestingT, u *model.User, err error) {
-				assert.NoError(t, err)
-			},
-		},
-
-		{
-			name:    "no message, no callback — no-op",
-			u:       &model.User{ID: 1, Name: &name},
-			in:      dto.Input{ChatID: chatID},
-			prepare: func(user *Mockuser, sender *Mocksender) {},
-			expected: func(t assert.TestingT, u *model.User, err error) {
-				assert.NoError(t, err)
-			},
-		},
-
-		{
-			name: "back goes to the name step, age untouched",
-			u:    &model.User{ID: 1, Name: &name},
-			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackBack},
-			prepare: func(user *Mockuser, sender *Mocksender) {
 				user.EXPECT().
 					Update(gomock.Any(), gomock.Any()).
-					Return(nil)
-
-				sender.EXPECT().
-					AnswerCallback(gomock.Any(), "cb-1").
-					Return(nil)
-
-				sender.EXPECT().
-					Send(gomock.Any(), chatID, gomock.Any()).
-					Return(nil)
-			},
-			expected: func(t assert.TestingT, u *model.User, err error) {
-				assert.NoError(t, err)
-				assert.Equal(t, model.OnboardingStepAwaitingName, u.OnboardingStep)
-				assert.Nil(t, u.Age)
-			},
-		},
-
-		{
-			name: "skip moves straight to belt, age stays empty",
-			u:    &model.User{ID: 1, Name: &name},
-			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackSkipAge},
-			prepare: func(user *Mockuser, sender *Mocksender) {
-				user.EXPECT().
-					Update(gomock.Any(), gomock.Any()).
-					Return(nil)
-
-				sender.EXPECT().
-					AnswerCallback(gomock.Any(), "cb-1").
 					Return(nil)
 
 				sender.EXPECT().
@@ -106,51 +45,11 @@ func TestAgeStep_Handle(t *testing.T) {
 			expected: func(t assert.TestingT, u *model.User, err error) {
 				assert.NoError(t, err)
 				assert.Equal(t, model.OnboardingStepAwaitingBelt, u.OnboardingStep)
-				assert.Nil(t, u.Age)
 			},
 		},
 
 		{
-			name: "stray callback is just acknowledged",
-			u:    &model.User{ID: 1, Name: &name},
-			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "junk"},
-			prepare: func(user *Mockuser, sender *Mocksender) {
-				sender.EXPECT().
-					AnswerCallback(gomock.Any(), "cb-1").
-					Return(nil)
-			},
-			expected: func(t assert.TestingT, u *model.User, err error) {
-				assert.NoError(t, err)
-			},
-		},
-
-		{
-			name: "unparsable age is skipped with a note",
-			u:    &model.User{ID: 1, Name: &name},
-			in:   dto.Input{ChatID: chatID, HasMessage: true, Text: "twenty five"},
-			prepare: func(user *Mockuser, sender *Mocksender) {
-				user.EXPECT().
-					Update(gomock.Any(), gomock.Any()).
-					Return(nil)
-
-				sender.EXPECT().
-					Send(gomock.Any(), chatID, gomock.Any()).
-					Return(nil)
-
-				sender.EXPECT().
-					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
-					Return(nil)
-			},
-			expected: func(t assert.TestingT, u *model.User, err error) {
-				assert.NoError(t, err)
-				assert.Equal(t, model.OnboardingStepAwaitingBelt, u.OnboardingStep)
-				assert.Nil(t, u.Age)
-			},
-		},
-
-		{
-			name: "valid age is stored",
-			u:    &model.User{ID: 1, Name: &name},
+			name: "any other input also forwards to the belt question",
 			in:   dto.Input{ChatID: chatID, HasMessage: true, Text: "25"},
 			prepare: func(user *Mockuser, sender *Mocksender) {
 				user.EXPECT().
@@ -164,14 +63,12 @@ func TestAgeStep_Handle(t *testing.T) {
 			expected: func(t assert.TestingT, u *model.User, err error) {
 				assert.NoError(t, err)
 				assert.Equal(t, model.OnboardingStepAwaitingBelt, u.OnboardingStep)
-				assert.Equal(t, int16(25), *u.Age)
 			},
 		},
 
 		{
-			name: "failed to persist age",
-			u:    &model.User{ID: 1, Name: &name},
-			in:   dto.Input{ChatID: chatID, HasMessage: true, Text: "25"},
+			name: "failed to persist step",
+			in:   dto.Input{ChatID: chatID, IsStartCmd: true},
 			prepare: func(user *Mockuser, sender *Mocksender) {
 				user.EXPECT().
 					Update(gomock.Any(), gomock.Any()).
@@ -196,9 +93,10 @@ func TestAgeStep_Handle(t *testing.T) {
 
 			step := steps.NewAge(mockSender, mockUser)
 
-			err := step.Handle(context.Background(), tc.u, tc.in)
+			u := &model.User{ID: 1, Name: &name}
+			err := step.Handle(context.Background(), u, tc.in)
 
-			tc.expected(t, tc.u, err)
+			tc.expected(t, u, err)
 		})
 	}
 }

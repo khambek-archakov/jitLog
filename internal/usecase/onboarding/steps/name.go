@@ -38,11 +38,11 @@ func (s *NameStep) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 	}
 
 	u.Name = &name
-	u.OnboardingStep = model.OnboardingStepAwaitingAge
+	u.OnboardingStep = model.OnboardingStepAwaitingBelt
 
 	if err := s.user.Update(ctx, u); err != nil {
 		return fmt.Errorf("update user name: %w", err)
 	}
 
-	return s.bot.SendWithKeyboard(ctx, in.ChatID, ageQuestion(name), ageKeyboard())
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, beltQuestion, beltKeyboard())
 }

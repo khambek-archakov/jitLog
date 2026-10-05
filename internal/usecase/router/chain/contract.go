@@ -53,11 +53,13 @@ type trainingStats interface {
 	Handle(ctx context.Context, userID int64, in dto.Input) error
 }
 
-// profile shows the "👤 Профиль" screen and its belt-change flow
-// (profile:*). Needs the full *model.User, same as onboarding — it reads
-// and mutates it directly, not just the ID.
+// profile shows the "👤 Профиль" screen and its belt-change/age-change
+// flows (profile:*). Needs the full *model.User, same as onboarding — it
+// reads and mutates it directly, not just the ID. Continue only fires for
+// age's free-text reply, once a pending profile edit draft exists.
 type profile interface {
 	Handle(ctx context.Context, u *model.User, in dto.Input) error
+	Continue(ctx context.Context, u *model.User, d *model.ProfileEditDraft, in dto.Input) error
 }
 
 // scheduleCreate is what the chain needs from the "add a schedule slot"
@@ -106,4 +108,8 @@ type scheduleDraft interface {
 
 type scheduleEditDraft interface {
 	GetEditDraftByUserID(ctx context.Context, userID int64) (*model.ScheduleEditDraft, error)
+}
+
+type profileEditDraft interface {
+	GetEditDraftByUserID(ctx context.Context, userID int64) (*model.ProfileEditDraft, error)
 }

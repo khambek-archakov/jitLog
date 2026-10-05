@@ -24,3 +24,11 @@ type user interface {
 	// profile adds every one after.
 	AddBeltPromotion(ctx context.Context, userID int64, belt model.Belt, promotedAt time.Time) error
 }
+
+// profileEditDraft is the pending-age-edit draft — age is the only
+// profile field whose new value can't ride a callback button.
+type profileEditDraft interface {
+	GetEditDraftByUserID(ctx context.Context, userID int64) (*model.ProfileEditDraft, error)
+	SetEditDraft(ctx context.Context, userID int64) error
+	DeleteEditDraft(ctx context.Context, userID int64) error
+}

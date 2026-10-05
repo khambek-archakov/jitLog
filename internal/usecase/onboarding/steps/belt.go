@@ -74,7 +74,7 @@ func (s *BeltStep) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 }
 
 func (s *BeltStep) handleBack(ctx context.Context, u *model.User, in dto.Input) error {
-	u.OnboardingStep = model.OnboardingStepAwaitingAge
+	u.OnboardingStep = model.OnboardingStepAwaitingName
 
 	if err := s.user.Update(ctx, u); err != nil {
 		return fmt.Errorf("update user: %w", err)
@@ -84,7 +84,7 @@ func (s *BeltStep) handleBack(ctx context.Context, u *model.User, in dto.Input) 
 		return err
 	}
 
-	return s.bot.SendWithKeyboard(ctx, in.ChatID, ageQuestion(*u.Name), ageKeyboard())
+	return s.bot.Send(ctx, in.ChatID, askNameAgain)
 }
 
 func beltKeyboard() dto.Keyboard {

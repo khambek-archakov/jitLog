@@ -132,6 +132,64 @@ func (r *Repository) ListBeltPromotions(ctx context.Context, userID int64) ([]*m
 	return promotions, nil
 }
 
+// GetEditDraftByUserID looks up the pending profile edit draft for userID,
+// if any — its mere existence means "the next free-text message from this
+// user is their new age."
+func (r *Repository) GetEditDraftByUserID(ctx context.Context, userID int64) (*model.ProfileEditDraft, error) {
+	const query = `
+		select user_id, created_at
+		from profile_edit_draft
+		where user_id = $1
+	`
+
+	d, err := scanEditDraft(r.db.QueryRow(ctx, query, userID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, model.ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get profile edit draft by user id: %w", err)
+	}
+
+	return d, nil
+}
+
+func (r *Repository) SetEditDraft(ctx context.Context, userID int64) error {
+	const query = `
+		insert into profile_edit_draft (user_id)
+		values ($1)
+		on conflict (user_id) do update set created_at = now()
+	`
+
+	_, err := r.db.Exec(ctx, query, userID)
+	if err != nil {
+		return fmt.Errorf("set profile edit draft: %w", err)
+	}
+
+	return nil
+}
+
+func (r *Repository) DeleteEditDraft(ctx context.Context, userID int64) error {
+	const query = `delete from profile_edit_draft where user_id = $1`
+
+	_, err := r.db.Exec(ctx, query, userID)
+	if err != nil {
+		return fmt.Errorf("delete profile edit draft: %w", err)
+	}
+
+	return nil
+}
+
+func scanEditDraft(row pgx.Row) (*model.ProfileEditDraft, error) {
+	var d model.ProfileEditDraft
+
+	err := row.Scan(&d.UserID, &d.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return &d, nil
+}
+
 func scanBeltPromotion(row pgx.Row) (*model.BeltPromotion, error) {
 	var (
 		p    model.BeltPromotion

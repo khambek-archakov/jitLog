@@ -67,6 +67,10 @@ func TestScheduleDraftContinuation(t *testing.T) {
 				GetEditDraftByUserID(gomock.Any(), userID).
 				Return(nil, model.ErrNotFound)
 
+			m.profileEdits.EXPECT().
+				GetEditDraftByUserID(gomock.Any(), userID).
+				Return(nil, model.ErrNotFound)
+
 			// Reaching training's own addTrigger is what proves this link
 			// skipped.
 			m.create.EXPECT().

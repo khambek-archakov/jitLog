@@ -116,7 +116,7 @@ func run() int {
 	trainingUpdateUseCase := update.New(gateway, trainings)
 	trainingDeleteUseCase := trainingdelete.New(gateway, trainings)
 	trainingStatsUseCase := stats.New(gateway, trainings, users)
-	profileUseCase := profile.New(gateway, users)
+	profileUseCase := profile.New(gateway, users, users)
 	scheduleCreateUseCase := schedulecreate.New(gateway, schedules)
 	scheduleListUseCase := schedulelist.New(gateway, schedules)
 	scheduleInfoUseCase := scheduleinfo.New(gateway, schedules)
@@ -141,6 +141,7 @@ func run() int {
 		TrainingEditDraft: trainings,
 		ScheduleDraft:     schedules,
 		ScheduleEditDraft: schedules,
+		ProfileEditDraft:  users,
 	})
 	appRouter := router.New(appChain, users)
 

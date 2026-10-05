@@ -54,7 +54,7 @@ func TestBeltPickerKeyboard(t *testing.T) {
 	assert.Contains(t, labels, beltLabel(model.BeltBrown))
 	assert.Contains(t, labels, beltLabel(model.BeltBlack))
 
-	assert.Equal(t, "profile:show", kb[4][0].Data)
+	assert.Equal(t, "profile:edit", kb[4][0].Data)
 }
 
 func TestBeltTokenRoundTrip(t *testing.T) {

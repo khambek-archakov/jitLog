@@ -13,9 +13,13 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding/steps"
 )
 
-// callbackBeltWhite mirrors steps' own private constant, same reasoning as
-// callbackSkipAge/callbackBack in age_test.go.
-const callbackBeltWhite = "start:belt:white"
+// callbackBeltWhite and callbackBack mirror steps' own private constants —
+// they're part of the bot's wire contract with itself, not exported, so
+// black-box tests have to know the literal values.
+const (
+	callbackBeltWhite = "start:belt:white"
+	callbackBack      = "start:back"
+)
 
 func TestBeltStep_Handle(t *testing.T) {
 	t.Parallel()
@@ -59,7 +63,7 @@ func TestBeltStep_Handle(t *testing.T) {
 		},
 
 		{
-			name: "back goes to the age step, belt untouched",
+			name: "back goes to the name step, belt untouched",
 			u:    &model.User{ID: 1, Name: &name},
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackBack},
 			prepare: func(user *Mockuser, sender *Mocksender) {
@@ -72,12 +76,12 @@ func TestBeltStep_Handle(t *testing.T) {
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
+					Send(gomock.Any(), chatID, gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, u *model.User, err error) {
 				assert.NoError(t, err)
-				assert.Equal(t, model.OnboardingStepAwaitingAge, u.OnboardingStep)
+				assert.Equal(t, model.OnboardingStepAwaitingName, u.OnboardingStep)
 				assert.Equal(t, model.BeltNone, u.Belt)
 			},
 		},

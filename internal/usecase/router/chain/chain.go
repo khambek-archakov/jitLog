@@ -55,6 +55,7 @@ type Dependencies struct {
 	TrainingEditDraft trainingEditDraft
 	ScheduleDraft     scheduleDraft
 	ScheduleEditDraft scheduleEditDraft
+	ProfileEditDraft  profileEditDraft
 }
 
 // Chain holds the scenario dependencies needed to assemble a chain of

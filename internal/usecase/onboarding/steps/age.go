@@ -3,17 +3,16 @@ package steps
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
 
-const ageNotParsed = "Не смог разобрать точную цифру, поле оставлю пустым — всегда сможешь указать возраст позже."
-
-const callbackSkipAge = "start:age:skip"
-
+// AgeStep no longer asks anything — the age question was removed from
+// onboarding (age is now editable from the profile screen instead). It's
+// kept only so a user whose onboarding_step is still stuck at
+// awaiting_age (e.g. mid-flow when this shipped) gets silently forwarded
+// to the belt step on their next message, instead of being stranded.
 type AgeStep struct {
 	bot  sender
 	user user
@@ -24,94 +23,11 @@ func NewAge(bot sender, user user) *AgeStep {
 }
 
 func (s *AgeStep) Handle(ctx context.Context, u *model.User, in dto.Input) error {
-	if in.IsStartCmd {
-		return s.bot.SendWithKeyboard(ctx, in.ChatID, ageQuestion(*u.Name), ageKeyboard())
-	}
-
-	if in.HasCallback {
-		switch in.CallbackData {
-		case callbackBack:
-			return s.handleBack(ctx, u, in)
-		default:
-			return s.handleSkip(ctx, u, in)
-		}
-	}
-
-	if !in.HasMessage {
-		return nil
-	}
-
-	return s.handleAnswer(ctx, u, in)
-}
-
-func (s *AgeStep) handleBack(ctx context.Context, u *model.User, in dto.Input) error {
-	u.OnboardingStep = model.OnboardingStepAwaitingName
-
-	if err := s.user.Update(ctx, u); err != nil {
-		return fmt.Errorf("update user: %w", err)
-	}
-
-	if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
-		return err
-	}
-
-	return s.bot.Send(ctx, in.ChatID, askNameAgain)
-}
-
-func (s *AgeStep) handleSkip(ctx context.Context, u *model.User, in dto.Input) error {
-	if in.CallbackData != callbackSkipAge {
-		return s.bot.AnswerCallback(ctx, in.CallbackID)
-	}
-
 	u.OnboardingStep = model.OnboardingStepAwaitingBelt
 
 	if err := s.user.Update(ctx, u); err != nil {
 		return fmt.Errorf("update user: %w", err)
 	}
 
-	if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
-		return err
-	}
-
 	return s.bot.SendWithKeyboard(ctx, in.ChatID, beltQuestion, beltKeyboard())
-}
-
-func (s *AgeStep) handleAnswer(ctx context.Context, u *model.User, in dto.Input) error {
-	u.OnboardingStep = model.OnboardingStepAwaitingBelt
-
-	age, parseErr := strconv.Atoi(strings.TrimSpace(in.Text))
-	if parseErr != nil {
-		if err := s.user.Update(ctx, u); err != nil {
-			return fmt.Errorf("update user: %w", err)
-		}
-
-		if err := s.bot.Send(ctx, in.ChatID, ageNotParsed); err != nil {
-			return err
-		}
-
-		return s.bot.SendWithKeyboard(ctx, in.ChatID, beltQuestion, beltKeyboard())
-	}
-
-	parsedAge := int16(age)
-	u.Age = &parsedAge
-
-	if err := s.user.Update(ctx, u); err != nil {
-		return fmt.Errorf("update user age: %w", err)
-	}
-
-	return s.bot.SendWithKeyboard(ctx, in.ChatID, beltQuestion, beltKeyboard())
-}
-
-func ageQuestion(name string) string {
-	return fmt.Sprintf(
-		"Приятно познакомиться, %s! Перед тем, как начать, позволь задать тебе пару вопросов.\nСколько тебе лет?",
-		name,
-	)
-}
-
-func ageKeyboard() dto.Keyboard {
-	return dto.Keyboard{
-		dto.Row(dto.Button{Label: "Пропустить", Data: callbackSkipAge}),
-		dto.Row(backButton()),
-	}
 }

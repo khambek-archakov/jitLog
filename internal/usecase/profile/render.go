@@ -2,6 +2,8 @@ package profile
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
@@ -27,9 +29,36 @@ func profileText(u *model.User) string {
 
 func profileKeyboard() dto.Keyboard {
 	return dto.Keyboard{
-		dto.Row(dto.Button{Label: "✏️ Изменить пояс", Data: callbackProfileBeltEdit}),
+		dto.Row(dto.Button{Label: "✏️ Редактировать", Data: callbackProfileEdit}),
 		dto.Row(dto.Button{Label: "← Главное меню", Data: callbackMenuBack}),
 	}
+}
+
+const editMenuText = "✏️ Что изменить?"
+
+func editMenuKeyboard() dto.Keyboard {
+	return dto.Keyboard{
+		dto.Row(dto.Button{Label: "🥋 Пояс", Data: callbackProfileBeltEdit}),
+		dto.Row(dto.Button{Label: "🎂 Возраст", Data: callbackProfileAgeEdit}),
+		dto.Row(dto.Button{Label: "← Назад", Data: callbackProfileShow}),
+	}
+}
+
+const (
+	askAgeText       = "Сколько тебе лет?"
+	ageNotParsedText = "Не смог разобрать число, напиши возраст цифрами, например: 25."
+)
+
+// parseAge accepts a plain positive integer in a sane human-age range —
+// loose enough not to reject real answers, tight enough to catch an
+// obviously mistyped reply.
+func parseAge(text string) (int16, bool) {
+	age, err := strconv.Atoi(strings.TrimSpace(text))
+	if err != nil || age <= 0 || age > 120 {
+		return 0, false
+	}
+
+	return int16(age), true
 }
 
 const beltPickerText = "✏️ Выбери новый пояс:"
@@ -55,7 +84,7 @@ func beltPickerKeyboard(current model.Belt) dto.Keyboard {
 		kb = append(kb, dto.Row(b))
 	}
 
-	kb = append(kb, dto.Row(dto.Button{Label: "← Назад", Data: callbackProfileShow}))
+	kb = append(kb, dto.Row(dto.Button{Label: "← Назад", Data: callbackProfileEdit}))
 
 	return kb
 }

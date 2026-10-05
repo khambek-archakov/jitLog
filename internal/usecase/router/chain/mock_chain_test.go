@@ -336,6 +336,20 @@ func (m *Mockprofile) EXPECT() *MockprofileMockRecorder {
 	return m.recorder
 }
 
+// Continue mocks base method.
+func (m *Mockprofile) Continue(ctx context.Context, u *model.User, d *model.ProfileEditDraft, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Continue", ctx, u, d, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Continue indicates an expected call of Continue.
+func (mr *MockprofileMockRecorder) Continue(ctx, u, d, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Continue", reflect.TypeOf((*Mockprofile)(nil).Continue), ctx, u, d, in)
+}
+
 // Handle mocks base method.
 func (m *Mockprofile) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	m.ctrl.T.Helper()
@@ -722,4 +736,43 @@ func (m *MockscheduleEditDraft) GetEditDraftByUserID(ctx context.Context, userID
 func (mr *MockscheduleEditDraftMockRecorder) GetEditDraftByUserID(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEditDraftByUserID", reflect.TypeOf((*MockscheduleEditDraft)(nil).GetEditDraftByUserID), ctx, userID)
+}
+
+// MockprofileEditDraft is a mock of profileEditDraft interface.
+type MockprofileEditDraft struct {
+	ctrl     *gomock.Controller
+	recorder *MockprofileEditDraftMockRecorder
+	isgomock struct{}
+}
+
+// MockprofileEditDraftMockRecorder is the mock recorder for MockprofileEditDraft.
+type MockprofileEditDraftMockRecorder struct {
+	mock *MockprofileEditDraft
+}
+
+// NewMockprofileEditDraft creates a new mock instance.
+func NewMockprofileEditDraft(ctrl *gomock.Controller) *MockprofileEditDraft {
+	mock := &MockprofileEditDraft{ctrl: ctrl}
+	mock.recorder = &MockprofileEditDraftMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockprofileEditDraft) EXPECT() *MockprofileEditDraftMockRecorder {
+	return m.recorder
+}
+
+// GetEditDraftByUserID mocks base method.
+func (m *MockprofileEditDraft) GetEditDraftByUserID(ctx context.Context, userID int64) (*model.ProfileEditDraft, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEditDraftByUserID", ctx, userID)
+	ret0, _ := ret[0].(*model.ProfileEditDraft)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEditDraftByUserID indicates an expected call of GetEditDraftByUserID.
+func (mr *MockprofileEditDraftMockRecorder) GetEditDraftByUserID(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEditDraftByUserID", reflect.TypeOf((*MockprofileEditDraft)(nil).GetEditDraftByUserID), ctx, userID)
 }

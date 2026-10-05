@@ -37,11 +37,13 @@ type mocks struct {
 	edits          *MocktrainingEditDraft
 	scheduleDrafts *MockscheduleDraft
 	scheduleEdits  *MockscheduleEditDraft
+	profileEdits   *MockprofileEditDraft
 }
 
 // noActiveDrafts stubs the training draft, training edit draft, schedule
-// draft and schedule edit draft lookups to "none in progress" — the shared
-// setup every case reaching the callback-prefix triggers needs.
+// draft, schedule edit draft and profile edit draft lookups to "none in
+// progress" — the shared setup every case reaching the callback-prefix
+// triggers needs.
 func noActiveDrafts(m mocks, userID int64) {
 	m.drafts.EXPECT().
 		GetDraftByUserID(gomock.Any(), userID).
@@ -56,6 +58,10 @@ func noActiveDrafts(m mocks, userID int64) {
 		Return(nil, model.ErrNotFound)
 
 	m.scheduleEdits.EXPECT().
+		GetEditDraftByUserID(gomock.Any(), userID).
+		Return(nil, model.ErrNotFound)
+
+	m.profileEdits.EXPECT().
 		GetEditDraftByUserID(gomock.Any(), userID).
 		Return(nil, model.ErrNotFound)
 }
@@ -87,6 +93,7 @@ func run(t *testing.T, u *model.User, in dto.Input, prepare func(m mocks)) error
 		edits:          NewMocktrainingEditDraft(ctrl),
 		scheduleDrafts: NewMockscheduleDraft(ctrl),
 		scheduleEdits:  NewMockscheduleEditDraft(ctrl),
+		profileEdits:   NewMockprofileEditDraft(ctrl),
 	}
 
 	prepare(m)
@@ -109,6 +116,7 @@ func run(t *testing.T, u *model.User, in dto.Input, prepare func(m mocks)) error
 		TrainingEditDraft: m.edits,
 		ScheduleDraft:     m.scheduleDrafts,
 		ScheduleEditDraft: m.scheduleEdits,
+		ProfileEditDraft:  m.profileEdits,
 	})
 
 	return c.Handle(context.Background(), u, in)

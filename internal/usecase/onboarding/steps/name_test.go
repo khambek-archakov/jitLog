@@ -85,7 +85,7 @@ func TestNameStep_Handle(t *testing.T) {
 		},
 
 		{
-			name: "valid name moves to age step",
+			name: "valid name moves to belt step",
 			u:    &model.User{ID: 1},
 			in:   dto.Input{ChatID: chatID, HasMessage: true, Text: "  test  "},
 			prepare: func(user *Mockuser, sender *Mocksender) {
@@ -100,7 +100,7 @@ func TestNameStep_Handle(t *testing.T) {
 			expected: func(t assert.TestingT, u *model.User, err error) {
 				assert.NoError(t, err)
 				assert.Equal(t, "test", *u.Name)
-				assert.Equal(t, model.OnboardingStepAwaitingAge, u.OnboardingStep)
+				assert.Equal(t, model.OnboardingStepAwaitingBelt, u.OnboardingStep)
 			},
 		},
 	}

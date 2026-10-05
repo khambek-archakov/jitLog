@@ -44,10 +44,14 @@ func TestUseCase_Handle(t *testing.T) {
 		},
 
 		{
-			name: "user mid-onboarding is re-asked their pending question on /start",
+			name: "user stuck at the retired awaiting_age step is forwarded to the belt question",
 			u:    &model.User{ID: 2, Name: &name, OnboardingStep: model.OnboardingStepAwaitingAge},
 			in:   dto.Input{ChatID: chatID, IsStartCmd: true},
 			prepare: func(user *Mockuser, sender *Mocksender) {
+				user.EXPECT().
+					Update(gomock.Any(), gomock.Any()).
+					Return(nil)
+
 				sender.EXPECT().
 					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
