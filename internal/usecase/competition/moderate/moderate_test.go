@@ -86,14 +86,14 @@ func TestUseCase_Handle(t *testing.T) {
 				users.EXPECT().GetByID(gomock.Any(), int64(11)).Return(&model.User{ID: 11, TelegramID: 110}, nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(gomock.Any(), int64(100), "✅ Турнир опубликован в каталоге!", gomock.Any()).
+					SendWithKeyboard(gomock.Any(), int64(100), "✅ Соревнование опубликовано в каталоге!", gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ string, kb dto.Keyboard) error {
 						assert.Equal(t, "competition:list", kb[0][0].Data)
 
 						return nil
 					})
 				sender.EXPECT().
-					SendWithKeyboard(gomock.Any(), int64(110), "✅ Турнир опубликован в каталоге!", gomock.Any()).
+					SendWithKeyboard(gomock.Any(), int64(110), "✅ Соревнование опубликовано в каталоге!", gomock.Any()).
 					Return(nil)
 
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
@@ -131,7 +131,7 @@ func TestUseCase_Handle(t *testing.T) {
 				repo.EXPECT().ListOwnersByCompetitionID(gomock.Any(), int64(55)).Return([]int64{10}, nil)
 				users.EXPECT().GetByID(gomock.Any(), int64(10)).Return(&model.User{ID: 10, TelegramID: 100}, nil)
 				sender.EXPECT().
-					SendWithKeyboard(gomock.Any(), int64(100), "❌ Турнир отклонён модератором.", gomock.Any()).
+					SendWithKeyboard(gomock.Any(), int64(100), "❌ Соревнование отклонено модератором.", gomock.Any()).
 					Return(nil)
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 				sender.EXPECT().EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "❌ Отклонено.", gomock.Any()).Return(nil)
@@ -170,11 +170,11 @@ func TestUseCase_Handle(t *testing.T) {
 				repo.EXPECT().DeleteMergeDraft(gomock.Any(), int64(1)).Return(nil)
 				users.EXPECT().GetByID(gomock.Any(), int64(10)).Return(&model.User{ID: 10, TelegramID: 100}, nil)
 				sender.EXPECT().
-					SendWithKeyboard(gomock.Any(), int64(100), "Этот турнир уже есть в каталоге, я добавил его к существующему.", gomock.Any()).
+					SendWithKeyboard(gomock.Any(), int64(100), "Это соревнование уже есть в каталоге, я добавил его к существующему.", gomock.Any()).
 					Return(nil)
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 				sender.EXPECT().
-					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "🔗 Объединено с существующим турниром.", gomock.Any()).
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "🔗 Объединено с существующим соревнованием.", gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {

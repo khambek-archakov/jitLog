@@ -1,4 +1,4 @@
-// Package list owns the "🔎 Найти турнир" screen — published, upcoming
+// Package list owns the "🔎 Найти соревнование" screen — published, upcoming
 // tournaments anyone has submitted, filtered by city. The filter defaults
 // to the viewer's own User.City but can be overridden per-view (see
 // CatalogViewFilter) without ever touching the profile — changing it here
@@ -182,13 +182,13 @@ func (uc *UseCase) resolveCity(ctx context.Context, u *model.User) (*string, err
 func listText(competitions []*model.Competition, city *string) string {
 	if len(competitions) == 0 {
 		if city != nil {
-			return fmt.Sprintf("🔎 Найти турнир\n\nВ городе «%s» пока нет опубликованных турниров.", *city)
+			return fmt.Sprintf("🔎 Найти соревнование\n\nВ городе «%s» пока нет опубликованных соревнований.", *city)
 		}
 
-		return "🔎 Найти турнир\n\nПока нет опубликованных турниров."
+		return "🔎 Найти соревнование\n\nПока нет опубликованных соревнований."
 	}
 
-	return "🔎 Найти турнир"
+	return "🔎 Найти соревнование"
 }
 
 func listKeyboard(competitions []*model.Competition, page int, hasMore bool, city *string) dto.Keyboard {

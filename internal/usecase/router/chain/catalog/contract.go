@@ -15,7 +15,7 @@ type handler interface {
 	Handle(ctx context.Context, u *model.User, in dto.Input) error
 }
 
-// catalogList shows the "🔎 Найти турнир" screen (catalog:list and its
+// catalogList shows the "🔎 Найти соревнование" screen (catalog:list and its
 // pagination/city-filter callbacks).
 type catalogList interface {
 	Handle(ctx context.Context, u *model.User, in dto.Input) error

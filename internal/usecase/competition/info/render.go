@@ -77,7 +77,7 @@ func Keyboard(c *model.UserCompetition, today time.Time) dto.Keyboard {
 	var kb dto.Keyboard
 
 	if c.URL != nil && *c.URL != "" {
-		kb = append(kb, dto.Row(dto.Button{Label: "🔗 Страница турнира", URL: *c.URL}))
+		kb = append(kb, dto.Row(dto.Button{Label: "🔗 Страница соревнования", URL: *c.URL}))
 	}
 
 	var quickAdds []dto.Button

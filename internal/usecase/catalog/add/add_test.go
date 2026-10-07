@@ -53,7 +53,7 @@ func TestUseCase_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "catalog:add:7"},
 			prepare: func(sender *Mocksender, repo *Mockrepo) {
 				repo.EXPECT().GetCompetition(gomock.Any(), int64(7)).Return(nil, model.ErrNotFound)
-				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Турнир не найден.").Return(nil)
+				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Соревнование не найдено.").Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
@@ -80,7 +80,7 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().
 					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, text string, _ dto.Keyboard) error {
-						assert.Contains(t, text, "✅ Добавлено в твои турниры")
+						assert.Contains(t, text, "✅ Добавлено в твои соревнования")
 						assert.Contains(t, text, "Moscow Open")
 
 						return nil

@@ -61,7 +61,7 @@ func TestDateStep_Handle(t *testing.T) {
 				sender.EXPECT().
 					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, text string, _ dto.Keyboard) error {
-						assert.Contains(t, text, "Как называется турнир?")
+						assert.Contains(t, text, "Как называется соревнование?")
 
 						return nil
 					})
@@ -121,7 +121,7 @@ func TestDateStep_Handle(t *testing.T) {
 				sender.EXPECT().
 					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, text string, kb dto.Keyboard) error {
-						assert.Contains(t, text, "✅ Турнир добавлен")
+						assert.Contains(t, text, "✅ Соревнование добавлено")
 						assert.Contains(t, text, "Moscow Open")
 
 						require.Len(t, kb, 5)

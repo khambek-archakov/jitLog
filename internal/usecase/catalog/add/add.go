@@ -16,7 +16,7 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
 
-const notFoundText = "Турнир не найден."
+const notFoundText = "Соревнование не найдено."
 
 const callbackAddPrefix = "catalog:add:"
 
@@ -62,7 +62,7 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 	}
 
 	today := competitioninfo.Today(u)
-	text := "✅ Добавлено в твои турниры\n\n" + competitioninfo.Body(added, today)
+	text := "✅ Добавлено в твои соревнования\n\n" + competitioninfo.Body(added, today)
 
 	return uc.bot.SendWithKeyboard(ctx, in.ChatID, text, competitioninfo.Keyboard(added, today))
 }

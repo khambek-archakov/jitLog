@@ -61,7 +61,7 @@ func TestUseCase_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "competition:submit:7"},
 			prepare: func(sender *Mocksender, repo *Mockrepo) {
 				repo.EXPECT().GetUserCompetition(gomock.Any(), int64(7)).Return(nil, model.ErrNotFound)
-				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Турнир не найден.").Return(nil)
+				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Соревнование не найдено.").Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
@@ -75,7 +75,7 @@ func TestUseCase_Handle(t *testing.T) {
 				c := withURL()
 				c.UserID = userID + 1
 				repo.EXPECT().GetUserCompetition(gomock.Any(), int64(7)).Return(c, nil)
-				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Турнир не найден.").Return(nil)
+				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Соревнование не найдено.").Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
@@ -89,7 +89,7 @@ func TestUseCase_Handle(t *testing.T) {
 				repo.EXPECT().GetUserCompetition(gomock.Any(), int64(7)).
 					Return(&model.UserCompetition{ID: 7, UserID: userID, Date: date}, nil)
 				sender.EXPECT().
-					AnswerCallbackWithText(gomock.Any(), "cb-1", "Нужна ссылка, чтобы предложить турнир в каталог.").
+					AnswerCallbackWithText(gomock.Any(), "cb-1", "Нужна ссылка, чтобы предложить соревнование в каталог.").
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -170,7 +170,7 @@ func TestUseCase_Handle(t *testing.T) {
 					DoAndReturn(func(_ context.Context, _ int64, _ string, kb dto.Keyboard) error {
 						require.Len(t, kb, 2)
 						assert.Equal(t, "competition:submit:7:attach:60", kb[0][0].Data)
-						assert.Equal(t, "Нет, это новый турнир", kb[1][0].Label)
+						assert.Equal(t, "Нет, это новое соревнование", kb[1][0].Label)
 						assert.Equal(t, "competition:submit:7:new", kb[1][0].Data)
 
 						return nil

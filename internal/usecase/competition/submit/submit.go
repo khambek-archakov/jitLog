@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	notFoundText = "Турнир не найден."
-	needsURLText = "Нужна ссылка, чтобы предложить турнир в каталог."
+	notFoundText = "Соревнование не найдено."
+	needsURLText = "Нужна ссылка, чтобы предложить соревнование в каталог."
 )
 
 // callbackSubmitPrefix is followed by "{id}" (the initial tap),
@@ -104,7 +104,7 @@ func (uc *UseCase) begin(ctx context.Context, u *model.User, c *model.UserCompet
 			return err
 		}
 
-		return uc.bot.Send(ctx, in.ChatID, "Такой турнир уже есть в каталоге — привязал твою запись к нему.")
+		return uc.bot.Send(ctx, in.ChatID, "Такое соревнование уже есть в каталоге — привязал твою запись к нему.")
 	}
 	if !errors.Is(err, model.ErrNotFound) {
 		return fmt.Errorf("find competition source by url: %w", err)
@@ -141,7 +141,7 @@ func (uc *UseCase) attach(ctx context.Context, c *model.UserCompetition, in dto.
 		return err
 	}
 
-	return uc.bot.Send(ctx, in.ChatID, "Привязал к существующему турниру в каталоге.")
+	return uc.bot.Send(ctx, in.ChatID, "Привязал к существующему соревнованию в каталоге.")
 }
 
 func (uc *UseCase) createNew(ctx context.Context, u *model.User, c *model.UserCompetition, in dto.Input) error {
@@ -162,7 +162,7 @@ func (uc *UseCase) createNew(ctx context.Context, u *model.User, c *model.UserCo
 		return err
 	}
 
-	if err := uc.bot.Send(ctx, in.ChatID, "Отправил турнир на модерацию — админ скоро проверит."); err != nil {
+	if err := uc.bot.Send(ctx, in.ChatID, "Отправил соревнование на модерацию — админ скоро проверит."); err != nil {
 		return err
 	}
 

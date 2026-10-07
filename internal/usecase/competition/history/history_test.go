@@ -66,7 +66,7 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().
 					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
-						assert.Contains(t, text, "Прошедших турниров пока нет")
+						assert.Contains(t, text, "Прошедших соревнований пока нет")
 
 						require.Len(t, kb, 1)
 						assert.Equal(t, "← Назад", kb[0][0].Label)
@@ -98,7 +98,7 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "Прошедшие турниры", gomock.Any()).
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "Прошедшие соревнования", gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
 						require.Len(t, kb, 4)
 						assert.Equal(t, "1 сен — Moscow Open · 2nd place", kb[0][0].Label)

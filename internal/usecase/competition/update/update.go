@@ -21,13 +21,13 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/internal/urlnorm"
 )
 
-const notFoundText = "Турнир не найден."
+const notFoundText = "Соревнование не найдено."
 
 const (
 	titleNotParsed     = "Не получилось разобрать название 🤔\nНапиши от 1 до 100 символов."
 	dateNotParsed      = "Не получилось разобрать дату 🤔\nНапиши так: 15.11.2026 или 15.11"
-	endDateBeforeStart = "Дата окончания раньше даты начала 🤔\nНапиши дату не раньше начала турнира."
-	startDateAfterEnd  = "Дата начала позже даты окончания 🤔\nНапиши дату не позже окончания турнира."
+	endDateBeforeStart = "Дата окончания раньше даты начала 🤔\nНапиши дату не раньше начала соревнования."
+	startDateAfterEnd  = "Дата начала позже даты окончания 🤔\nНапиши дату не позже окончания соревнования."
 	cityNotParsed      = "Слишком длинно 🤔\nГород — максимум 80 символов."
 	urlNotParsed       = "Не получилось разобрать ссылку 🤔\nНапиши так: https://example.com"
 	resultNotParsed    = "Слишком длинно 🤔\nРезультат — максимум 200 символов."
@@ -80,13 +80,13 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 
 	case "title":
 		return uc.promptField(
-			ctx, in, c, model.UserCompetitionEditFieldTitle, "Как называется турнир?\nНапример: Moscow Open 2026",
+			ctx, in, c, model.UserCompetitionEditFieldTitle, "Как называется соревнование?\nНапример: Moscow Open 2026",
 		)
 
 	case "date":
 		return uc.promptField(
 			ctx, in, c, model.UserCompetitionEditFieldDate,
-			"Когда он проходит?\nНапиши дату, например 15.11.2026 или просто 15.11.\nЕсли турнир идёт несколько дней, укажи первый",
+			"Когда он проходит?\nНапиши дату, например 15.11.2026 или просто 15.11.\nЕсли соревнование идёт несколько дней, укажи первый",
 		)
 
 	case "end_date":
@@ -101,7 +101,7 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 	case "url":
 		return uc.promptField(
 			ctx, in, c, model.UserCompetitionEditFieldURL,
-			"Пришли ссылку на турнир.\nНапример: https://example.com/moscow-open",
+			"Пришли ссылку на соревнование.\nНапример: https://example.com/moscow-open",
 		)
 
 	case "result":

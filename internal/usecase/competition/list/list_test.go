@@ -67,10 +67,10 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().
 					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
-						assert.Contains(t, text, "Пока нет предстоящих турниров")
+						assert.Contains(t, text, "Пока нет предстоящих соревнований")
 
 						require.Len(t, kb, 2)
-						assert.Equal(t, "➕ Добавить соревнование", kb[0][0].Label)
+						assert.Equal(t, "➕ Добавить", kb[0][0].Label)
 						assert.Equal(t, "← Главное меню", kb[1][0].Label)
 
 						return nil
@@ -100,15 +100,13 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(
-						gomock.Any(), chatID, int(messageID), "🏆 Соревнования\n\n⭐ Мои соревнования:", gomock.Any(),
-					).
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "🏆 Мои соревнования", gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
 						require.Len(t, kb, 5)
-						assert.Equal(t, "📌 15 ноя — Moscow Open (Москва)", kb[0][0].Label)
+						assert.Equal(t, "📌 15 ноя — Moscow Open", kb[0][0].Label)
 						assert.Equal(t, "competition:view:7", kb[0][0].Data)
 						assert.Equal(t, "📌 1 дек — No City Cup", kb[1][0].Label)
-						assert.Equal(t, "➕ Добавить соревнование", kb[2][0].Label)
+						assert.Equal(t, "➕ Добавить", kb[2][0].Label)
 						assert.Equal(t, "Прошедшие", kb[3][0].Label)
 						assert.Equal(t, "competition:history:page:0", kb[3][0].Data)
 						assert.Equal(t, "← Главное меню", kb[4][0].Label)
@@ -140,12 +138,12 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().
 					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
-						require.Len(t, kb, 5)
-						assert.Equal(t, "➕ Добавить соревнование", kb[1][0].Label)
-						assert.Equal(t, "🔎 Найти соревнование", kb[2][0].Label)
-						assert.Equal(t, "catalog:list", kb[2][0].Data)
-						assert.Equal(t, "Прошедшие", kb[3][0].Label)
-						assert.Equal(t, "← Главное меню", kb[4][0].Label)
+						require.Len(t, kb, 4)
+						assert.Equal(t, "➕ Добавить", kb[1][0].Label)
+						assert.Equal(t, "🔎 Найти", kb[1][1].Label)
+						assert.Equal(t, "catalog:list", kb[1][1].Data)
+						assert.Equal(t, "Прошедшие", kb[2][0].Label)
+						assert.Equal(t, "← Главное меню", kb[3][0].Label)
 
 						return nil
 					})

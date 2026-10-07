@@ -18,7 +18,7 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
 
-const notFoundText = "Турнир не найден."
+const notFoundText = "Соревнование не найдено."
 
 const (
 	callbackDeletePrefix        = "competition:delete:"
@@ -93,7 +93,7 @@ func (uc *UseCase) confirm(ctx context.Context, u *model.User, in dto.Input) err
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "🗑 Турнир удалён.", deletedKeyboard())
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "🗑 Соревнование удалено.", deletedKeyboard())
 }
 
 // getOwnCompetition fetches a competition and checks it belongs to userID,
@@ -116,7 +116,7 @@ func (uc *UseCase) getOwnCompetition(ctx context.Context, id, userID int64) (*mo
 }
 
 func confirmText(c *model.UserCompetition, today time.Time) string {
-	return "🗑 Удалить турнир?\n\n" + info.Body(c, today)
+	return "🗑 Удалить соревнование?\n\n" + info.Body(c, today)
 }
 
 func confirmKeyboard(id int64) dto.Keyboard {

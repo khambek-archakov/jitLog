@@ -26,7 +26,7 @@ func candidateKeyboard(personalID int64, candidates []*model.Competition) dto.Ke
 	}
 
 	kb = append(kb, dto.Row(dto.Button{
-		Label: "Нет, это новый турнир", Data: fmt.Sprintf("%s%d:new", callbackSubmitPrefix, personalID),
+		Label: "Нет, это новое соревнование", Data: fmt.Sprintf("%s%d:new", callbackSubmitPrefix, personalID),
 	}))
 
 	return kb

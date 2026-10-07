@@ -150,7 +150,7 @@ func TestKeyboard(t *testing.T) {
 
 		// URL button comes first since a link is set, then straight to
 		// Предложить/Изменить/Удалить/Назад — no quick-add row at all.
-		assert.Equal(t, "🔗 Страница турнира", kb[0][0].Label)
+		assert.Equal(t, "🔗 Страница соревнования", kb[0][0].Label)
 		assert.Equal(t, "📤 Предложить в каталог", kb[1][0].Label)
 		assert.Equal(t, "✏️ Изменить", kb[2][0].Label)
 		assert.Equal(t, "🗑️ Удалить", kb[3][0].Label)
@@ -174,7 +174,7 @@ func TestKeyboard(t *testing.T) {
 		url := "https://example.com"
 		kb := info.Keyboard(&model.UserCompetition{ID: 7, Date: date(2026, 11, 24), URL: &url}, today)
 
-		assert.Equal(t, "🔗 Страница турнира", kb[0][0].Label)
+		assert.Equal(t, "🔗 Страница соревнования", kb[0][0].Label)
 		assert.Equal(t, url, kb[0][0].URL)
 	})
 

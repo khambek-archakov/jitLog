@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	titleQuestion  = "Как называется турнир?\nНапример: Moscow Open 2026"
+	titleQuestion  = "Как называется соревнование?\nНапример: Moscow Open 2026"
 	titleNotParsed = "Не смог разобрать название 🤔\nПопробуй уложиться в 100 символов."
 )
 

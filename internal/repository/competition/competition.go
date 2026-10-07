@@ -318,7 +318,7 @@ func (r *Repository) ListCatalogUpcoming(
 
 // HasPublishedUpcoming reports whether at least one published catalog
 // entry hasn't passed today yet — competition/list uses this to decide
-// whether the "🔎 Найти турнир" entry point is even worth showing, without
+// whether the "🔎 Найти" entry point is even worth showing, without
 // paying for a full list it would just discard.
 func (r *Repository) HasPublishedUpcoming(ctx context.Context, today time.Time) (bool, error) {
 	const query = `

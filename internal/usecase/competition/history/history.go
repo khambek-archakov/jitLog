@@ -61,10 +61,10 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 
 func listText(competitions []*model.UserCompetition) string {
 	if len(competitions) == 0 {
-		return "Прошедших турниров пока нет."
+		return "Прошедших соревнований пока нет."
 	}
 
-	return "Прошедшие турниры"
+	return "Прошедшие соревнования"
 }
 
 func listKeyboard(competitions []*model.UserCompetition, page int, hasMore bool) dto.Keyboard {

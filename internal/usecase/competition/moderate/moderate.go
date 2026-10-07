@@ -68,10 +68,10 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 
 	switch action {
 	case "approve":
-		return uc.setStatus(ctx, in, id, model.CompetitionStatusPublished, "✅ Турнир опубликован в каталоге!", "✅ Одобрено.")
+		return uc.setStatus(ctx, in, id, model.CompetitionStatusPublished, "✅ Соревнование опубликовано в каталоге!", "✅ Одобрено.")
 
 	case "reject":
-		return uc.setStatus(ctx, in, id, model.CompetitionStatusRejected, "❌ Турнир отклонён модератором.", "❌ Отклонено.")
+		return uc.setStatus(ctx, in, id, model.CompetitionStatusRejected, "❌ Соревнование отклонено модератором.", "❌ Отклонено.")
 
 	case "dup":
 		return uc.beginDup(ctx, u, in, id)
@@ -100,7 +100,7 @@ func (uc *UseCase) Continue(ctx context.Context, u *model.User, d *model.Competi
 
 	term := strings.TrimSpace(in.Text)
 	if term == "" {
-		return uc.bot.Send(ctx, in.ChatID, "Напиши часть названия турнира.")
+		return uc.bot.Send(ctx, in.ChatID, "Напиши часть названия соревнования.")
 	}
 
 	results, err := uc.repo.SearchCompetitionsByTitle(ctx, term, d.PendingCompetitionID, 10)
@@ -147,7 +147,7 @@ func (uc *UseCase) beginDup(ctx context.Context, u *model.User, in dto.Input, pe
 		return err
 	}
 
-	return uc.bot.Send(ctx, in.ChatID, "Напиши часть названия турнира, с которым нужно объединить.")
+	return uc.bot.Send(ctx, in.ChatID, "Напиши часть названия соревнования, с которым нужно объединить.")
 }
 
 func (uc *UseCase) merge(ctx context.Context, u *model.User, in dto.Input, pendingID, existingID int64) error {
@@ -169,7 +169,7 @@ func (uc *UseCase) merge(ctx context.Context, u *model.User, in dto.Input, pendi
 		return fmt.Errorf("delete competition merge draft: %w", err)
 	}
 
-	if err := uc.notifyOwnersDirect(ctx, owners, "Этот турнир уже есть в каталоге, я добавил его к существующему."); err != nil {
+	if err := uc.notifyOwnersDirect(ctx, owners, "Это соревнование уже есть в каталоге, я добавил его к существующему."); err != nil {
 		return err
 	}
 
@@ -177,7 +177,7 @@ func (uc *UseCase) merge(ctx context.Context, u *model.User, in dto.Input, pendi
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "🔗 Объединено с существующим турниром.", nil)
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "🔗 Объединено с существующим соревнованием.", nil)
 }
 
 func (uc *UseCase) notifyOwners(ctx context.Context, competitionID int64, text string) error {

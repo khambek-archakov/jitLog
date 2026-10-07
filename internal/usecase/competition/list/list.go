@@ -27,7 +27,7 @@ const (
 // callbackMenuBack mirrors other scenarios' own private constant.
 const callbackMenuBack = "menu:back"
 
-const emptyText = "Пока нет предстоящих турниров. Добавь свой, чтобы видеть обратный отсчёт и сохранять результат"
+const emptyText = "Пока нет предстоящих соревнований. Добавь своё, чтобы видеть обратный отсчёт и сохранять результат"
 
 type UseCase struct {
 	bot  sender
@@ -73,21 +73,22 @@ func listText(competitions []*model.UserCompetition) string {
 		return emptyText
 	}
 
-	return "🏆 Соревнования\n\n⭐ Мои соревнования:"
+	return "🏆 Мои соревнования"
 }
 
 func listKeyboard(competitions []*model.UserCompetition, showCatalog bool) dto.Keyboard {
-	kb := make(dto.Keyboard, 0, len(competitions)+4)
+	kb := make(dto.Keyboard, 0, len(competitions)+3)
 
 	for _, c := range competitions {
 		kb = append(kb, dto.Row(dto.Button{Label: rowLabel(c), Data: fmt.Sprintf("competition:view:%d", c.ID)}))
 	}
 
-	kb = append(kb, dto.Row(dto.Button{Label: "➕ Добавить соревнование", Data: callbackCompetitionAdd}))
-
+	addRow := []dto.Button{{Label: "➕ Добавить", Data: callbackCompetitionAdd}}
 	if showCatalog {
-		kb = append(kb, dto.Row(dto.Button{Label: "🔎 Найти соревнование", Data: callbackCatalogList}))
+		addRow = append(addRow, dto.Button{Label: "🔎 Найти", Data: callbackCatalogList})
 	}
+
+	kb = append(kb, addRow)
 
 	if len(competitions) > 0 {
 		kb = append(kb, dto.Row(dto.Button{Label: "Прошедшие", Data: callbackHistoryFirstPage}))
@@ -99,11 +100,5 @@ func listKeyboard(competitions []*model.UserCompetition, showCatalog bool) dto.K
 }
 
 func rowLabel(c *model.UserCompetition) string {
-	label := fmt.Sprintf("📌 %s — %s", info.FormatDateRow(c.Date), c.Title)
-
-	if c.City != nil && *c.City != "" {
-		label += fmt.Sprintf(" (%s)", *c.City)
-	}
-
-	return label
+	return fmt.Sprintf("📌 %s — %s", info.FormatDateRow(c.Date), c.Title)
 }

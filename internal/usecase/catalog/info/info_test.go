@@ -52,7 +52,7 @@ func TestUseCase_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "catalog:view:7"},
 			prepare: func(sender *Mocksender, repo *MockcatalogRepo) {
 				repo.EXPECT().GetCompetition(gomock.Any(), int64(7)).Return(nil, model.ErrNotFound)
-				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Турнир не найден.").Return(nil)
+				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Соревнование не найдено.").Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)

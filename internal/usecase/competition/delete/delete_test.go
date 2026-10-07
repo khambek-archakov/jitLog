@@ -57,7 +57,7 @@ func TestUseCase_Handle(t *testing.T) {
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "competition:delete:7"},
 			prepare: func(sender *Mocksender, repo *MockcompetitionRepo) {
 				repo.EXPECT().GetUserCompetition(gomock.Any(), int64(7)).Return(nil, model.ErrNotFound)
-				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Турнир не найден.").Return(nil)
+				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Соревнование не найдено.").Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
@@ -71,7 +71,7 @@ func TestUseCase_Handle(t *testing.T) {
 				c := baseCompetition()
 				c.UserID = userID + 1
 				repo.EXPECT().GetUserCompetition(gomock.Any(), int64(7)).Return(c, nil)
-				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Турнир не найден.").Return(nil)
+				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Соревнование не найдено.").Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
@@ -101,7 +101,7 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().
 					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
-						assert.Contains(t, text, "🗑 Удалить турнир?")
+						assert.Contains(t, text, "🗑 Удалить соревнование?")
 						assert.Contains(t, text, "Moscow Open")
 						assert.Equal(t, "competition:delete:confirm:7", kb[0][0].Data)
 						assert.Equal(t, "competition:view:7", kb[1][0].Data)
@@ -139,7 +139,7 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "🗑 Турнир удалён.", gomock.Any()).
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "🗑 Соревнование удалено.", gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
 						assert.Equal(t, "competition:list", kb[0][0].Data)
 
@@ -158,7 +158,7 @@ func TestUseCase_Handle(t *testing.T) {
 			},
 			prepare: func(sender *Mocksender, repo *MockcompetitionRepo) {
 				repo.EXPECT().GetUserCompetition(gomock.Any(), int64(7)).Return(nil, model.ErrNotFound)
-				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Турнир не найден.").Return(nil)
+				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Соревнование не найдено.").Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)

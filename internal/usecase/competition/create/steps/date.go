@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	dateQuestion  = "Когда он проходит?\nНапиши дату, например 15.11.2026 или просто 15.11.\nЕсли турнир идёт несколько дней, укажи первый"
+	dateQuestion  = "Когда он проходит?\nНапиши дату, например 15.11.2026 или просто 15.11.\nЕсли соревнование идёт несколько дней, укажи первый"
 	dateNotParsed = "Не получилось разобрать дату 🤔\nНапиши так: 15.11.2026 или 15.11"
 )
 
@@ -106,5 +106,5 @@ func parseDate(text string) (time.Time, bool) {
 }
 
 func confirmationText(c *model.UserCompetition, today time.Time) string {
-	return "✅ Турнир добавлен\n\n" + info.Body(c, today)
+	return "✅ Соревнование добавлено\n\n" + info.Body(c, today)
 }

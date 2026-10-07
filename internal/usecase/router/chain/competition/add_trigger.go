@@ -8,11 +8,11 @@ import (
 )
 
 // callbackAdd mirrors the competition list screen's own private constant —
-// the "➕ Добавить турнир" button.
+// the "➕ Добавить" button.
 const callbackAdd = "competition:add"
 
 // addTrigger starts a fresh tournament dialog from the "🏆 Соревнования"
-// screen's own "➕ Добавить турнир" button.
+// screen's own "➕ Добавить" button.
 type addTrigger struct {
 	create competitionCreate
 }

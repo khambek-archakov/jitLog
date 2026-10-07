@@ -15,7 +15,7 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
 
-const notFoundText = "Турнир не найден."
+const notFoundText = "Соревнование не найдено."
 
 const callbackViewPrefix = "competition:view:"
 

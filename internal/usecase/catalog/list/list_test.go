@@ -131,7 +131,7 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "🔎 Найти турнир", gomock.Any()).
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "🔎 Найти соревнование", gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
 						require.Len(t, kb, 5)
 						assert.Equal(t, "15 ноя — Kazan Open (Казань)", kb[0][0].Label)
