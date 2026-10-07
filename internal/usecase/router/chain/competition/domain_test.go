@@ -70,6 +70,20 @@ func TestDomain(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	t.Run("competition:add:from_catalog also begins a tournament draft", func(t *testing.T) {
+		t.Parallel()
+
+		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "competition:add:from_catalog"}
+
+		err := run(t, u, in, func(m mocks) {
+			m.create.EXPECT().
+				Begin(gomock.Any(), u, in).
+				Return(nil)
+		})
+
+		assert.NoError(t, err)
+	})
+
 	t.Run("competition:view:{id} opens the card", func(t *testing.T) {
 		t.Parallel()
 

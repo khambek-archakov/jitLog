@@ -2,7 +2,10 @@
 // tournaments anyone has submitted, filtered by city. The filter defaults
 // to the viewer's own User.City but can be overridden per-view (see
 // CatalogViewFilter) without ever touching the profile — changing it here
-// is a one-way street away from that default, not into it.
+// is a one-way street away from that default, not into it. Its own
+// "➕ Добавить" button starts competition/create's wizard directly (not
+// owned by this package at all) for anyone who didn't find what they were
+// looking for.
 package list
 
 import (
@@ -33,7 +36,18 @@ const (
 // so "← Назад" goes back there, not to the main menu.
 const callbackCompetitionList = "competition:list"
 
+// callbackAddFromCatalog mirrors competition/create's own private trigger
+// constant — "➕ Добавить" here starts the exact same two-question wizard
+// "➕ Добавить" on "🏆 Соревнования" does; create.Begin tells the two apart
+// by this value alone, to know Отмена should come back here instead.
+const callbackAddFromCatalog = "competition:add:from_catalog"
+
 const cityTooLong = "Слишком длинно 🤔\nГород — максимум 80 символов."
+
+// addHint nudges anyone who didn't find what they were looking for toward
+// adding it themselves — it can always be proposed into the catalog
+// afterwards via the card's own "📤 Предложить в каталог".
+const addHint = "Не нашёл нужное соревнование? Добавь его сам и потом можно предложить в каталог."
 
 type UseCase struct {
 	bot  sender
@@ -182,17 +196,19 @@ func (uc *UseCase) resolveCity(ctx context.Context, u *model.User) (*string, err
 func listText(competitions []*model.Competition, city *string) string {
 	if len(competitions) == 0 {
 		if city != nil {
-			return fmt.Sprintf("🔎 Найти соревнование\n\nВ городе «%s» пока нет опубликованных соревнований.", *city)
+			return fmt.Sprintf(
+				"🔎 Найти соревнование\n\nВ городе «%s» пока нет опубликованных соревнований.\n\n%s", *city, addHint,
+			)
 		}
 
-		return "🔎 Найти соревнование\n\nПока нет опубликованных соревнований."
+		return "🔎 Найти соревнование\n\nПока нет опубликованных соревнований.\n\n" + addHint
 	}
 
-	return "🔎 Найти соревнование"
+	return "🔎 Найти соревнование\n\n" + addHint
 }
 
 func listKeyboard(competitions []*model.Competition, page int, hasMore bool, city *string) dto.Keyboard {
-	kb := make(dto.Keyboard, 0, len(competitions)+3)
+	kb := make(dto.Keyboard, 0, len(competitions)+4)
 
 	for _, c := range competitions {
 		kb = append(kb, dto.Row(dto.Button{Label: rowLabel(c), Data: fmt.Sprintf("catalog:view:%d", c.ID)}))
@@ -202,10 +218,19 @@ func listKeyboard(competitions []*model.Competition, page int, hasMore bool, cit
 		kb = append(kb, nav)
 	}
 
-	kb = append(kb, dto.Row(dto.Button{Label: cityButtonLabel(city), Data: callbackCityPrompt}))
+	kb = append(kb, dto.Row(dto.Button{Label: "➕ Добавить", Data: callbackAddFromCatalog}))
 
-	if city != nil {
-		kb = append(kb, dto.Row(dto.Button{Label: "Показать все города", Data: callbackCityAll}))
+	// The catalog as a whole is only truly empty when nothing is filtering
+	// it — zero results *for one city* still needs a way to change or
+	// clear that filter, so the city controls stay in that case.
+	catalogEmpty := len(competitions) == 0 && city == nil
+
+	if !catalogEmpty {
+		kb = append(kb, dto.Row(dto.Button{Label: cityButtonLabel(city), Data: callbackCityPrompt}))
+
+		if city != nil {
+			kb = append(kb, dto.Row(dto.Button{Label: "Показать все города", Data: callbackCityAll}))
+		}
 	}
 
 	kb = append(kb, dto.Row(dto.Button{Label: "← Назад", Data: callbackCompetitionList}))

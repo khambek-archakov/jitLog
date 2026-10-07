@@ -148,7 +148,8 @@ func run() int {
 	scheduleInfoUseCase := scheduleinfo.New(gateway, schedules)
 	scheduleUpdateUseCase := scheduleupdate.New(gateway, schedules)
 	scheduleDeleteUseCase := scheduledelete.New(gateway, schedules)
-	competitionCreateUseCase := competitioncreate.New(gateway, competitions)
+	catalogListUseCase := cataloglist.New(gateway, competitions)
+	competitionCreateUseCase := competitioncreate.New(gateway, competitions, catalogListUseCase)
 	competitionListUseCase := competitionlist.New(gateway, competitions)
 	competitionHistoryUseCase := competitionhistory.New(gateway, competitions)
 	competitionInfoUseCase := competitioninfo.New(gateway, competitions)
@@ -156,7 +157,6 @@ func run() int {
 	competitionDeleteUseCase := competitiondelete.New(gateway, competitions)
 	competitionSubmitUseCase := submit.New(gateway, competitions, adminTelegramID)
 	competitionModerateUseCase := moderate.New(gateway, competitions, users, adminTelegramID)
-	catalogListUseCase := cataloglist.New(gateway, competitions)
 	catalogInfoUseCase := cataloginfo.New(gateway, competitions)
 	catalogAddUseCase := catalogadd.New(gateway, competitions)
 

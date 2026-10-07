@@ -138,18 +138,18 @@ func (m *MockdraftRepo) EXPECT() *MockdraftRepoMockRecorder {
 }
 
 // CreateDraft mocks base method.
-func (m *MockdraftRepo) CreateDraft(ctx context.Context, userID int64) (*model.UserCompetitionDraft, error) {
+func (m *MockdraftRepo) CreateDraft(ctx context.Context, userID int64, fromCatalog bool) (*model.UserCompetitionDraft, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateDraft", ctx, userID)
+	ret := m.ctrl.Call(m, "CreateDraft", ctx, userID, fromCatalog)
 	ret0, _ := ret[0].(*model.UserCompetitionDraft)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateDraft indicates an expected call of CreateDraft.
-func (mr *MockdraftRepoMockRecorder) CreateDraft(ctx, userID any) *gomock.Call {
+func (mr *MockdraftRepoMockRecorder) CreateDraft(ctx, userID, fromCatalog any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDraft", reflect.TypeOf((*MockdraftRepo)(nil).CreateDraft), ctx, userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDraft", reflect.TypeOf((*MockdraftRepo)(nil).CreateDraft), ctx, userID, fromCatalog)
 }
 
 // CreateUserCompetition mocks base method.
@@ -231,4 +231,42 @@ func (m *Mockhandler) Handle(ctx context.Context, u *model.User, d *model.UserCo
 func (mr *MockhandlerMockRecorder) Handle(ctx, u, d, in any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*Mockhandler)(nil).Handle), ctx, u, d, in)
+}
+
+// MockcatalogList is a mock of catalogList interface.
+type MockcatalogList struct {
+	ctrl     *gomock.Controller
+	recorder *MockcatalogListMockRecorder
+	isgomock struct{}
+}
+
+// MockcatalogListMockRecorder is the mock recorder for MockcatalogList.
+type MockcatalogListMockRecorder struct {
+	mock *MockcatalogList
+}
+
+// NewMockcatalogList creates a new mock instance.
+func NewMockcatalogList(ctrl *gomock.Controller) *MockcatalogList {
+	mock := &MockcatalogList{ctrl: ctrl}
+	mock.recorder = &MockcatalogListMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockcatalogList) EXPECT() *MockcatalogListMockRecorder {
+	return m.recorder
+}
+
+// Handle mocks base method.
+func (m *MockcatalogList) Handle(ctx context.Context, u *model.User, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, u, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MockcatalogListMockRecorder) Handle(ctx, u, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockcatalogList)(nil).Handle), ctx, u, in)
 }

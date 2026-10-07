@@ -39,14 +39,16 @@ func (r *Repository) GetDraftByUserID(ctx context.Context, userID int64) (*model
 	return d, nil
 }
 
-func (r *Repository) CreateDraft(ctx context.Context, userID int64) (*model.UserCompetitionDraft, error) {
+func (r *Repository) CreateDraft(ctx context.Context, userID int64, fromCatalog bool) (*model.UserCompetitionDraft, error) {
 	const query = `
-		insert into user_competition_draft (user_id)
-		values ($1)
+		insert into user_competition_draft (user_id, step)
+		values ($1, $2)
 		returning id, user_id, step, title, date, created_at, updated_at
 	`
 
-	d, err := scanDraft(r.db.QueryRow(ctx, query, userID))
+	step := draftStepToDB(model.UserCompetitionDraftStepAwaitingTitle, fromCatalog)
+
+	d, err := scanDraft(r.db.QueryRow(ctx, query, userID, step))
 	if err != nil {
 		return nil, fmt.Errorf("create user competition draft: %w", err)
 	}
@@ -61,7 +63,7 @@ func (r *Repository) UpdateDraft(ctx context.Context, d *model.UserCompetitionDr
 		where id = $1
 	`
 
-	_, err := r.db.Exec(ctx, query, d.ID, draftStepToDB(d.Step), d.Title, d.Date)
+	_, err := r.db.Exec(ctx, query, d.ID, draftStepToDB(d.Step, d.FromCatalog), d.Title, d.Date)
 	if err != nil {
 		return fmt.Errorf("update user competition draft: %w", err)
 	}
@@ -795,7 +797,7 @@ func scanDraft(row pgx.Row) (*model.UserCompetitionDraft, error) {
 		return nil, err
 	}
 
-	d.Step = draftStepFromDB(step)
+	d.Step, d.FromCatalog = draftStepFromDB(step)
 
 	return &d, nil
 }

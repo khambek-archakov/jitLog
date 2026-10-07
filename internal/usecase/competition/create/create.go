@@ -19,16 +19,27 @@ import (
 // the button, but it's handled here, once.
 const callbackCancel = "competition:draft:cancel"
 
+// callbackAddFromCatalog mirrors catalog/list's own private constant —
+// its "➕ Добавить" button starts this exact same wizard, just remembering
+// to come back there instead of the main menu when cancelled.
+const callbackAddFromCatalog = "competition:add:from_catalog"
+
+// callbackCatalogList mirrors catalog/list's own private constant — Отмена
+// re-renders that screen when the wizard was started from there.
+const callbackCatalogList = "catalog:list"
+
 type UseCase struct {
-	bot      sender
-	repo     draftRepo
-	handlers map[model.UserCompetitionDraftStep]handler
+	bot         sender
+	repo        draftRepo
+	catalogList catalogList
+	handlers    map[model.UserCompetitionDraftStep]handler
 }
 
-func New(bot sender, repo draftRepo) *UseCase {
+func New(bot sender, repo draftRepo, catalogList catalogList) *UseCase {
 	return &UseCase{
-		bot:  bot,
-		repo: repo,
+		bot:         bot,
+		repo:        repo,
+		catalogList: catalogList,
 		handlers: map[model.UserCompetitionDraftStep]handler{
 			model.UserCompetitionDraftStepAwaitingTitle: steps.NewTitle(bot, repo),
 			model.UserCompetitionDraftStepAwaitingDate:  steps.NewDate(bot, repo),
@@ -37,7 +48,9 @@ func New(bot sender, repo draftRepo) *UseCase {
 }
 
 func (uc *UseCase) Begin(ctx context.Context, u *model.User, in dto.Input) error {
-	d, err := uc.repo.CreateDraft(ctx, u.ID)
+	fromCatalog := in.HasCallback && in.CallbackData == callbackAddFromCatalog
+
+	d, err := uc.repo.CreateDraft(ctx, u.ID, fromCatalog)
 	if err != nil {
 		return fmt.Errorf("create user competition draft: %w", err)
 	}
@@ -51,7 +64,7 @@ func (uc *UseCase) Continue(ctx context.Context, u *model.User, d *model.UserCom
 
 func (uc *UseCase) dispatch(ctx context.Context, u *model.User, d *model.UserCompetitionDraft, in dto.Input) error {
 	if in.HasCallback && in.CallbackData == callbackCancel {
-		return uc.cancel(ctx, d, in)
+		return uc.cancel(ctx, u, d, in)
 	}
 
 	h, ok := uc.handlers[d.Step]
@@ -62,9 +75,16 @@ func (uc *UseCase) dispatch(ctx context.Context, u *model.User, d *model.UserCom
 	return h.Handle(ctx, u, d, in)
 }
 
-func (uc *UseCase) cancel(ctx context.Context, d *model.UserCompetitionDraft, in dto.Input) error {
+func (uc *UseCase) cancel(ctx context.Context, u *model.User, d *model.UserCompetitionDraft, in dto.Input) error {
 	if err := uc.repo.DeleteDraft(ctx, d.UserID); err != nil {
 		return fmt.Errorf("delete user competition draft: %w", err)
+	}
+
+	if d.FromCatalog {
+		catalogIn := in
+		catalogIn.CallbackData = callbackCatalogList
+
+		return uc.catalogList.Handle(ctx, u, catalogIn)
 	}
 
 	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {

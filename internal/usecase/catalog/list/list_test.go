@@ -131,9 +131,12 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "🔎 Найти соревнование", gomock.Any()).
-					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
-						require.Len(t, kb, 5)
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
+						assert.Contains(t, text, "🔎 Найти соревнование")
+						assert.Contains(t, text, "Не нашёл нужное соревнование?")
+
+						require.Len(t, kb, 6)
 						assert.Equal(t, "15 ноя — Kazan Open (Казань)", kb[0][0].Label)
 						assert.Equal(t, "catalog:view:7", kb[0][0].Data)
 
@@ -143,14 +146,79 @@ func TestUseCase_Handle(t *testing.T) {
 						assert.Equal(t, "›", kb[1][1].Label)
 						assert.Equal(t, "catalog:list:page:2", kb[1][1].Data)
 
-						assert.Equal(t, "📍 Казань — изменить", kb[2][0].Label)
-						assert.Equal(t, "catalog:city:prompt", kb[2][0].Data)
+						assert.Equal(t, "➕ Добавить", kb[2][0].Label)
+						assert.Equal(t, "competition:add:from_catalog", kb[2][0].Data)
 
-						assert.Equal(t, "Показать все города", kb[3][0].Label)
-						assert.Equal(t, "catalog:city:all", kb[3][0].Data)
+						assert.Equal(t, "📍 Казань — изменить", kb[3][0].Label)
+						assert.Equal(t, "catalog:city:prompt", kb[3][0].Data)
 
-						assert.Equal(t, "← Назад", kb[4][0].Label)
-						assert.Equal(t, "competition:list", kb[4][0].Data)
+						assert.Equal(t, "Показать все города", kb[4][0].Label)
+						assert.Equal(t, "catalog:city:all", kb[4][0].Data)
+
+						assert.Equal(t, "← Назад", kb[5][0].Label)
+						assert.Equal(t, "competition:list", kb[5][0].Data)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "empty catalog, no filter — just the hint, Добавить and Назад, no city controls",
+			u:    &model.User{ID: userID},
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1", CallbackData: "catalog:list",
+			},
+			prepare: func(sender *Mocksender, repo *MockcatalogRepo) {
+				repo.EXPECT().GetViewFilter(gomock.Any(), userID).Return(nil, model.ErrNotFound)
+				repo.EXPECT().ListCatalogUpcoming(gomock.Any(), gomock.Any(), gomock.Nil(), 5, 0).Return(nil, false, nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
+						assert.Contains(t, text, "Пока нет опубликованных соревнований.")
+						assert.Contains(t, text, "Не нашёл нужное соревнование?")
+
+						require.Len(t, kb, 2)
+						assert.Equal(t, "➕ Добавить", kb[0][0].Label)
+						assert.Equal(t, "competition:add:from_catalog", kb[0][0].Data)
+						assert.Equal(t, "← Назад", kb[1][0].Label)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "empty for this city filter — city controls stay so it can be changed",
+			u:    &model.User{ID: userID},
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1", CallbackData: "catalog:list",
+			},
+			prepare: func(sender *Mocksender, repo *MockcatalogRepo) {
+				repo.EXPECT().GetViewFilter(gomock.Any(), userID).Return(&model.CatalogViewFilter{UserID: userID, City: ptr("Казань")}, nil)
+				repo.EXPECT().ListCatalogUpcoming(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil()), 5, 0).Return(nil, false, nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
+						assert.Contains(t, text, "В городе «Казань» пока нет опубликованных соревнований.")
+
+						require.Len(t, kb, 4)
+						assert.Equal(t, "➕ Добавить", kb[0][0].Label)
+						assert.Equal(t, "📍 Казань — изменить", kb[1][0].Label)
+						assert.Equal(t, "Показать все города", kb[2][0].Label)
+						assert.Equal(t, "← Назад", kb[3][0].Label)
 
 						return nil
 					})

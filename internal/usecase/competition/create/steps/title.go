@@ -16,9 +16,14 @@ const (
 )
 
 // callbackCompetitionAdd mirrors the competition list screen's own
-// "➕ Добавить соревнование" button data — it's the trigger that kicks this
-// flow off, so TitleStep (the first step) needs to recognize it too.
+// "➕ Добавить" button data — it's one of the two triggers that kick this
+// flow off, so TitleStep (the first step) needs to recognize it.
 const callbackCompetitionAdd = "competition:add"
+
+// callbackCompetitionAddFromCatalog mirrors catalog/list's own "➕ Добавить"
+// button data — the second trigger for this same flow, started from the
+// "🔎 Найти соревнование" screen instead.
+const callbackCompetitionAddFromCatalog = "competition:add:from_catalog"
 
 type TitleStep struct {
 	bot  sender
@@ -30,7 +35,7 @@ func NewTitle(bot sender, repo draftRepo) *TitleStep {
 }
 
 func (s *TitleStep) Handle(ctx context.Context, _ *model.User, d *model.UserCompetitionDraft, in dto.Input) error {
-	if in.HasCallback && in.CallbackData == callbackCompetitionAdd {
+	if in.HasCallback && (in.CallbackData == callbackCompetitionAdd || in.CallbackData == callbackCompetitionAddFromCatalog) {
 		if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 			return err
 		}

@@ -23,7 +23,7 @@ type sender interface {
 // through both, so its interface here has to satisfy steps' own
 // (separately declared) draftRepo too.
 type draftRepo interface {
-	CreateDraft(ctx context.Context, userID int64) (*model.UserCompetitionDraft, error)
+	CreateDraft(ctx context.Context, userID int64, fromCatalog bool) (*model.UserCompetitionDraft, error)
 	UpdateDraft(ctx context.Context, d *model.UserCompetitionDraft) error
 	CreateUserCompetition(ctx context.Context, userID int64, title string, date time.Time) (*model.UserCompetition, error)
 	DeleteDraft(ctx context.Context, userID int64) error
@@ -33,4 +33,13 @@ type draftRepo interface {
 // is the only thing that needs to name this type, to keep its dispatch map.
 type handler interface {
 	Handle(ctx context.Context, u *model.User, d *model.UserCompetitionDraft, in dto.Input) error
+}
+
+// catalogList shows the "🔎 Найти соревнование" screen again when this
+// wizard was started from there and then cancelled — it already owns the
+// city-filter/pagination state behind that screen, so re-rendering it here
+// instead of just bouncing to the main menu would mean duplicating that
+// logic.
+type catalogList interface {
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
 }

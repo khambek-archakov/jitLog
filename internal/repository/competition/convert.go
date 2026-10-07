@@ -2,22 +2,34 @@ package competition
 
 import "github.com/khambek-archakov/jitLog/internal/model"
 
-func draftStepToDB(s model.UserCompetitionDraftStep) int16 {
-	switch s {
-	case model.UserCompetitionDraftStepAwaitingDate:
-		return 1
-	default:
-		return 0
+// draftStepToDB/FromDB pack both Step and FromCatalog into the single
+// user_competition_draft.step smallint column — FromCatalog adds 2 to
+// whichever base value Step alone would've used, rather than needing a
+// column of its own.
+func draftStepToDB(s model.UserCompetitionDraftStep, fromCatalog bool) int16 {
+	v := int16(0)
+	if s == model.UserCompetitionDraftStepAwaitingDate {
+		v = 1
 	}
+
+	if fromCatalog {
+		v += 2
+	}
+
+	return v
 }
 
-func draftStepFromDB(v int16) model.UserCompetitionDraftStep {
-	switch v {
-	case 1:
-		return model.UserCompetitionDraftStepAwaitingDate
-	default:
-		return model.UserCompetitionDraftStepAwaitingTitle
+func draftStepFromDB(v int16) (model.UserCompetitionDraftStep, bool) {
+	fromCatalog := v >= 2
+	if fromCatalog {
+		v -= 2
 	}
+
+	if v == 1 {
+		return model.UserCompetitionDraftStepAwaitingDate, fromCatalog
+	}
+
+	return model.UserCompetitionDraftStepAwaitingTitle, fromCatalog
 }
 
 func editFieldToDB(f model.UserCompetitionEditField) int16 {
