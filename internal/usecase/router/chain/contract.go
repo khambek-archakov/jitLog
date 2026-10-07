@@ -179,7 +179,7 @@ type competitionMergeDraft interface {
 	GetMergeDraftByUserID(ctx context.Context, userID int64) (*model.CompetitionMergeDraft, error)
 }
 
-// catalogList shows the "📚 Каталог" screen (catalog:list, its pagination
+// catalogList shows the "🔎 Найти турнир" screen (catalog:list, its pagination
 // and its city-filter controls). Continue fires for the city draft's own
 // free-text city name, once a pending one exists.
 type catalogList interface {

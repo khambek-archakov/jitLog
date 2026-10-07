@@ -26,8 +26,8 @@ const roundsNotParsed = "Не смог разобрать число, напиш
 
 // callbackEditPrefix is followed by "{id}", "{id}:date", "{id}:date:cal:…",
 // "{id}:date:pick:…", "{id}:type", "{id}:type:{value}", "{id}:duration",
-// "{id}:duration:{value|other}", "{id}:rounds", "{id}:rounds:{value|other}"
-// or "{id}:notes".
+// "{id}:duration:{value|other}", "{id}:rounds", "{id}:rounds:{value|other}",
+// "{id}:notes" or "{id}:cancel".
 const callbackEditPrefix = "training:edit:"
 
 // callbackEditNoop is the calendar's blank-cell callback — it never parses
@@ -90,6 +90,9 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 
 	case action == "notes":
 		return uc.promptNotes(ctx, in, t)
+
+	case action == "cancel":
+		return uc.cancelEdit(ctx, in, t)
 
 	default:
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
@@ -220,7 +223,7 @@ func (uc *UseCase) handleDuration(ctx context.Context, in dto.Input, t *model.Tr
 			return err
 		}
 
-		return uc.bot.Send(ctx, in.ChatID, "Напиши длительность в минутах, например: 45")
+		return uc.bot.SendWithKeyboard(ctx, in.ChatID, "Напиши длительность в минутах, например: 45", cancelKeyboard(t.ID))
 	}
 
 	minutes, err := strconv.Atoi(value)
@@ -253,7 +256,7 @@ func (uc *UseCase) handleRounds(ctx context.Context, in dto.Input, t *model.Trai
 			return err
 		}
 
-		return uc.bot.Send(ctx, in.ChatID, "Напиши количество раундов цифрами, например: 6")
+		return uc.bot.SendWithKeyboard(ctx, in.ChatID, "Напиши количество раундов цифрами, например: 6", cancelKeyboard(t.ID))
 	}
 
 	rounds, ok := roundsFromToken(value)
@@ -273,7 +276,27 @@ func (uc *UseCase) promptNotes(ctx context.Context, in dto.Input, t *model.Train
 		return err
 	}
 
-	return uc.bot.Send(ctx, in.ChatID, "Напиши новую заметку:")
+	return uc.bot.SendWithKeyboard(ctx, in.ChatID, "Напиши новую заметку:", cancelKeyboard(t.ID))
+}
+
+// cancelEdit backs out of whichever free-text prompt is pending (duration,
+// rounds or notes — training has only one edit draft per user, so clearing
+// it is unambiguous) without requiring any text at all, re-showing the
+// training card right in place of the prompt.
+func (uc *UseCase) cancelEdit(ctx context.Context, in dto.Input, t *model.Training) error {
+	if err := uc.repo.DeleteEditDraft(ctx, t.UserID); err != nil {
+		return fmt.Errorf("delete training edit draft: %w", err)
+	}
+
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
+		return err
+	}
+
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, info.Card(t), info.Keyboard(t.ID))
+}
+
+func cancelKeyboard(id int64) dto.Keyboard {
+	return dto.Keyboard{dto.Row(dto.Button{Label: "❌ Отмена", Data: fmt.Sprintf("%s%d:cancel", callbackEditPrefix, id)})}
 }
 
 func (uc *UseCase) applyUpdate(

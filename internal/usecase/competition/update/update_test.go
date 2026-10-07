@@ -159,13 +159,46 @@ func TestUseCase_Handle(t *testing.T) {
 				repo.EXPECT().GetUserCompetition(gomock.Any(), int64(7)).Return(baseCompetition(), nil)
 				repo.EXPECT().SetEditDraft(gomock.Any(), userID, int64(7), editField).Return(nil)
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
-				sender.EXPECT().Send(gomock.Any(), chatID, gomock.Any()).Return(nil)
+
+				sender.EXPECT().
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ string, kb dto.Keyboard) error {
+						assert.Equal(t, "competition:edit:7:cancel", kb[0][0].Data)
+
+						return nil
+					})
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
 			},
 		})
 	}
+
+	tests = append(tests, struct {
+		name     string
+		in       dto.Input
+		prepare  func(sender *Mocksender, repo *MockcompetitionRepo)
+		expected func(t assert.TestingT, err error)
+	}{
+		name: "cancel clears the draft and shows the card again",
+		in: dto.Input{
+			ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+			CallbackData: "competition:edit:7:cancel",
+		},
+		prepare: func(sender *Mocksender, repo *MockcompetitionRepo) {
+			repo.EXPECT().GetUserCompetition(gomock.Any(), int64(7)).Return(baseCompetition(), nil)
+			repo.EXPECT().DeleteEditDraft(gomock.Any(), userID).Return(nil)
+
+			sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+			sender.EXPECT().
+				EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+				Return(nil)
+		},
+		expected: func(t assert.TestingT, err error) {
+			assert.NoError(t, err)
+		},
+	})
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

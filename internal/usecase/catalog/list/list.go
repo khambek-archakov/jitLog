@@ -1,4 +1,4 @@
-// Package list owns the "📚 Каталог" screen — published, upcoming
+// Package list owns the "🔎 Найти турнир" screen — published, upcoming
 // tournaments anyone has submitted, filtered by city. The filter defaults
 // to the viewer's own User.City but can be overridden per-view (see
 // CatalogViewFilter) without ever touching the profile — changing it here
@@ -25,10 +25,13 @@ const (
 	callbackPagePrefix = "catalog:list:page:"
 	callbackCityPrompt = "catalog:city:prompt"
 	callbackCityAll    = "catalog:city:all"
+	callbackCityCancel = "catalog:city:cancel"
 )
 
-// callbackMenuBack mirrors other scenarios' own private constant.
-const callbackMenuBack = "menu:back"
+// callbackCompetitionList mirrors internal/usecase/competition/list's own
+// private constant — this screen is only ever reached from "🏆 Соревнования",
+// so "← Назад" goes back there, not to the main menu.
+const callbackCompetitionList = "competition:list"
 
 const cityTooLong = "Слишком длинно 🤔\nГород — максимум 80 символов."
 
@@ -63,6 +66,9 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 
 	case in.CallbackData == callbackCityAll:
 		return uc.setCity(ctx, u, in, nil)
+
+	case in.CallbackData == callbackCityCancel:
+		return uc.cancelCity(ctx, u, in)
 
 	default:
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
@@ -132,7 +138,22 @@ func (uc *UseCase) promptCity(ctx context.Context, u *model.User, in dto.Input) 
 		return err
 	}
 
-	return uc.bot.Send(ctx, in.ChatID, "В каком городе искать?\nНапример: Москва")
+	return uc.bot.SendWithKeyboard(ctx, in.ChatID, "В каком городе искать?\nНапример: Москва", cancelCityKeyboard())
+}
+
+// cancelCity backs out of the free-text city prompt without requiring any
+// text at all — the draft is cleared and the catalog list reappears right
+// in place of the prompt, same screen the "📍 ..." button was tapped from.
+func (uc *UseCase) cancelCity(ctx context.Context, u *model.User, in dto.Input) error {
+	if err := uc.repo.DeleteCityDraft(ctx, u.ID); err != nil {
+		return fmt.Errorf("delete catalog city draft: %w", err)
+	}
+
+	return uc.showPage(ctx, u, in, 0)
+}
+
+func cancelCityKeyboard() dto.Keyboard {
+	return dto.Keyboard{dto.Row(dto.Button{Label: "❌ Отмена", Data: callbackCityCancel})}
 }
 
 func (uc *UseCase) setCity(ctx context.Context, u *model.User, in dto.Input, city *string) error {
@@ -161,13 +182,13 @@ func (uc *UseCase) resolveCity(ctx context.Context, u *model.User) (*string, err
 func listText(competitions []*model.Competition, city *string) string {
 	if len(competitions) == 0 {
 		if city != nil {
-			return fmt.Sprintf("📚 Каталог\n\nВ городе «%s» пока нет опубликованных турниров.", *city)
+			return fmt.Sprintf("🔎 Найти турнир\n\nВ городе «%s» пока нет опубликованных турниров.", *city)
 		}
 
-		return "📚 Каталог\n\nПока нет опубликованных турниров."
+		return "🔎 Найти турнир\n\nПока нет опубликованных турниров."
 	}
 
-	return "📚 Каталог"
+	return "🔎 Найти турнир"
 }
 
 func listKeyboard(competitions []*model.Competition, page int, hasMore bool, city *string) dto.Keyboard {
@@ -187,7 +208,7 @@ func listKeyboard(competitions []*model.Competition, page int, hasMore bool, cit
 		kb = append(kb, dto.Row(dto.Button{Label: "Показать все города", Data: callbackCityAll}))
 	}
 
-	kb = append(kb, dto.Row(dto.Button{Label: "← Главное меню", Data: callbackMenuBack}))
+	kb = append(kb, dto.Row(dto.Button{Label: "← Назад", Data: callbackCompetitionList}))
 
 	return kb
 }

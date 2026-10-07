@@ -19,4 +19,5 @@ type sender interface {
 
 type competitionRepo interface {
 	ListUpcoming(ctx context.Context, userID int64, today time.Time) ([]*model.UserCompetition, error)
+	HasPublishedUpcoming(ctx context.Context, today time.Time) (bool, error)
 }

@@ -79,7 +79,8 @@ func TestUseCase_Handle(t *testing.T) {
 						assert.Contains(t, text, "Москва")
 
 						last := kb[len(kb)-1]
-						assert.Equal(t, "← Главное меню", last[0].Label)
+						assert.Equal(t, "← Назад", last[0].Label)
+						assert.Equal(t, "competition:list", last[0].Data)
 
 						return nil
 					})
@@ -130,7 +131,7 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "📚 Каталог", gomock.Any()).
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "🔎 Найти турнир", gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
 						require.Len(t, kb, 5)
 						assert.Equal(t, "15 ноя — Kazan Open (Казань)", kb[0][0].Label)
@@ -148,7 +149,8 @@ func TestUseCase_Handle(t *testing.T) {
 						assert.Equal(t, "Показать все города", kb[3][0].Label)
 						assert.Equal(t, "catalog:city:all", kb[3][0].Data)
 
-						assert.Equal(t, "← Главное меню", kb[4][0].Label)
+						assert.Equal(t, "← Назад", kb[4][0].Label)
+						assert.Equal(t, "competition:list", kb[4][0].Data)
 
 						return nil
 					})
@@ -184,13 +186,40 @@ func TestUseCase_Handle(t *testing.T) {
 		},
 
 		{
-			name: "city prompt sets the draft and asks for a city",
+			name: "city prompt sets the draft and asks for a city, with a cancel button",
 			u:    &model.User{ID: userID},
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "catalog:city:prompt"},
 			prepare: func(sender *Mocksender, repo *MockcatalogRepo) {
 				repo.EXPECT().SetCityDraft(gomock.Any(), userID).Return(nil)
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
-				sender.EXPECT().Send(gomock.Any(), chatID, gomock.Any()).Return(nil)
+
+				sender.EXPECT().
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ string, kb dto.Keyboard) error {
+						require.Len(t, kb, 1)
+						assert.Equal(t, "❌ Отмена", kb[0][0].Label)
+						assert.Equal(t, "catalog:city:cancel", kb[0][0].Data)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "cancelling the city prompt clears the draft and shows the list again",
+			u:    &model.User{ID: userID},
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1", CallbackData: "catalog:city:cancel",
+			},
+			prepare: func(sender *Mocksender, repo *MockcatalogRepo) {
+				repo.EXPECT().DeleteCityDraft(gomock.Any(), userID).Return(nil)
+				repo.EXPECT().GetViewFilter(gomock.Any(), userID).Return(nil, model.ErrNotFound)
+				repo.EXPECT().ListCatalogUpcoming(gomock.Any(), gomock.Any(), gomock.Any(), 5, 0).Return(nil, false, nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)

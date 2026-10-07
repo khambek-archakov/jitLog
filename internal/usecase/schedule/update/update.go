@@ -23,8 +23,8 @@ const notFoundText = "Слот не найден."
 const timeNotParsed = "Не смог разобрать время, напиши в формате ЧЧ:ММ, например: 18:30."
 
 // callbackEditPrefix is followed by "{id}", "{id}:day", "{id}:day:{n}",
-// "{id}:time", "{id}:time:preset:{token}", "{id}:time:other", "{id}:type"
-// or "{id}:type:{value}".
+// "{id}:time", "{id}:time:preset:{token}", "{id}:time:other", "{id}:type",
+// "{id}:type:{value}" or "{id}:cancel".
 const callbackEditPrefix = "schedule:edit:"
 
 // presetTimes mirrors create/steps' own quick picks, in minutes since
@@ -80,6 +80,9 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 
 	case action == "type" || strings.HasPrefix(action, "type:"):
 		return uc.handleType(ctx, in, s, strings.TrimPrefix(action, "type"))
+
+	case action == "cancel":
+		return uc.cancelEdit(ctx, in, s)
 
 	default:
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
@@ -152,7 +155,7 @@ func (uc *UseCase) handleTime(ctx context.Context, in dto.Input, s *model.Schedu
 			return err
 		}
 
-		return uc.bot.Send(ctx, in.ChatID, "Напиши время в формате ЧЧ:ММ, например: 18:30")
+		return uc.bot.SendWithKeyboard(ctx, in.ChatID, "Напиши время в формате ЧЧ:ММ, например: 18:30", cancelKeyboard(s.ID))
 
 	case strings.HasPrefix(sub, ":preset:"):
 		minutes, ok := parseTimeToken(strings.TrimPrefix(sub, ":preset:"))
@@ -182,6 +185,24 @@ func (uc *UseCase) handleType(ctx context.Context, in dto.Input, s *model.Schedu
 	}
 
 	return uc.applyUpdate(ctx, in, s, s.DayOfWeek, s.TimeMinutes, newType)
+}
+
+// cancelEdit backs out of the free-text time prompt without requiring any
+// text at all, re-showing the slot's card right in place of the prompt.
+func (uc *UseCase) cancelEdit(ctx context.Context, in dto.Input, s *model.ScheduleSlot) error {
+	if err := uc.repo.DeleteEditDraft(ctx, s.UserID); err != nil {
+		return fmt.Errorf("delete schedule edit draft: %w", err)
+	}
+
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
+		return err
+	}
+
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, info.Card(s), info.Keyboard(s.ID))
+}
+
+func cancelKeyboard(id int64) dto.Keyboard {
+	return dto.Keyboard{dto.Row(dto.Button{Label: "❌ Отмена", Data: fmt.Sprintf("%s%d:cancel", callbackEditPrefix, id)})}
 }
 
 func (uc *UseCase) applyUpdate(

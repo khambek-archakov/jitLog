@@ -316,6 +316,29 @@ func (r *Repository) ListCatalogUpcoming(
 	return competitions, hasMore, nil
 }
 
+// HasPublishedUpcoming reports whether at least one published catalog
+// entry hasn't passed today yet — competition/list uses this to decide
+// whether the "🔎 Найти турнир" entry point is even worth showing, without
+// paying for a full list it would just discard.
+func (r *Repository) HasPublishedUpcoming(ctx context.Context, today time.Time) (bool, error) {
+	const query = `
+		select exists(
+			select 1
+			from competition
+			where status = $1 and coalesce(end_date, date) >= $2
+		)
+	`
+
+	var exists bool
+
+	err := r.db.QueryRow(ctx, query, competitionStatusToDB(model.CompetitionStatusPublished), today).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("check for published upcoming competitions: %w", err)
+	}
+
+	return exists, nil
+}
+
 func (r *Repository) GetCompetition(ctx context.Context, id int64) (*model.Competition, error) {
 	const query = `
 		select id, title, date, end_date, city, status, created_by, created_at

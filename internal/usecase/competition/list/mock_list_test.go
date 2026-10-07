@@ -137,6 +137,21 @@ func (m *MockcompetitionRepo) EXPECT() *MockcompetitionRepoMockRecorder {
 	return m.recorder
 }
 
+// HasPublishedUpcoming mocks base method.
+func (m *MockcompetitionRepo) HasPublishedUpcoming(ctx context.Context, today time.Time) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasPublishedUpcoming", ctx, today)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HasPublishedUpcoming indicates an expected call of HasPublishedUpcoming.
+func (mr *MockcompetitionRepoMockRecorder) HasPublishedUpcoming(ctx, today any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasPublishedUpcoming", reflect.TypeOf((*MockcompetitionRepo)(nil).HasPublishedUpcoming), ctx, today)
+}
+
 // ListUpcoming mocks base method.
 func (m *MockcompetitionRepo) ListUpcoming(ctx context.Context, userID int64, today time.Time) ([]*model.UserCompetition, error) {
 	m.ctrl.T.Helper()

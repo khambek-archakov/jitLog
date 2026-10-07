@@ -34,7 +34,7 @@ const (
 )
 
 // callbackEditPrefix is followed by "{id}", "{id}:title", "{id}:date",
-// "{id}:end_date", "{id}:city", "{id}:url" or "{id}:result".
+// "{id}:end_date", "{id}:city", "{id}:url", "{id}:result" or "{id}:cancel".
 const callbackEditPrefix = "competition:edit:"
 
 type UseCase struct {
@@ -108,6 +108,9 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 		return uc.promptField(
 			ctx, in, c, model.UserCompetitionEditFieldResult, "Какой результат?\nНапример: 2 место, сабмишен в финале",
 		)
+
+	case "cancel":
+		return uc.cancelEdit(ctx, u, in, c)
 
 	default:
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
@@ -208,7 +211,28 @@ func (uc *UseCase) promptField(
 		return err
 	}
 
-	return uc.bot.Send(ctx, in.ChatID, question)
+	return uc.bot.SendWithKeyboard(ctx, in.ChatID, question, cancelKeyboard(c.ID))
+}
+
+// cancelEdit backs out of whichever free-text prompt is pending without
+// requiring any text at all, re-showing the tournament card right in place
+// of the prompt.
+func (uc *UseCase) cancelEdit(ctx context.Context, u *model.User, in dto.Input, c *model.UserCompetition) error {
+	if err := uc.repo.DeleteEditDraft(ctx, c.UserID); err != nil {
+		return fmt.Errorf("delete user competition edit draft: %w", err)
+	}
+
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
+		return err
+	}
+
+	today := info.Today(u)
+
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, info.Card(c, today), info.Keyboard(c, today))
+}
+
+func cancelKeyboard(id int64) dto.Keyboard {
+	return dto.Keyboard{dto.Row(dto.Button{Label: "❌ Отмена", Data: fmt.Sprintf("%s%d:cancel", callbackEditPrefix, id)})}
 }
 
 func (uc *UseCase) finishEdit(

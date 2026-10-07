@@ -21,6 +21,7 @@ const (
 	callbackProfileBeltEdit      = "profile:belt:edit"
 	callbackProfileBeltSetPrefix = "profile:belt:set:"
 	callbackProfileAgeEdit       = "profile:age:edit"
+	callbackProfileAgeCancel     = "profile:age:cancel"
 )
 
 type UseCase struct {
@@ -53,6 +54,9 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 
 	case in.CallbackData == callbackProfileAgeEdit:
 		return uc.beginAgeEdit(ctx, u, in)
+
+	case in.CallbackData == callbackProfileAgeCancel:
+		return uc.cancelAgeEdit(ctx, u, in)
 
 	default:
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
@@ -118,7 +122,26 @@ func (uc *UseCase) beginAgeEdit(ctx context.Context, u *model.User, in dto.Input
 		return err
 	}
 
-	return uc.bot.Send(ctx, in.ChatID, askAgeText)
+	return uc.bot.SendWithKeyboard(ctx, in.ChatID, askAgeText, cancelAgeKeyboard())
+}
+
+// cancelAgeEdit backs out of the free-text age prompt without requiring any
+// text at all, re-showing the edit submenu right in place of the prompt —
+// the screen the "✏️ Возраст" button was tapped from.
+func (uc *UseCase) cancelAgeEdit(ctx context.Context, u *model.User, in dto.Input) error {
+	if err := uc.drafts.DeleteEditDraft(ctx, u.ID); err != nil {
+		return fmt.Errorf("delete profile edit draft: %w", err)
+	}
+
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
+		return err
+	}
+
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, editMenuText, editMenuKeyboard())
+}
+
+func cancelAgeKeyboard() dto.Keyboard {
+	return dto.Keyboard{dto.Row(dto.Button{Label: "❌ Отмена", Data: callbackProfileAgeCancel})}
 }
 
 func (uc *UseCase) setBelt(ctx context.Context, u *model.User, in dto.Input) error {

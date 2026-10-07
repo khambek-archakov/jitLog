@@ -15,7 +15,7 @@ const (
 	callbackCityAll    = "catalog:city:all"
 )
 
-// listTrigger covers the "📚 Каталог" screen's own entry callback, its
+// listTrigger covers the "🔎 Найти турнир" screen's own entry callback, its
 // pagination and its city-filter controls — all driven by
 // catalog/list.Handle.
 type listTrigger struct {

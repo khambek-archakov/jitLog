@@ -267,11 +267,50 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					Send(gomock.Any(), chatID, gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ string, kb dto.Keyboard) error {
+						assert.Equal(t, "profile:age:cancel", kb[0][0].Data)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "profile:age:cancel clears the draft and shows the edit menu",
+			u:    baseUser(),
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "profile:age:cancel",
+			},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+				drafts.EXPECT().DeleteEditDraft(gomock.Any(), int64(42)).Return(nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "✏️ Что изменить?", gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, u *model.User, err error) {
 				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "failed to delete draft on age cancel",
+			u:    baseUser(),
+			in: dto.Input{
+				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "profile:age:cancel",
+			},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+				drafts.EXPECT().DeleteEditDraft(gomock.Any(), int64(42)).Return(errors.New("fail"))
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.Error(t, err)
 			},
 		},
 
