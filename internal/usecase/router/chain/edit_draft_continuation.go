@@ -10,13 +10,20 @@ import (
 )
 
 // editDraftContinuation mirrors draftContinuation for update's own pending
-// free-text edit (duration's "Другое" or notes).
+// free-text edit (duration's "Другое" or notes). It only ever claims a
+// message — a callback (the prompt's own "❌ Отмена" button) is left for
+// training's own training:edit:* trigger to dispatch to Handle instead,
+// since Continue only understands free text.
 type editDraftContinuation struct {
 	update trainingUpdate
 	edits  trainingEditDraft
 }
 
 func (h *editDraftContinuation) Handle(ctx context.Context, u *model.User, in dto.Input) error {
+	if in.HasCallback {
+		return model.ErrSkip
+	}
+
 	draft, err := h.edits.GetEditDraftByUserID(ctx, u.ID)
 	if errors.Is(err, model.ErrNotFound) {
 		return model.ErrSkip

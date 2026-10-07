@@ -13,6 +13,7 @@ const (
 	callbackPagePrefix = "catalog:list:page:"
 	callbackCityPrompt = "catalog:city:prompt"
 	callbackCityAll    = "catalog:city:all"
+	callbackCityCancel = "catalog:city:cancel"
 )
 
 // listTrigger covers the "🔎 Найти соревнование" screen's own entry callback, its
@@ -30,7 +31,8 @@ func (h *listTrigger) Handle(ctx context.Context, u *model.User, in dto.Input) e
 	matches := in.CallbackData == callbackList ||
 		strings.HasPrefix(in.CallbackData, callbackPagePrefix) ||
 		in.CallbackData == callbackCityPrompt ||
-		in.CallbackData == callbackCityAll
+		in.CallbackData == callbackCityAll ||
+		in.CallbackData == callbackCityCancel
 
 	if !matches {
 		return model.ErrSkip

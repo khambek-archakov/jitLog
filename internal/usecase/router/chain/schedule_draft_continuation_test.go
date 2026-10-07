@@ -51,10 +51,45 @@ func TestScheduleDraftContinuation(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("no active schedule draft skips to the next link", func(t *testing.T) {
+	t.Run("a callback skips every later edit/city-draft continuation's repo lookup", func(t *testing.T) {
 		t.Parallel()
 
 		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "menu:add_training"}
+
+		err := run(t, u, in, func(m mocks) {
+			// training's own edit draft is a callback-skip continuation
+			// too — no m.edits expectation here, a callback never reaches
+			// its repo lookup.
+			m.drafts.EXPECT().
+				GetDraftByUserID(gomock.Any(), userID).
+				Return(nil, model.ErrNotFound)
+
+			m.scheduleDrafts.EXPECT().
+				GetDraftByUserID(gomock.Any(), userID).
+				Return(nil, model.ErrNotFound)
+
+			m.competitionDrafts.EXPECT().
+				GetDraftByUserID(gomock.Any(), userID).
+				Return(nil, model.ErrNotFound)
+
+			m.competitionMerges.EXPECT().
+				GetMergeDraftByUserID(gomock.Any(), userID).
+				Return(nil, model.ErrNotFound)
+
+			// Reaching training's own addTrigger is what proves this link
+			// skipped.
+			m.create.EXPECT().
+				Begin(gomock.Any(), userID, in).
+				Return(nil)
+		})
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("no active schedule draft (free text) skips to the next link", func(t *testing.T) {
+		t.Parallel()
+
+		in := dto.Input{ChatID: chatID, HasMessage: true, Text: "hi"}
 
 		err := run(t, u, in, func(m mocks) {
 			noOtherDrafts(m)
@@ -87,10 +122,11 @@ func TestScheduleDraftContinuation(t *testing.T) {
 				GetCityDraftByUserID(gomock.Any(), userID).
 				Return(nil, model.ErrNotFound)
 
-			// Reaching training's own addTrigger is what proves this link
-			// skipped.
-			m.create.EXPECT().
-				Begin(gomock.Any(), userID, in).
+			// Reaching onboarding (the chain's last link, the catch-all
+			// fallback) is what proves every continuation and trigger
+			// skipped a plain, unrelated message.
+			m.onboarding.EXPECT().
+				Handle(gomock.Any(), u, in).
 				Return(nil)
 		})
 

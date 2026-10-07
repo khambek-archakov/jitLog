@@ -59,10 +59,45 @@ func TestProfileEditDraftContinuation(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("no active profile edit draft skips to the next link", func(t *testing.T) {
+	t.Run("a callback skips immediately without touching the repo at all", func(t *testing.T) {
 		t.Parallel()
 
 		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "menu:add_training"}
+
+		err := run(t, u, in, func(m mocks) {
+			m.drafts.EXPECT().
+				GetDraftByUserID(gomock.Any(), userID).
+				Return(nil, model.ErrNotFound)
+
+			m.scheduleDrafts.EXPECT().
+				GetDraftByUserID(gomock.Any(), userID).
+				Return(nil, model.ErrNotFound)
+
+			// No m.profileEdits expectation here — a callback never
+			// reaches this continuation's own repo lookup, same for every
+			// other edit/city-draft continuation down the chain.
+			m.competitionDrafts.EXPECT().
+				GetDraftByUserID(gomock.Any(), userID).
+				Return(nil, model.ErrNotFound)
+
+			m.competitionMerges.EXPECT().
+				GetMergeDraftByUserID(gomock.Any(), userID).
+				Return(nil, model.ErrNotFound)
+
+			// Reaching training's own addTrigger is what proves this link
+			// skipped.
+			m.create.EXPECT().
+				Begin(gomock.Any(), userID, in).
+				Return(nil)
+		})
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("no active profile edit draft (free text) skips to the next link", func(t *testing.T) {
+		t.Parallel()
+
+		in := dto.Input{ChatID: chatID, HasMessage: true, Text: "hi"}
 
 		err := run(t, u, in, func(m mocks) {
 			noOtherDrafts(m)
@@ -87,10 +122,11 @@ func TestProfileEditDraftContinuation(t *testing.T) {
 				GetCityDraftByUserID(gomock.Any(), userID).
 				Return(nil, model.ErrNotFound)
 
-			// Reaching training's own addTrigger is what proves this link
-			// skipped.
-			m.create.EXPECT().
-				Begin(gomock.Any(), userID, in).
+			// Reaching onboarding (the chain's last link, the catch-all
+			// fallback) is what proves every continuation and trigger
+			// skipped a plain, unrelated message.
+			m.onboarding.EXPECT().
+				Handle(gomock.Any(), u, in).
 				Return(nil)
 		})
 

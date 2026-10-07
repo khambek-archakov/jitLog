@@ -10,13 +10,20 @@ import (
 )
 
 // profileEditDraftContinuation mirrors scheduleEditDraftContinuation for
-// profile's own pending free-text edit (age).
+// profile's own pending free-text edit (age). It only ever claims a
+// message — a callback (the prompt's own "❌ Отмена" button) is left for
+// the profile:* trigger to dispatch to Handle instead, since Continue only
+// understands free text.
 type profileEditDraftContinuation struct {
 	profile profile
 	edits   profileEditDraft
 }
 
 func (h *profileEditDraftContinuation) Handle(ctx context.Context, u *model.User, in dto.Input) error {
+	if in.HasCallback {
+		return model.ErrSkip
+	}
+
 	draft, err := h.edits.GetEditDraftByUserID(ctx, u.ID)
 	if errors.Is(err, model.ErrNotFound) {
 		return model.ErrSkip

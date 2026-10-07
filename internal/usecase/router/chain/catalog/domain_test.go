@@ -91,6 +91,22 @@ func TestDomain(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	// catalog:city:cancel (the city prompt's own "❌ Отмена" button) must
+	// reach list.Handle too — it used to fall through this trigger's
+	// whitelist entirely, which combined with the city-draft continuation
+	// claiming every input ahead of it, meant the button silently hung.
+	t.Run("catalog:city:cancel delegates to list.Handle", func(t *testing.T) {
+		t.Parallel()
+
+		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "catalog:city:cancel"}
+
+		err := run(t, u, in, func(m mocks) {
+			m.list.EXPECT().Handle(gomock.Any(), u, in).Return(nil)
+		})
+
+		assert.NoError(t, err)
+	})
+
 	t.Run("catalog:view:{id} opens the card", func(t *testing.T) {
 		t.Parallel()
 

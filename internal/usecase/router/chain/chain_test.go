@@ -59,42 +59,28 @@ type mocks struct {
 
 // noActiveDrafts stubs every draft/continuation lookup to "none in
 // progress" — the shared setup every case reaching the callback-prefix
-// triggers needs.
+// triggers needs. Only used with callback inputs, so the edit/city-draft
+// continuations (training's, schedule's, profile's, competition's own edit
+// draft, and catalog's city draft) are deliberately left out here — each
+// one now skips a callback immediately without touching its repo at all
+// (only a pending draft's own prompt understands free text, never a
+// button), leaving its "❌ Отмена" button for the domain's own
+// callback-prefix trigger to dispatch to Handle instead.
 func noActiveDrafts(m mocks, userID int64) {
 	m.drafts.EXPECT().
 		GetDraftByUserID(gomock.Any(), userID).
-		Return(nil, model.ErrNotFound)
-
-	m.edits.EXPECT().
-		GetEditDraftByUserID(gomock.Any(), userID).
 		Return(nil, model.ErrNotFound)
 
 	m.scheduleDrafts.EXPECT().
 		GetDraftByUserID(gomock.Any(), userID).
 		Return(nil, model.ErrNotFound)
 
-	m.scheduleEdits.EXPECT().
-		GetEditDraftByUserID(gomock.Any(), userID).
-		Return(nil, model.ErrNotFound)
-
-	m.profileEdits.EXPECT().
-		GetEditDraftByUserID(gomock.Any(), userID).
-		Return(nil, model.ErrNotFound)
-
 	m.competitionDrafts.EXPECT().
 		GetDraftByUserID(gomock.Any(), userID).
 		Return(nil, model.ErrNotFound)
 
-	m.competitionEdits.EXPECT().
-		GetEditDraftByUserID(gomock.Any(), userID).
-		Return(nil, model.ErrNotFound)
-
 	m.competitionMerges.EXPECT().
 		GetMergeDraftByUserID(gomock.Any(), userID).
-		Return(nil, model.ErrNotFound)
-
-	m.catalogCities.EXPECT().
-		GetCityDraftByUserID(gomock.Any(), userID).
 		Return(nil, model.ErrNotFound)
 }
 
