@@ -8,6 +8,8 @@ import (
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/internal/menu"
+	"github.com/khambek-archakov/jitLog/internal/usecase/training/info"
 )
 
 const (
@@ -20,6 +22,15 @@ const (
 	callbackDuration90    = "training:duration:90"
 	callbackDuration120   = "training:duration:120"
 	callbackDurationOther = "training:duration:other"
+)
+
+// callbackTrainingEditPrefix and callbackTrainingDeletePrefix mirror
+// internal/usecase/training/update's and .../delete's own private
+// constants — by the time either is tapped the draft (and thus this
+// scenario's involvement) is long gone, Router sends them there directly.
+const (
+	callbackTrainingEditPrefix   = "training:edit:"
+	callbackTrainingDeletePrefix = "training:delete:"
 )
 
 type DurationStep struct {
@@ -50,7 +61,7 @@ func (s *DurationStep) Handle(ctx context.Context, d *model.TrainingDraft, in dt
 			return s.bot.AnswerCallback(ctx, in.CallbackID)
 		}
 
-		return s.saveDuration(ctx, d, in, minutes)
+		return s.finish(ctx, d, in, minutes)
 	}
 
 	if !in.HasMessage {
@@ -62,16 +73,26 @@ func (s *DurationStep) Handle(ctx context.Context, d *model.TrainingDraft, in dt
 		return s.bot.Send(ctx, in.ChatID, durationNotParsed)
 	}
 
-	return s.saveDuration(ctx, d, in, minutes)
+	return s.finish(ctx, d, in, minutes)
 }
 
-func (s *DurationStep) saveDuration(ctx context.Context, d *model.TrainingDraft, in dto.Input, minutes int) error {
-	duration := int32(minutes)
-	d.DurationMinutes = &duration
-	d.Step = model.TrainingDraftStepAwaitingNotes
+// finish is the wizard's terminal step — it creates the real training row
+// and clears the draft, rather than advancing to another question. Rounds
+// and notes are deliberately not asked here (they're the two quick
+// follow-up actions the confirmation card below offers instead), keeping
+// the create flow to exactly three questions: date, type, duration.
+func (s *DurationStep) finish(ctx context.Context, d *model.TrainingDraft, in dto.Input, minutes int) error {
+	if d.Date == nil {
+		return fmt.Errorf("training draft %d has no date set", d.ID)
+	}
 
-	if err := s.repo.UpdateDraft(ctx, d); err != nil {
-		return fmt.Errorf("update training draft: %w", err)
+	t, err := s.repo.CreateTraining(ctx, d.UserID, *d.Date, d.TrainingType, int32(minutes), nil)
+	if err != nil {
+		return fmt.Errorf("create training: %w", err)
+	}
+
+	if err := s.repo.DeleteDraft(ctx, d.UserID); err != nil {
+		return fmt.Errorf("delete training draft: %w", err)
 	}
 
 	if in.HasCallback {
@@ -80,7 +101,13 @@ func (s *DurationStep) saveDuration(ctx context.Context, d *model.TrainingDraft,
 		}
 	}
 
-	return s.bot.SendWithKeyboard(ctx, in.ChatID, notesQuestion, notesKeyboard())
+	if err := s.bot.SendWithKeyboard(ctx, in.ChatID, confirmationText(t), confirmationKeyboard(t.ID)); err != nil {
+		return err
+	}
+
+	// A nudge towards what's next — without this the user has nothing left
+	// on screen to tap after saving.
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, menu.Text, menu.Keyboard())
 }
 
 func (s *DurationStep) handleBack(ctx context.Context, d *model.TrainingDraft, in dto.Input) error {
@@ -119,5 +146,36 @@ func durationFromCallback(data string) (int, bool) {
 		return 120, true
 	default:
 		return 0, false
+	}
+}
+
+// confirmationText/confirmationSummary are a compact, single-line summary
+// — deliberately not info.Body, which is the full multi-line card shown
+// everywhere else (history, view, edit). Right after saving there's
+// nothing to editorialize yet (no rounds, no notes), so a dense one-liner
+// plus the quick-action buttons below it says more with less.
+func confirmationText(t *model.Training) string {
+	return "✅ Тренировка сохранена!\n" + confirmationSummary(t)
+}
+
+func confirmationSummary(t *model.Training) string {
+	return fmt.Sprintf(
+		"📅 %s · %s · ⏱ %s",
+		info.FormatDateShort(t.Date), info.TrainingTypeLabel(t.TrainingType), info.FormatDuration(t.DurationMinutes),
+	)
+}
+
+func confirmationKeyboard(trainingID int64) dto.Keyboard {
+	editPrefix := fmt.Sprintf("%s%d:", callbackTrainingEditPrefix, trainingID)
+
+	return dto.Keyboard{
+		dto.Row(
+			dto.Button{Label: "➕ Раунды", Data: editPrefix + "rounds"},
+			dto.Button{Label: "📝 Заметка", Data: editPrefix + "notes"},
+		),
+		dto.Row(
+			dto.Button{Label: "✏️ Изменить", Data: fmt.Sprintf("%s%d", callbackTrainingEditPrefix, trainingID)},
+			dto.Button{Label: "🗑 Удалить", Data: fmt.Sprintf("%s%d", callbackTrainingDeletePrefix, trainingID)},
+		),
 	}
 }

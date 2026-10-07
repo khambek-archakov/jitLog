@@ -1,9 +1,9 @@
 // Package update owns editing a single field of an already-logged
 // training: the training:edit:{id} entry point (menu + per-field pickers,
 // all driven by callback data alone) and Continue, which only exists for
-// the two fields whose new value can't ride a callback button — duration's
-// "Другое" and notes — and needs the pending model.TrainingEditDraft Router
-// resolved for the current user.
+// the fields whose new value can't ride a callback button — duration's
+// and rounds' own "Другое", and notes — and needs the pending
+// model.TrainingEditDraft Router resolved for the current user.
 package update
 
 import (
@@ -22,9 +22,12 @@ import (
 
 const notFoundText = "Тренировка не найдена."
 
+const roundsNotParsed = "Не смог разобрать число, напиши количество раундов цифрами (0–49)."
+
 // callbackEditPrefix is followed by "{id}", "{id}:date", "{id}:date:cal:…",
 // "{id}:date:pick:…", "{id}:type", "{id}:type:{value}", "{id}:duration",
-// "{id}:duration:{value|other}" or "{id}:notes".
+// "{id}:duration:{value|other}", "{id}:rounds", "{id}:rounds:{value|other}"
+// or "{id}:notes".
 const callbackEditPrefix = "training:edit:"
 
 // callbackEditNoop is the calendar's blank-cell callback — it never parses
@@ -82,6 +85,9 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 	case action == "duration" || strings.HasPrefix(action, "duration:"):
 		return uc.handleDuration(ctx, in, t, strings.TrimPrefix(action, "duration"))
 
+	case action == "rounds" || strings.HasPrefix(action, "rounds:"):
+		return uc.handleRounds(ctx, in, t, strings.TrimPrefix(action, "rounds"))
+
 	case action == "notes":
 		return uc.promptNotes(ctx, in, t)
 
@@ -112,12 +118,20 @@ func (uc *UseCase) Continue(ctx context.Context, d *model.TrainingEditDraft, in 
 			return uc.bot.Send(ctx, in.ChatID, "Не смог разобрать число, напиши длительность в минутах цифрами.")
 		}
 
-		return uc.finishEdit(ctx, in, d, t.Date, t.TrainingType, int32(minutes), t.Notes)
+		return uc.finishEdit(ctx, in, d, t.Date, t.TrainingType, int32(minutes), t.Rounds, t.Notes)
+
+	case model.TrainingEditFieldRounds:
+		rounds, ok := parseRounds(in.Text)
+		if !ok {
+			return uc.bot.Send(ctx, in.ChatID, roundsNotParsed)
+		}
+
+		return uc.finishEdit(ctx, in, d, t.Date, t.TrainingType, t.DurationMinutes, &rounds, t.Notes)
 
 	case model.TrainingEditFieldNotes:
 		text := strings.TrimSpace(in.Text)
 
-		return uc.finishEdit(ctx, in, d, t.Date, t.TrainingType, t.DurationMinutes, &text)
+		return uc.finishEdit(ctx, in, d, t.Date, t.TrainingType, t.DurationMinutes, t.Rounds, &text)
 
 	default:
 		return uc.repo.DeleteEditDraft(ctx, d.UserID)
@@ -152,7 +166,7 @@ func (uc *UseCase) handleDate(ctx context.Context, in dto.Input, t *model.Traini
 			return uc.bot.AnswerCallback(ctx, in.CallbackID)
 		}
 
-		return uc.applyUpdate(ctx, in, t, date, t.TrainingType, t.DurationMinutes, t.Notes)
+		return uc.applyUpdate(ctx, in, t, date, t.TrainingType, t.DurationMinutes, t.Rounds, t.Notes)
 
 	default:
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
@@ -183,7 +197,7 @@ func (uc *UseCase) handleType(ctx context.Context, in dto.Input, t *model.Traini
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
-	return uc.applyUpdate(ctx, in, t, t.Date, newType, t.DurationMinutes, t.Notes)
+	return uc.applyUpdate(ctx, in, t, t.Date, newType, t.DurationMinutes, t.Rounds, t.Notes)
 }
 
 func (uc *UseCase) handleDuration(ctx context.Context, in dto.Input, t *model.Training, sub string) error {
@@ -214,7 +228,40 @@ func (uc *UseCase) handleDuration(ctx context.Context, in dto.Input, t *model.Tr
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
-	return uc.applyUpdate(ctx, in, t, t.Date, t.TrainingType, int32(minutes), t.Notes)
+	return uc.applyUpdate(ctx, in, t, t.Date, t.TrainingType, int32(minutes), t.Rounds, t.Notes)
+}
+
+// handleRounds mirrors handleDuration — quick picks ride a callback,
+// "Другое" falls back to a free-text edit draft.
+func (uc *UseCase) handleRounds(ctx context.Context, in dto.Input, t *model.Training, sub string) error {
+	if sub == "" {
+		if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
+			return err
+		}
+
+		return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "Сколько было раундов?", roundsKeyboard(t.ID))
+	}
+
+	value := strings.TrimPrefix(sub, ":")
+
+	if value == "other" {
+		if err := uc.repo.SetEditDraft(ctx, t.UserID, t.ID, model.TrainingEditFieldRounds); err != nil {
+			return fmt.Errorf("set training edit draft: %w", err)
+		}
+
+		if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
+			return err
+		}
+
+		return uc.bot.Send(ctx, in.ChatID, "Напиши количество раундов цифрами, например: 6")
+	}
+
+	rounds, ok := roundsFromToken(value)
+	if !ok {
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
+	}
+
+	return uc.applyUpdate(ctx, in, t, t.Date, t.TrainingType, t.DurationMinutes, &rounds, t.Notes)
 }
 
 func (uc *UseCase) promptNotes(ctx context.Context, in dto.Input, t *model.Training) error {
@@ -231,9 +278,9 @@ func (uc *UseCase) promptNotes(ctx context.Context, in dto.Input, t *model.Train
 
 func (uc *UseCase) applyUpdate(
 	ctx context.Context, in dto.Input, t *model.Training,
-	date time.Time, trainingType model.TrainingType, duration int32, notes *string,
+	date time.Time, trainingType model.TrainingType, duration int32, rounds *int16, notes *string,
 ) error {
-	updated, err := uc.repo.UpdateTraining(ctx, t.ID, date, trainingType, duration, notes)
+	updated, err := uc.repo.UpdateTraining(ctx, t.ID, date, trainingType, duration, rounds, notes)
 	if err != nil {
 		return fmt.Errorf("update training: %w", err)
 	}
@@ -247,9 +294,9 @@ func (uc *UseCase) applyUpdate(
 
 func (uc *UseCase) finishEdit(
 	ctx context.Context, in dto.Input, d *model.TrainingEditDraft,
-	date time.Time, trainingType model.TrainingType, duration int32, notes *string,
+	date time.Time, trainingType model.TrainingType, duration int32, rounds *int16, notes *string,
 ) error {
-	updated, err := uc.repo.UpdateTraining(ctx, d.TrainingID, date, trainingType, duration, notes)
+	updated, err := uc.repo.UpdateTraining(ctx, d.TrainingID, date, trainingType, duration, rounds, notes)
 	if err != nil {
 		return fmt.Errorf("update training: %w", err)
 	}
@@ -268,6 +315,7 @@ func editMenuKeyboard(id int64) dto.Keyboard {
 		dto.Row(dto.Button{Label: "📅 Дата", Data: prefix + "date"}),
 		dto.Row(dto.Button{Label: "🥋 Тип тренировки", Data: prefix + "type"}),
 		dto.Row(dto.Button{Label: "⏱ Длительность", Data: prefix + "duration"}),
+		dto.Row(dto.Button{Label: "🔄 Раунды", Data: prefix + "rounds"}),
 		dto.Row(dto.Button{Label: "📝 Заметка", Data: prefix + "notes"}),
 		dto.Row(dto.Button{Label: "← Назад", Data: fmt.Sprintf("training:view:%d", id)}),
 	}
@@ -310,6 +358,47 @@ func durationKeyboard(id int64) dto.Keyboard {
 		dto.Row(dto.Button{Label: "Другое", Data: prefix + "other"}),
 		dto.Row(dto.Button{Label: "← Назад", Data: fmt.Sprintf("%s%d", callbackEditPrefix, id)}),
 	}
+}
+
+func roundsKeyboard(id int64) dto.Keyboard {
+	prefix := fmt.Sprintf("%s%d:rounds:", callbackEditPrefix, id)
+
+	return dto.Keyboard{
+		dto.Row(
+			dto.Button{Label: "3", Data: prefix + "3"},
+			dto.Button{Label: "5", Data: prefix + "5"},
+			dto.Button{Label: "7", Data: prefix + "7"},
+			dto.Button{Label: "10", Data: prefix + "10"},
+		),
+		dto.Row(dto.Button{Label: "Другое", Data: prefix + "other"}),
+		dto.Row(dto.Button{Label: "← Назад", Data: fmt.Sprintf("%s%d", callbackEditPrefix, id)}),
+	}
+}
+
+func roundsFromToken(token string) (int16, bool) {
+	switch token {
+	case "3":
+		return 3, true
+	case "5":
+		return 5, true
+	case "7":
+		return 7, true
+	case "10":
+		return 10, true
+	default:
+		return 0, false
+	}
+}
+
+// parseRounds accepts a plain non-negative integer under 50 — 0 is valid
+// (a day with no sparring at all), anything 50+ is almost certainly a typo.
+func parseRounds(text string) (int16, bool) {
+	n, err := strconv.Atoi(strings.TrimSpace(text))
+	if err != nil || n < 0 || n >= 50 {
+		return 0, false
+	}
+
+	return int16(n), true
 }
 
 func trainingTypeFromToken(token string) (model.TrainingType, bool) {

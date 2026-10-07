@@ -30,6 +30,10 @@ func Body(t *model.Training) string {
 		FormatDate(t.Date), TrainingTypeLabel(t.TrainingType), FormatDuration(t.DurationMinutes),
 	)
 
+	if t.Rounds != nil {
+		body += "\n🔄 " + FormatRounds(*t.Rounds)
+	}
+
 	if t.Notes != nil && *t.Notes != "" {
 		body += "\n\n📝 " + *t.Notes
 	}
@@ -69,6 +73,12 @@ func FormatDate(d time.Time) string {
 	return fmt.Sprintf("%d %s %d", d.Day(), russianMonthsGenitive[d.Month()-1], d.Year())
 }
 
+// FormatDateShort omits the year — for the create wizard's compact
+// just-saved confirmation, where "today, roughly" is all that's needed.
+func FormatDateShort(d time.Time) string {
+	return fmt.Sprintf("%d %s", d.Day(), russianMonthsGenitive[d.Month()-1])
+}
+
 func FormatDuration(minutes int32) string {
 	return fmt.Sprintf("%d %s", minutes, minutesWord(minutes))
 }
@@ -86,5 +96,25 @@ func minutesWord(n int32) string {
 		return "минуты"
 	default:
 		return "минут"
+	}
+}
+
+func FormatRounds(n int16) string {
+	return fmt.Sprintf("%d %s", n, roundsWord(n))
+}
+
+// roundsWord picks the right Russian plural form of "раунд" for n.
+func roundsWord(n int16) string {
+	if n%100 >= 11 && n%100 <= 14 {
+		return "раундов"
+	}
+
+	switch n % 10 {
+	case 1:
+		return "раунд"
+	case 2, 3, 4:
+		return "раунда"
+	default:
+		return "раундов"
 	}
 }

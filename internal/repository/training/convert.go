@@ -28,14 +28,16 @@ func trainingTypeFromDB(v int16) model.TrainingType {
 	}
 }
 
+// draftStepToDB leaves ordinal 3 retired (it used to mean the now-removed
+// awaiting_notes step) rather than reusing it — a stale draft row still
+// sitting at 3 when this ships falls through draftStepFromDB's default
+// case back to awaiting_date instead of aliasing onto some other step.
 func draftStepToDB(s model.TrainingDraftStep) int16 {
 	switch s {
 	case model.TrainingDraftStepAwaitingType:
 		return 1
 	case model.TrainingDraftStepAwaitingDuration:
 		return 2
-	case model.TrainingDraftStepAwaitingNotes:
-		return 3
 	default:
 		return 0
 	}
@@ -47,8 +49,6 @@ func draftStepFromDB(v int16) model.TrainingDraftStep {
 		return model.TrainingDraftStepAwaitingType
 	case 2:
 		return model.TrainingDraftStepAwaitingDuration
-	case 3:
-		return model.TrainingDraftStepAwaitingNotes
 	default:
 		return model.TrainingDraftStepAwaitingDate
 	}
@@ -60,6 +60,8 @@ func editFieldToDB(f model.TrainingEditField) int16 {
 		return 1
 	case model.TrainingEditFieldNotes:
 		return 2
+	case model.TrainingEditFieldRounds:
+		return 3
 	default:
 		return 0
 	}
@@ -71,6 +73,8 @@ func editFieldFromDB(v int16) model.TrainingEditField {
 		return model.TrainingEditFieldDuration
 	case 2:
 		return model.TrainingEditFieldNotes
+	case 3:
+		return model.TrainingEditFieldRounds
 	default:
 		return ""
 	}

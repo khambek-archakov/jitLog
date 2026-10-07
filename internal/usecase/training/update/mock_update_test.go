@@ -181,16 +181,16 @@ func (mr *MocktrainingRepoMockRecorder) SetEditDraft(ctx, userID, trainingID, fi
 }
 
 // UpdateTraining mocks base method.
-func (m *MocktrainingRepo) UpdateTraining(ctx context.Context, id int64, date time.Time, trainingType model.TrainingType, durationMinutes int32, notes *string) (*model.Training, error) {
+func (m *MocktrainingRepo) UpdateTraining(ctx context.Context, id int64, date time.Time, trainingType model.TrainingType, durationMinutes int32, rounds *int16, notes *string) (*model.Training, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateTraining", ctx, id, date, trainingType, durationMinutes, notes)
+	ret := m.ctrl.Call(m, "UpdateTraining", ctx, id, date, trainingType, durationMinutes, rounds, notes)
 	ret0, _ := ret[0].(*model.Training)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateTraining indicates an expected call of UpdateTraining.
-func (mr *MocktrainingRepoMockRecorder) UpdateTraining(ctx, id, date, trainingType, durationMinutes, notes any) *gomock.Call {
+func (mr *MocktrainingRepoMockRecorder) UpdateTraining(ctx, id, date, trainingType, durationMinutes, rounds, notes any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTraining", reflect.TypeOf((*MocktrainingRepo)(nil).UpdateTraining), ctx, id, date, trainingType, durationMinutes, notes)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTraining", reflect.TypeOf((*MocktrainingRepo)(nil).UpdateTraining), ctx, id, date, trainingType, durationMinutes, rounds, notes)
 }

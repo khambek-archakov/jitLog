@@ -25,6 +25,7 @@ type trainingRepo interface {
 		date time.Time,
 		trainingType model.TrainingType,
 		durationMinutes int32,
+		rounds *int16,
 		notes *string,
 	) (*model.Training, error)
 	SetEditDraft(ctx context.Context, userID, trainingID int64, field model.TrainingEditField) error

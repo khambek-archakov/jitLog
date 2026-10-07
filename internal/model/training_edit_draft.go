@@ -4,11 +4,13 @@ import "time"
 
 // TrainingEditField names which field of an existing training a pending
 // free-text reply is meant for — only fields whose input can't be read off
-// a callback button (duration's "Другое", and notes) need this.
+// a callback button (duration's and rounds' own "Другое", and notes) need
+// this.
 type TrainingEditField string
 
 const (
 	TrainingEditFieldDuration TrainingEditField = "duration"
+	TrainingEditFieldRounds   TrainingEditField = "rounds"
 	TrainingEditFieldNotes    TrainingEditField = "notes"
 )
 

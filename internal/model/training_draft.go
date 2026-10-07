@@ -8,9 +8,12 @@ const (
 	TrainingDraftStepAwaitingDate     TrainingDraftStep = "awaiting_date"
 	TrainingDraftStepAwaitingType     TrainingDraftStep = "awaiting_type"
 	TrainingDraftStepAwaitingDuration TrainingDraftStep = "awaiting_duration"
-	TrainingDraftStepAwaitingNotes    TrainingDraftStep = "awaiting_notes"
 )
 
+// TrainingDraft is deliberately just three questions (date, type,
+// duration) — rounds and notes are added after the training is already
+// saved, via the edit flow, to keep the create wizard as short as
+// possible.
 type TrainingDraft struct {
 	ID              int64
 	UserID          int64
@@ -18,7 +21,6 @@ type TrainingDraft struct {
 	Date            *time.Time
 	TrainingType    TrainingType
 	DurationMinutes *int32
-	Notes           *string
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }

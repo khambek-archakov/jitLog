@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -12,6 +13,8 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 	"github.com/khambek-archakov/jitLog/internal/usecase/training/create"
 )
+
+var trainingDate = time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)
 
 const callbackMenuAddTraining = "menu:add_training"
 
@@ -100,15 +103,27 @@ func TestUseCase_Continue(t *testing.T) {
 	}{
 		{
 			name: "dispatches to the step matching the draft's current step",
-			d:    &model.TrainingDraft{ID: 1, Step: model.TrainingDraftStepAwaitingDuration},
-			in:   dto.Input{ChatID: chatID, HasMessage: true, Text: "60"},
+			d: &model.TrainingDraft{
+				ID: 1, UserID: 42, Date: &trainingDate, TrainingType: model.TrainingTypeGi,
+				Step: model.TrainingDraftStepAwaitingDuration,
+			},
+			in: dto.Input{ChatID: chatID, HasMessage: true, Text: "60"},
 			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
 				repo.EXPECT().
-					UpdateDraft(gomock.Any(), gomock.Any()).
+					CreateTraining(gomock.Any(), int64(42), trainingDate, model.TrainingTypeGi, int32(60), gomock.Nil()).
+					Return(&model.Training{ID: 7, Date: trainingDate, TrainingType: model.TrainingTypeGi, DurationMinutes: 60}, nil)
+
+				repo.EXPECT().
+					DeleteDraft(gomock.Any(), int64(42)).
+					Return(nil)
+
+				confirmation := sender.EXPECT().
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, "Вот что я умею:", gomock.Any()).
+					After(confirmation).
 					Return(nil)
 			},
 			expected: func(t assert.TestingT, err error) {

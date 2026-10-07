@@ -22,7 +22,7 @@ func New(db *pgxpool.Pool) *Repository {
 
 func (r *Repository) GetDraftByUserID(ctx context.Context, userID int64) (*model.TrainingDraft, error) {
 	const query = `
-		select id, user_id, step, training_date, training_type, duration_minutes, notes, created_at, updated_at
+		select id, user_id, step, training_date, training_type, duration_minutes, created_at, updated_at
 		from training_draft
 		where user_id = $1
 	`
@@ -42,7 +42,7 @@ func (r *Repository) CreateDraft(ctx context.Context, userID int64) (*model.Trai
 	const query = `
 		insert into training_draft (user_id)
 		values ($1)
-		returning id, user_id, step, training_date, training_type, duration_minutes, notes, created_at, updated_at
+		returning id, user_id, step, training_date, training_type, duration_minutes, created_at, updated_at
 	`
 
 	d, err := scanDraft(r.db.QueryRow(ctx, query, userID))
@@ -56,12 +56,12 @@ func (r *Repository) CreateDraft(ctx context.Context, userID int64) (*model.Trai
 func (r *Repository) UpdateDraft(ctx context.Context, d *model.TrainingDraft) error {
 	const query = `
 		update training_draft
-		set step = $2, training_date = $3, training_type = $4, duration_minutes = $5, notes = $6, updated_at = now()
+		set step = $2, training_date = $3, training_type = $4, duration_minutes = $5, updated_at = now()
 		where id = $1
 	`
 
 	_, err := r.db.Exec(ctx, query,
-		d.ID, draftStepToDB(d.Step), d.Date, trainingTypeToDB(d.TrainingType), d.DurationMinutes, d.Notes,
+		d.ID, draftStepToDB(d.Step), d.Date, trainingTypeToDB(d.TrainingType), d.DurationMinutes,
 	)
 	if err != nil {
 		return fmt.Errorf("update training draft: %w", err)
@@ -92,7 +92,7 @@ func (r *Repository) CreateTraining(
 	const query = `
 		insert into training (user_id, training_date, training_type, duration_minutes, notes)
 		values ($1, $2, $3, $4, $5)
-		returning id, user_id, training_date, training_type, duration_minutes, notes, created_at
+		returning id, user_id, training_date, training_type, duration_minutes, rounds, notes, created_at
 	`
 
 	t, err := scanTraining(r.db.QueryRow(ctx, query, userID, date, trainingTypeToDB(trainingType), durationMinutes, notes))
@@ -105,7 +105,7 @@ func (r *Repository) CreateTraining(
 
 func (r *Repository) GetTraining(ctx context.Context, id int64) (*model.Training, error) {
 	const query = `
-		select id, user_id, training_date, training_type, duration_minutes, notes, created_at
+		select id, user_id, training_date, training_type, duration_minutes, rounds, notes, created_at
 		from training
 		where id = $1
 	`
@@ -125,7 +125,7 @@ func (r *Repository) GetTraining(ctx context.Context, id int64) (*model.Training
 // starting at offset, plus whether more trainings exist past this page.
 func (r *Repository) ListTrainings(ctx context.Context, userID int64, limit, offset int) ([]*model.Training, bool, error) {
 	const query = `
-		select id, user_id, training_date, training_type, duration_minutes, notes, created_at
+		select id, user_id, training_date, training_type, duration_minutes, rounds, notes, created_at
 		from training
 		where user_id = $1
 		order by training_date desc, id desc
@@ -166,7 +166,7 @@ func (r *Repository) ListTrainings(ctx context.Context, userID int64, limit, off
 // rather than a page of it.
 func (r *Repository) ListAllTrainings(ctx context.Context, userID int64) ([]*model.Training, error) {
 	const query = `
-		select id, user_id, training_date, training_type, duration_minutes, notes, created_at
+		select id, user_id, training_date, training_type, duration_minutes, rounds, notes, created_at
 		from training
 		where user_id = $1
 		order by training_date asc, id asc
@@ -202,16 +202,19 @@ func (r *Repository) UpdateTraining(
 	date time.Time,
 	trainingType model.TrainingType,
 	durationMinutes int32,
+	rounds *int16,
 	notes *string,
 ) (*model.Training, error) {
 	const query = `
 		update training
-		set training_date = $2, training_type = $3, duration_minutes = $4, notes = $5
+		set training_date = $2, training_type = $3, duration_minutes = $4, rounds = $5, notes = $6
 		where id = $1
-		returning id, user_id, training_date, training_type, duration_minutes, notes, created_at
+		returning id, user_id, training_date, training_type, duration_minutes, rounds, notes, created_at
 	`
 
-	t, err := scanTraining(r.db.QueryRow(ctx, query, id, date, trainingTypeToDB(trainingType), durationMinutes, notes))
+	t, err := scanTraining(
+		r.db.QueryRow(ctx, query, id, date, trainingTypeToDB(trainingType), durationMinutes, rounds, notes),
+	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, model.ErrNotFound
 	}
@@ -307,7 +310,6 @@ func scanDraft(row pgx.Row) (*model.TrainingDraft, error) {
 		&d.Date,
 		&trainingType,
 		&d.DurationMinutes,
-		&d.Notes,
 		&d.CreatedAt,
 		&d.UpdatedAt,
 	)
@@ -333,6 +335,7 @@ func scanTraining(row pgx.Row) (*model.Training, error) {
 		&t.Date,
 		&trainingType,
 		&t.DurationMinutes,
+		&t.Rounds,
 		&t.Notes,
 		&t.CreatedAt,
 	)

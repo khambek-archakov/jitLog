@@ -38,6 +38,37 @@ func TestBody(t *testing.T) {
 		assert.Contains(t, body, "90 минут")
 		assert.NotContains(t, body, "📝")
 	})
+
+	t.Run("with rounds", func(t *testing.T) {
+		t.Parallel()
+
+		rounds := int16(5)
+		body := info.Body(&model.Training{
+			Date: date, TrainingType: model.TrainingTypeGi, DurationMinutes: 60, Rounds: &rounds,
+		})
+
+		assert.Contains(t, body, "🔄 5 раундов")
+	})
+
+	t.Run("zero rounds is shown, not treated as absent", func(t *testing.T) {
+		t.Parallel()
+
+		var rounds int16
+
+		body := info.Body(&model.Training{
+			Date: date, TrainingType: model.TrainingTypeGi, DurationMinutes: 60, Rounds: &rounds,
+		})
+
+		assert.Contains(t, body, "🔄 0 раундов")
+	})
+
+	t.Run("without rounds", func(t *testing.T) {
+		t.Parallel()
+
+		body := info.Body(&model.Training{Date: date, TrainingType: model.TrainingTypeGi, DurationMinutes: 60})
+
+		assert.NotContains(t, body, "🔄")
+	})
 }
 
 func TestCard(t *testing.T) {
@@ -106,4 +137,33 @@ func TestFormatDuration(t *testing.T) {
 	for _, tc := range tests {
 		assert.Equal(t, tc.want, info.FormatDuration(tc.minutes))
 	}
+}
+
+func TestFormatRounds(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		rounds int16
+		want   string
+	}{
+		{rounds: 0, want: "0 раундов"},
+		{rounds: 1, want: "1 раунд"},
+		{rounds: 2, want: "2 раунда"},
+		{rounds: 4, want: "4 раунда"},
+		{rounds: 5, want: "5 раундов"},
+		{rounds: 11, want: "11 раундов"},
+		{rounds: 21, want: "21 раунд"},
+	}
+
+	for _, tc := range tests {
+		assert.Equal(t, tc.want, info.FormatRounds(tc.rounds))
+	}
+}
+
+func TestFormatDateShort(t *testing.T) {
+	t.Parallel()
+
+	got := info.FormatDateShort(time.Date(2026, 10, 7, 0, 0, 0, 0, time.UTC))
+
+	assert.Equal(t, "7 октября", got)
 }

@@ -17,6 +17,7 @@ type Training struct {
 	Date            time.Time
 	TrainingType    TrainingType
 	DurationMinutes int32
+	Rounds          *int16
 	Notes           *string
 	CreatedAt       time.Time
 }

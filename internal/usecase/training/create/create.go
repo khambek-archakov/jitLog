@@ -29,7 +29,6 @@ func New(bot sender, repo draftRepo) *UseCase {
 			model.TrainingDraftStepAwaitingDate:     steps.NewDate(bot, repo),
 			model.TrainingDraftStepAwaitingType:     steps.NewType(bot, repo),
 			model.TrainingDraftStepAwaitingDuration: steps.NewDuration(bot, repo),
-			model.TrainingDraftStepAwaitingNotes:    steps.NewNotes(bot, repo),
 		},
 	}
 }
