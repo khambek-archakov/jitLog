@@ -22,9 +22,9 @@ func Keyboard() dto.Keyboard {
 	return dto.Keyboard{
 		dto.Row(dto.Button{Label: "➕ Добавить тренировку", Data: callbackAddTraining}),
 		dto.Row(dto.Button{Label: "🗒️ Мои тренировки", Data: callbackMyTrainings}),
+		dto.Row(dto.Button{Label: "📊 Статистика", Data: callbackStats}),
 		dto.Row(dto.Button{Label: "📅 Расписание", Data: callbackSchedule}),
 		dto.Row(dto.Button{Label: "🏆 Соревнования", Data: callbackCompetitions}),
-		dto.Row(dto.Button{Label: "📊 Статистика", Data: callbackStats}),
 		dto.Row(dto.Button{Label: "👤 Профиль", Data: callbackProfile}),
 	}
 }
