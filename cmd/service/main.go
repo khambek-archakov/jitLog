@@ -17,9 +17,16 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/configure"
 	tgbotapigateway "github.com/khambek-archakov/jitLog/internal/gateway/tgbotapi"
 	updatehandler "github.com/khambek-archakov/jitLog/internal/handler/update"
+	competitionrepo "github.com/khambek-archakov/jitLog/internal/repository/competition"
 	schedulerepo "github.com/khambek-archakov/jitLog/internal/repository/schedule"
 	trainingrepo "github.com/khambek-archakov/jitLog/internal/repository/training"
 	userrepo "github.com/khambek-archakov/jitLog/internal/repository/user"
+	competitioncreate "github.com/khambek-archakov/jitLog/internal/usecase/competition/create"
+	competitiondelete "github.com/khambek-archakov/jitLog/internal/usecase/competition/delete"
+	competitionhistory "github.com/khambek-archakov/jitLog/internal/usecase/competition/history"
+	competitioninfo "github.com/khambek-archakov/jitLog/internal/usecase/competition/info"
+	competitionlist "github.com/khambek-archakov/jitLog/internal/usecase/competition/list"
+	competitionupdate "github.com/khambek-archakov/jitLog/internal/usecase/competition/update"
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding"
 	"github.com/khambek-archakov/jitLog/internal/usecase/profile"
 	"github.com/khambek-archakov/jitLog/internal/usecase/router"
@@ -107,6 +114,7 @@ func run() int {
 	users := userrepo.New(DB)
 	trainings := trainingrepo.New(DB)
 	schedules := schedulerepo.New(DB)
+	competitions := competitionrepo.New(DB)
 	gateway := tgbotapigateway.New(bot)
 
 	onboardingUseCase := onboarding.New(gateway, users)
@@ -122,6 +130,12 @@ func run() int {
 	scheduleInfoUseCase := scheduleinfo.New(gateway, schedules)
 	scheduleUpdateUseCase := scheduleupdate.New(gateway, schedules)
 	scheduleDeleteUseCase := scheduledelete.New(gateway, schedules)
+	competitionCreateUseCase := competitioncreate.New(gateway, competitions)
+	competitionListUseCase := competitionlist.New(gateway, competitions)
+	competitionHistoryUseCase := competitionhistory.New(gateway, competitions)
+	competitionInfoUseCase := competitioninfo.New(gateway, competitions)
+	competitionUpdateUseCase := competitionupdate.New(gateway, competitions)
+	competitionDeleteUseCase := competitiondelete.New(gateway, competitions)
 
 	appChain := chain.New(chain.Dependencies{
 		Onboarding:        onboardingUseCase,
@@ -142,6 +156,15 @@ func run() int {
 		ScheduleDraft:     schedules,
 		ScheduleEditDraft: schedules,
 		ProfileEditDraft:  users,
+
+		CompetitionCreate:    competitionCreateUseCase,
+		CompetitionList:      competitionListUseCase,
+		CompetitionHistory:   competitionHistoryUseCase,
+		CompetitionInfo:      competitionInfoUseCase,
+		CompetitionUpdate:    competitionUpdateUseCase,
+		CompetitionDelete:    competitionDeleteUseCase,
+		CompetitionDraft:     competitions,
+		CompetitionEditDraft: competitions,
 	})
 	appRouter := router.New(appChain, users)
 

@@ -38,12 +38,21 @@ type mocks struct {
 	scheduleDrafts *MockscheduleDraft
 	scheduleEdits  *MockscheduleEditDraft
 	profileEdits   *MockprofileEditDraft
+
+	competitionCreate  *MockcompetitionCreate
+	competitionList    *MockcompetitionList
+	competitionHistory *MockcompetitionHistory
+	competitionInfo    *MockcompetitionInfo
+	competitionUpdate  *MockcompetitionUpdate
+	competitionDelete  *MockcompetitionDelete
+	competitionDrafts  *MockcompetitionDraft
+	competitionEdits   *MockcompetitionEditDraft
 }
 
 // noActiveDrafts stubs the training draft, training edit draft, schedule
-// draft, schedule edit draft and profile edit draft lookups to "none in
-// progress" — the shared setup every case reaching the callback-prefix
-// triggers needs.
+// draft, schedule edit draft, profile edit draft, competition draft and
+// competition edit draft lookups to "none in progress" — the shared setup
+// every case reaching the callback-prefix triggers needs.
 func noActiveDrafts(m mocks, userID int64) {
 	m.drafts.EXPECT().
 		GetDraftByUserID(gomock.Any(), userID).
@@ -62,6 +71,14 @@ func noActiveDrafts(m mocks, userID int64) {
 		Return(nil, model.ErrNotFound)
 
 	m.profileEdits.EXPECT().
+		GetEditDraftByUserID(gomock.Any(), userID).
+		Return(nil, model.ErrNotFound)
+
+	m.competitionDrafts.EXPECT().
+		GetDraftByUserID(gomock.Any(), userID).
+		Return(nil, model.ErrNotFound)
+
+	m.competitionEdits.EXPECT().
 		GetEditDraftByUserID(gomock.Any(), userID).
 		Return(nil, model.ErrNotFound)
 }
@@ -94,6 +111,15 @@ func run(t *testing.T, u *model.User, in dto.Input, prepare func(m mocks)) error
 		scheduleDrafts: NewMockscheduleDraft(ctrl),
 		scheduleEdits:  NewMockscheduleEditDraft(ctrl),
 		profileEdits:   NewMockprofileEditDraft(ctrl),
+
+		competitionCreate:  NewMockcompetitionCreate(ctrl),
+		competitionList:    NewMockcompetitionList(ctrl),
+		competitionHistory: NewMockcompetitionHistory(ctrl),
+		competitionInfo:    NewMockcompetitionInfo(ctrl),
+		competitionUpdate:  NewMockcompetitionUpdate(ctrl),
+		competitionDelete:  NewMockcompetitionDelete(ctrl),
+		competitionDrafts:  NewMockcompetitionDraft(ctrl),
+		competitionEdits:   NewMockcompetitionEditDraft(ctrl),
 	}
 
 	prepare(m)
@@ -117,6 +143,15 @@ func run(t *testing.T, u *model.User, in dto.Input, prepare func(m mocks)) error
 		ScheduleDraft:     m.scheduleDrafts,
 		ScheduleEditDraft: m.scheduleEdits,
 		ProfileEditDraft:  m.profileEdits,
+
+		CompetitionCreate:    m.competitionCreate,
+		CompetitionList:      m.competitionList,
+		CompetitionHistory:   m.competitionHistory,
+		CompetitionInfo:      m.competitionInfo,
+		CompetitionUpdate:    m.competitionUpdate,
+		CompetitionDelete:    m.competitionDelete,
+		CompetitionDraft:     m.competitionDrafts,
+		CompetitionEditDraft: m.competitionEdits,
 	})
 
 	return c.Handle(context.Background(), u, in)

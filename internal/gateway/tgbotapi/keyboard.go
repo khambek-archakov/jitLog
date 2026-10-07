@@ -12,6 +12,11 @@ func toInlineKeyboard(k dto.Keyboard) tgbotapi.InlineKeyboardMarkup {
 	for _, row := range k {
 		buttons := make([]tgbotapi.InlineKeyboardButton, 0, len(row))
 		for _, b := range row {
+			if b.URL != "" {
+				buttons = append(buttons, tgbotapi.NewInlineKeyboardButtonURL(b.Label, b.URL))
+				continue
+			}
+
 			buttons = append(buttons, tgbotapi.NewInlineKeyboardButtonData(b.Label, b.Data))
 		}
 

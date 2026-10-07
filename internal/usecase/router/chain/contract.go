@@ -113,3 +113,51 @@ type scheduleEditDraft interface {
 type profileEditDraft interface {
 	GetEditDraftByUserID(ctx context.Context, userID int64) (*model.ProfileEditDraft, error)
 }
+
+// competitionCreate is what the chain needs from the "add a tournament"
+// dialog — same Begin/Continue shape as trainingCreate/scheduleCreate,
+// except both take the full *model.User (not a bare userID): the wizard's
+// terminal step needs u.Timezone to render the confirmation card.
+type competitionCreate interface {
+	Begin(ctx context.Context, u *model.User, in dto.Input) error
+	Continue(ctx context.Context, u *model.User, d *model.UserCompetitionDraft, in dto.Input) error
+}
+
+// competitionList shows the "🏆 Соревнования" screen (competition:list).
+type competitionList interface {
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
+}
+
+// competitionHistory shows the paginated past-tournaments screen
+// (competition:history:page:{n}).
+type competitionHistory interface {
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
+}
+
+// competitionInfo shows a single tournament's card (competition:view:{id}).
+type competitionInfo interface {
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
+}
+
+// competitionUpdate edits a single field of an existing tournament
+// (competition:edit:*). Handle covers every callback-driven step;
+// Continue fires for all six fields, once a pending edit draft exists —
+// unlike training/schedule, nothing here is pickable from a button.
+type competitionUpdate interface {
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
+	Continue(ctx context.Context, u *model.User, d *model.UserCompetitionEditDraft, in dto.Input) error
+}
+
+// competitionDelete owns competition:delete:* (a confirm screen, then the
+// actual delete) — also fully stateless, same as most of competitionUpdate.
+type competitionDelete interface {
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
+}
+
+type competitionDraft interface {
+	GetDraftByUserID(ctx context.Context, userID int64) (*model.UserCompetitionDraft, error)
+}
+
+type competitionEditDraft interface {
+	GetEditDraftByUserID(ctx context.Context, userID int64) (*model.UserCompetitionEditDraft, error)
+}

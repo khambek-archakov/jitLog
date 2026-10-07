@@ -28,7 +28,7 @@ func New(db *pgxpool.Pool) *Repository {
 
 func (r *Repository) GetByTelegramID(ctx context.Context, telegramID int64) (*model.User, error) {
 	const query = `
-		select id, telegram_id, name, age, belt, onboarding_step, created_at, updated_at
+		select id, telegram_id, name, age, belt, onboarding_step, timezone, created_at, updated_at
 		from "user"
 		where telegram_id = $1
 	`
@@ -48,7 +48,7 @@ func (r *Repository) Create(ctx context.Context, telegramID int64) (*model.User,
 	const query = `
 		insert into "user" (telegram_id)
 		values ($1)
-		returning id, telegram_id, name, age, belt, onboarding_step, created_at, updated_at
+		returning id, telegram_id, name, age, belt, onboarding_step, timezone, created_at, updated_at
 	`
 
 	u, err := scanUser(r.db.QueryRow(ctx, query, telegramID))
@@ -62,11 +62,13 @@ func (r *Repository) Create(ctx context.Context, telegramID int64) (*model.User,
 func (r *Repository) Update(ctx context.Context, u *model.User) error {
 	const query = `
 		update "user"
-		set name = $2, age = $3, belt = $4, onboarding_step = $5, updated_at = now()
+		set name = $2, age = $3, belt = $4, onboarding_step = $5, timezone = $6, updated_at = now()
 		where id = $1
 	`
 
-	_, err := r.db.Exec(ctx, query, u.ID, u.Name, u.Age, beltToDB(u.Belt), onboardingStepToDB(u.OnboardingStep))
+	_, err := r.db.Exec(
+		ctx, query, u.ID, u.Name, u.Age, beltToDB(u.Belt), onboardingStepToDB(u.OnboardingStep), u.Timezone,
+	)
 	if err != nil {
 		return fmt.Errorf("update user: %w", err)
 	}
@@ -220,6 +222,7 @@ func scanUser(row pgx.Row) (*model.User, error) {
 		&u.Age,
 		&belt,
 		&step,
+		&u.Timezone,
 		&u.CreatedAt,
 		&u.UpdatedAt,
 	)

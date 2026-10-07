@@ -10,10 +10,11 @@
 // know about. defaultOrder is the single place that knows the correct order
 // (the onboarding gate first, active-draft continuations before every
 // trigger, the raw onboarding dependency itself last as the catch-all
-// fallback). training/schedule still live in their own sub-packages
-// (router/chain/training, router/chain/schedule) — each is a real,
-// growing feature domain with its own internal step ordering worth
-// protecting behind a package boundary. onboarding/stats/profile/the
+// fallback). training/schedule/competition still live in their own
+// sub-packages (router/chain/training, router/chain/schedule,
+// router/chain/competition) — each is a real, growing feature domain with
+// its own internal step ordering worth protecting behind a package
+// boundary. onboarding/stats/profile/the
 // continuations policy do not meet that bar (a single `if` each, or — for
 // continuations — a router-level policy rather than a domain), so they
 // live here as plain files instead of one-trigger packages.
@@ -25,6 +26,7 @@ import (
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/router/chain/competition"
 	"github.com/khambek-archakov/jitLog/internal/usecase/router/chain/schedule"
 	"github.com/khambek-archakov/jitLog/internal/usecase/router/chain/training"
 )
@@ -56,6 +58,15 @@ type Dependencies struct {
 	ScheduleDraft     scheduleDraft
 	ScheduleEditDraft scheduleEditDraft
 	ProfileEditDraft  profileEditDraft
+
+	CompetitionCreate    competitionCreate
+	CompetitionList      competitionList
+	CompetitionHistory   competitionHistory
+	CompetitionInfo      competitionInfo
+	CompetitionUpdate    competitionUpdate
+	CompetitionDelete    competitionDelete
+	CompetitionDraft     competitionDraft
+	CompetitionEditDraft competitionEditDraft
 }
 
 // Chain holds the scenario dependencies needed to assemble a chain of
@@ -84,6 +95,10 @@ func (c *Chain) defaultOrder() []Handler {
 		continuations(d),
 		training.New(d.TrainingCreate, d.TrainingInfo, d.TrainingHistory, d.TrainingUpdate, d.TrainingDelete),
 		schedule.New(d.ScheduleCreate, d.ScheduleList, d.ScheduleInfo, d.ScheduleUpdate, d.ScheduleDelete),
+		competition.New(
+			d.CompetitionCreate, d.CompetitionList, d.CompetitionHistory, d.CompetitionInfo,
+			d.CompetitionUpdate, d.CompetitionDelete,
+		),
 		&statsTrigger{stats: d.TrainingStats},
 		&profileTrigger{profile: d.Profile},
 		d.Onboarding,
