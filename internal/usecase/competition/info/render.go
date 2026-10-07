@@ -99,7 +99,11 @@ func Keyboard(c *model.UserCompetition, today time.Time) dto.Keyboard {
 		kb = append(kb, dto.Row(fieldQuickAdd(c.ID, "result", "Результат")))
 	}
 
-	if c.URL != nil && *c.URL != "" {
+	// CompetitionID is only ever set once this record is already linked to
+	// a catalog entry (submitted, auto-attached, or copied in via
+	// catalog/add) — offering to submit it again makes no sense at that
+	// point.
+	if c.URL != nil && *c.URL != "" && c.CompetitionID == nil {
 		kb = append(kb, dto.Row(dto.Button{Label: "📤 Предложить в каталог", Data: fmt.Sprintf("%s%d", callbackSubmitPrefix, c.ID)}))
 	}
 

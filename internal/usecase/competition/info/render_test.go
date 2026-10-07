@@ -157,6 +157,21 @@ func TestKeyboard(t *testing.T) {
 		assert.Equal(t, "← Назад", kb[4][0].Label)
 	})
 
+	t.Run("already linked to the catalog — no submit button even with a link", func(t *testing.T) {
+		t.Parallel()
+
+		city, url := "Москва", "https://example.com"
+		kb := info.Keyboard(&model.UserCompetition{
+			ID: 7, Date: date(2026, 11, 24), City: &city, URL: &url, EndDate: ptr(date(2026, 11, 25)), CompetitionID: ptr(int64(99)),
+		}, today)
+
+		// Straight from the URL button to Изменить — no "📤 Предложить" row.
+		assert.Equal(t, "🔗 Страница соревнования", kb[0][0].Label)
+		assert.Equal(t, "✏️ Изменить", kb[1][0].Label)
+		assert.Equal(t, "🗑️ Удалить", kb[2][0].Label)
+		assert.Equal(t, "← Назад", kb[3][0].Label)
+	})
+
 	t.Run("only city filled — just the link quick-add remains, alone in its row", func(t *testing.T) {
 		t.Parallel()
 
