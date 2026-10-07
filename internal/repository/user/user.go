@@ -28,7 +28,7 @@ func New(db *pgxpool.Pool) *Repository {
 
 func (r *Repository) GetByTelegramID(ctx context.Context, telegramID int64) (*model.User, error) {
 	const query = `
-		select id, telegram_id, name, age, belt, onboarding_step, timezone, created_at, updated_at
+		select id, telegram_id, name, age, belt, onboarding_step, timezone, city, created_at, updated_at
 		from "user"
 		where telegram_id = $1
 	`
@@ -44,11 +44,33 @@ func (r *Repository) GetByTelegramID(ctx context.Context, telegramID int64) (*mo
 	return u, nil
 }
 
+// GetByID resolves a user_id to their full row — used wherever a
+// notification needs a TelegramID but only a user_id is on hand (e.g.
+// catalog/moderate notifying every owner of a user_competition row that
+// got relinked, not just the original submitter).
+func (r *Repository) GetByID(ctx context.Context, id int64) (*model.User, error) {
+	const query = `
+		select id, telegram_id, name, age, belt, onboarding_step, timezone, city, created_at, updated_at
+		from "user"
+		where id = $1
+	`
+
+	u, err := scanUser(r.db.QueryRow(ctx, query, id))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, model.ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get user by id: %w", err)
+	}
+
+	return u, nil
+}
+
 func (r *Repository) Create(ctx context.Context, telegramID int64) (*model.User, error) {
 	const query = `
 		insert into "user" (telegram_id)
 		values ($1)
-		returning id, telegram_id, name, age, belt, onboarding_step, timezone, created_at, updated_at
+		returning id, telegram_id, name, age, belt, onboarding_step, timezone, city, created_at, updated_at
 	`
 
 	u, err := scanUser(r.db.QueryRow(ctx, query, telegramID))
@@ -62,12 +84,12 @@ func (r *Repository) Create(ctx context.Context, telegramID int64) (*model.User,
 func (r *Repository) Update(ctx context.Context, u *model.User) error {
 	const query = `
 		update "user"
-		set name = $2, age = $3, belt = $4, onboarding_step = $5, timezone = $6, updated_at = now()
+		set name = $2, age = $3, belt = $4, onboarding_step = $5, timezone = $6, city = $7, updated_at = now()
 		where id = $1
 	`
 
 	_, err := r.db.Exec(
-		ctx, query, u.ID, u.Name, u.Age, beltToDB(u.Belt), onboardingStepToDB(u.OnboardingStep), u.Timezone,
+		ctx, query, u.ID, u.Name, u.Age, beltToDB(u.Belt), onboardingStepToDB(u.OnboardingStep), u.Timezone, u.City,
 	)
 	if err != nil {
 		return fmt.Errorf("update user: %w", err)
@@ -223,6 +245,7 @@ func scanUser(row pgx.Row) (*model.User, error) {
 		&belt,
 		&step,
 		&u.Timezone,
+		&u.City,
 		&u.CreatedAt,
 		&u.UpdatedAt,
 	)

@@ -11,6 +11,9 @@ import (
 const (
 	callbackEditPrefix   = "competition:edit:"
 	callbackDeletePrefix = "competition:delete:"
+	// callbackSubmitPrefix mirrors competition/submit's own private
+	// constant — "📤 Предложить в каталог" hands off there.
+	callbackSubmitPrefix = "competition:submit:"
 	// callbackCompetitionList mirrors internal/usecase/competition/list's
 	// own private constant — the card's "← Назад" button goes back there.
 	callbackCompetitionList = "competition:list"
@@ -45,13 +48,13 @@ func Card(c *model.UserCompetition, today time.Time) string {
 // result line once the result exists and the tournament has started —
 // shared by the card view and create's "saved" confirmation screen.
 func Body(c *model.UserCompetition, today time.Time) string {
-	body := c.Title + "\n\n📅 " + dateRange(c)
+	body := c.Title + "\n\n📅 " + DateRange(c.Date, c.EndDate)
 
 	if c.City != nil && *c.City != "" {
 		body += "\n🏙 " + *c.City
 	}
 
-	body += "\n" + Status(c, today)
+	body += "\n" + Status(c.Date, c.EndDate, today)
 
 	if !today.Before(c.Date) && c.Result != nil && *c.Result != "" {
 		body += "\n\n🏅 " + *c.Result
@@ -86,6 +89,10 @@ func Keyboard(c *model.UserCompetition, today time.Time) dto.Keyboard {
 		kb = append(kb, dto.Row(dto.Button{Label: "🏅 Результат", Data: fmt.Sprintf("%s%d:result", callbackEditPrefix, c.ID)}))
 	}
 
+	if c.URL != nil && *c.URL != "" {
+		kb = append(kb, dto.Row(dto.Button{Label: "📤 Предложить в каталог", Data: fmt.Sprintf("%s%d", callbackSubmitPrefix, c.ID)}))
+	}
+
 	kb = append(kb,
 		dto.Row(dto.Button{Label: "✏️ Изменить", Data: fmt.Sprintf("%s%d", callbackEditPrefix, c.ID)}),
 		dto.Row(dto.Button{Label: "🗑️ Удалить", Data: fmt.Sprintf("%s%d", callbackDeletePrefix, c.ID)}),
@@ -105,16 +112,19 @@ func fieldToggle(id int64, field, label string, filled bool) dto.Button {
 }
 
 // Status computes a tournament's status purely from today vs. its dates —
-// nothing is stored in the database for this.
-func Status(c *model.UserCompetition, today time.Time) string {
-	end := c.Date
-	if c.EndDate != nil {
-		end = *c.EndDate
+// nothing is stored in the database for this. Takes plain date/endDate
+// rather than *model.UserCompetition so catalog/info (which renders the
+// same status for a *model.Competition — identical shape, different type)
+// can reuse it without converting between the two.
+func Status(date time.Time, endDate *time.Time, today time.Time) string {
+	end := date
+	if endDate != nil {
+		end = *endDate
 	}
 
 	switch {
-	case today.Before(c.Date):
-		days := daysBetween(today, c.Date)
+	case today.Before(date):
+		days := daysBetween(today, date)
 		if days == 1 {
 			return "Завтра"
 		}
@@ -129,12 +139,14 @@ func Status(c *model.UserCompetition, today time.Time) string {
 	}
 }
 
-func dateRange(c *model.UserCompetition) string {
-	if c.EndDate == nil {
-		return FormatDate(c.Date)
+// DateRange formats a single date, or a "date – date" range when endDate is
+// set — shared with catalog/info for the same reason as Status.
+func DateRange(date time.Time, endDate *time.Time) string {
+	if endDate == nil {
+		return FormatDate(date)
 	}
 
-	return FormatDate(c.Date) + " – " + FormatDate(*c.EndDate)
+	return FormatDate(date) + " – " + FormatDate(*endDate)
 }
 
 func daysBetween(from, to time.Time) int {

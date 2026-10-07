@@ -57,3 +57,29 @@ func editFieldFromDB(v int16) model.UserCompetitionEditField {
 		return ""
 	}
 }
+
+func competitionStatusToDB(s model.CompetitionStatus) int16 {
+	switch s {
+	case model.CompetitionStatusPending:
+		return 1
+	case model.CompetitionStatusPublished:
+		return 2
+	case model.CompetitionStatusRejected:
+		return 3
+	default:
+		return 0
+	}
+}
+
+func competitionStatusFromDB(v int16) model.CompetitionStatus {
+	switch v {
+	case 1:
+		return model.CompetitionStatusPending
+	case 2:
+		return model.CompetitionStatusPublished
+	case 3:
+		return model.CompetitionStatusRejected
+	default:
+		return ""
+	}
+}

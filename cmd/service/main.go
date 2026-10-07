@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -21,11 +22,16 @@ import (
 	schedulerepo "github.com/khambek-archakov/jitLog/internal/repository/schedule"
 	trainingrepo "github.com/khambek-archakov/jitLog/internal/repository/training"
 	userrepo "github.com/khambek-archakov/jitLog/internal/repository/user"
+	catalogadd "github.com/khambek-archakov/jitLog/internal/usecase/catalog/add"
+	cataloginfo "github.com/khambek-archakov/jitLog/internal/usecase/catalog/info"
+	cataloglist "github.com/khambek-archakov/jitLog/internal/usecase/catalog/list"
 	competitioncreate "github.com/khambek-archakov/jitLog/internal/usecase/competition/create"
 	competitiondelete "github.com/khambek-archakov/jitLog/internal/usecase/competition/delete"
 	competitionhistory "github.com/khambek-archakov/jitLog/internal/usecase/competition/history"
 	competitioninfo "github.com/khambek-archakov/jitLog/internal/usecase/competition/info"
 	competitionlist "github.com/khambek-archakov/jitLog/internal/usecase/competition/list"
+	"github.com/khambek-archakov/jitLog/internal/usecase/competition/moderate"
+	"github.com/khambek-archakov/jitLog/internal/usecase/competition/submit"
 	competitionupdate "github.com/khambek-archakov/jitLog/internal/usecase/competition/update"
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding"
 	"github.com/khambek-archakov/jitLog/internal/usecase/profile"
@@ -66,6 +72,18 @@ func run() int {
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
 		slog.Error("DATABASE_URL is not set")
+		return fail
+	}
+
+	adminTelegramIDRaw := os.Getenv("ADMIN_TELEGRAM_ID")
+	if adminTelegramIDRaw == "" {
+		slog.Error("ADMIN_TELEGRAM_ID is not set")
+		return fail
+	}
+
+	adminTelegramID, err := strconv.ParseInt(adminTelegramIDRaw, 10, 64)
+	if err != nil {
+		slog.Error("ADMIN_TELEGRAM_ID is not a valid integer", "error", err)
 		return fail
 	}
 
@@ -136,6 +154,11 @@ func run() int {
 	competitionInfoUseCase := competitioninfo.New(gateway, competitions)
 	competitionUpdateUseCase := competitionupdate.New(gateway, competitions)
 	competitionDeleteUseCase := competitiondelete.New(gateway, competitions)
+	competitionSubmitUseCase := submit.New(gateway, competitions, adminTelegramID)
+	competitionModerateUseCase := moderate.New(gateway, competitions, users, adminTelegramID)
+	catalogListUseCase := cataloglist.New(gateway, competitions)
+	catalogInfoUseCase := cataloginfo.New(gateway, competitions)
+	catalogAddUseCase := catalogadd.New(gateway, competitions)
 
 	appChain := chain.New(chain.Dependencies{
 		Onboarding:        onboardingUseCase,
@@ -157,14 +180,22 @@ func run() int {
 		ScheduleEditDraft: schedules,
 		ProfileEditDraft:  users,
 
-		CompetitionCreate:    competitionCreateUseCase,
-		CompetitionList:      competitionListUseCase,
-		CompetitionHistory:   competitionHistoryUseCase,
-		CompetitionInfo:      competitionInfoUseCase,
-		CompetitionUpdate:    competitionUpdateUseCase,
-		CompetitionDelete:    competitionDeleteUseCase,
-		CompetitionDraft:     competitions,
-		CompetitionEditDraft: competitions,
+		CompetitionCreate:     competitionCreateUseCase,
+		CompetitionList:       competitionListUseCase,
+		CompetitionHistory:    competitionHistoryUseCase,
+		CompetitionInfo:       competitionInfoUseCase,
+		CompetitionUpdate:     competitionUpdateUseCase,
+		CompetitionDelete:     competitionDeleteUseCase,
+		CompetitionSubmit:     competitionSubmitUseCase,
+		CompetitionModerate:   competitionModerateUseCase,
+		CompetitionDraft:      competitions,
+		CompetitionEditDraft:  competitions,
+		CompetitionMergeDraft: competitions,
+
+		CatalogList:      catalogListUseCase,
+		CatalogInfo:      catalogInfoUseCase,
+		CatalogAdd:       catalogAddUseCase,
+		CatalogCityDraft: competitions,
 	})
 	appRouter := router.New(appChain, users)
 

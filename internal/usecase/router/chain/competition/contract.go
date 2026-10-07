@@ -53,3 +53,16 @@ type competitionUpdate interface {
 type competitionDelete interface {
 	Handle(ctx context.Context, u *model.User, in dto.Input) error
 }
+
+// competitionSubmit owns "📤 Предложить в каталог" (competition:submit:*).
+type competitionSubmit interface {
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
+}
+
+// competitionModerate owns the admin's ✅/❌/🔗 actions
+// (competition:moderate:*). This package only ever drives it by callback,
+// never Continue — that's the parent chain package's own
+// competitionMergeDraftContinuation.
+type competitionModerate interface {
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
+}

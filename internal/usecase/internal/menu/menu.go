@@ -14,6 +14,7 @@ const (
 	callbackMyTrainings  = "training:history:page:0"
 	callbackSchedule     = "schedule:list"
 	callbackCompetitions = "competition:list"
+	callbackCatalog      = "catalog:list"
 	callbackStats        = "stats:period:week"
 	callbackProfile      = "profile:show"
 )
@@ -25,6 +26,7 @@ func Keyboard() dto.Keyboard {
 		dto.Row(dto.Button{Label: "📊 Статистика", Data: callbackStats}),
 		dto.Row(dto.Button{Label: "📅 Расписание", Data: callbackSchedule}),
 		dto.Row(dto.Button{Label: "🏆 Соревнования", Data: callbackCompetitions}),
+		dto.Row(dto.Button{Label: "📚 Каталог", Data: callbackCatalog}),
 		dto.Row(dto.Button{Label: "👤 Профиль", Data: callbackProfile}),
 	}
 }

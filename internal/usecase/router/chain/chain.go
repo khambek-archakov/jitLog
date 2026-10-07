@@ -26,6 +26,7 @@ import (
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/router/chain/catalog"
 	"github.com/khambek-archakov/jitLog/internal/usecase/router/chain/competition"
 	"github.com/khambek-archakov/jitLog/internal/usecase/router/chain/schedule"
 	"github.com/khambek-archakov/jitLog/internal/usecase/router/chain/training"
@@ -59,14 +60,22 @@ type Dependencies struct {
 	ScheduleEditDraft scheduleEditDraft
 	ProfileEditDraft  profileEditDraft
 
-	CompetitionCreate    competitionCreate
-	CompetitionList      competitionList
-	CompetitionHistory   competitionHistory
-	CompetitionInfo      competitionInfo
-	CompetitionUpdate    competitionUpdate
-	CompetitionDelete    competitionDelete
-	CompetitionDraft     competitionDraft
-	CompetitionEditDraft competitionEditDraft
+	CompetitionCreate     competitionCreate
+	CompetitionList       competitionList
+	CompetitionHistory    competitionHistory
+	CompetitionInfo       competitionInfo
+	CompetitionUpdate     competitionUpdate
+	CompetitionDelete     competitionDelete
+	CompetitionSubmit     competitionSubmit
+	CompetitionModerate   competitionModerate
+	CompetitionDraft      competitionDraft
+	CompetitionEditDraft  competitionEditDraft
+	CompetitionMergeDraft competitionMergeDraft
+
+	CatalogList      catalogList
+	CatalogInfo      catalogInfo
+	CatalogAdd       catalogAdd
+	CatalogCityDraft catalogCityDraft
 }
 
 // Chain holds the scenario dependencies needed to assemble a chain of
@@ -97,8 +106,9 @@ func (c *Chain) defaultOrder() []Handler {
 		schedule.New(d.ScheduleCreate, d.ScheduleList, d.ScheduleInfo, d.ScheduleUpdate, d.ScheduleDelete),
 		competition.New(
 			d.CompetitionCreate, d.CompetitionList, d.CompetitionHistory, d.CompetitionInfo,
-			d.CompetitionUpdate, d.CompetitionDelete,
+			d.CompetitionUpdate, d.CompetitionDelete, d.CompetitionSubmit, d.CompetitionModerate,
 		),
+		catalog.New(d.CatalogList, d.CatalogInfo, d.CatalogAdd),
 		&statsTrigger{stats: d.TrainingStats},
 		&profileTrigger{profile: d.Profile},
 		d.Onboarding,

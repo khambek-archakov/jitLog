@@ -60,7 +60,7 @@ func TestStatus(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, tc.want, info.Status(tc.c, today))
+			assert.Equal(t, tc.want, info.Status(tc.c.Date, tc.c.EndDate, today))
 		})
 	}
 }

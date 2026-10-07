@@ -80,9 +80,16 @@ func TestCompetitionDraftContinuation(t *testing.T) {
 				GetEditDraftByUserID(gomock.Any(), userID).
 				Return(nil, model.ErrNotFound)
 
+			m.competitionMerges.EXPECT().
+				GetMergeDraftByUserID(gomock.Any(), userID).
+				Return(nil, model.ErrNotFound)
+
+			m.catalogCities.EXPECT().
+				GetCityDraftByUserID(gomock.Any(), userID).
+				Return(nil, model.ErrNotFound)
+
 			// Reaching training's own addTrigger is what proves this link
-			// skipped — competitionDraftContinuation is the second-to-last
-			// continuation.
+			// skipped.
 			m.create.EXPECT().
 				Begin(gomock.Any(), userID, in).
 				Return(nil)

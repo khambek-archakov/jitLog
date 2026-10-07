@@ -283,3 +283,79 @@ func (mr *MockcompetitionDeleteMockRecorder) Handle(ctx, u, in any) *gomock.Call
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockcompetitionDelete)(nil).Handle), ctx, u, in)
 }
+
+// MockcompetitionSubmit is a mock of competitionSubmit interface.
+type MockcompetitionSubmit struct {
+	ctrl     *gomock.Controller
+	recorder *MockcompetitionSubmitMockRecorder
+	isgomock struct{}
+}
+
+// MockcompetitionSubmitMockRecorder is the mock recorder for MockcompetitionSubmit.
+type MockcompetitionSubmitMockRecorder struct {
+	mock *MockcompetitionSubmit
+}
+
+// NewMockcompetitionSubmit creates a new mock instance.
+func NewMockcompetitionSubmit(ctrl *gomock.Controller) *MockcompetitionSubmit {
+	mock := &MockcompetitionSubmit{ctrl: ctrl}
+	mock.recorder = &MockcompetitionSubmitMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockcompetitionSubmit) EXPECT() *MockcompetitionSubmitMockRecorder {
+	return m.recorder
+}
+
+// Handle mocks base method.
+func (m *MockcompetitionSubmit) Handle(ctx context.Context, u *model.User, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, u, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MockcompetitionSubmitMockRecorder) Handle(ctx, u, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockcompetitionSubmit)(nil).Handle), ctx, u, in)
+}
+
+// MockcompetitionModerate is a mock of competitionModerate interface.
+type MockcompetitionModerate struct {
+	ctrl     *gomock.Controller
+	recorder *MockcompetitionModerateMockRecorder
+	isgomock struct{}
+}
+
+// MockcompetitionModerateMockRecorder is the mock recorder for MockcompetitionModerate.
+type MockcompetitionModerateMockRecorder struct {
+	mock *MockcompetitionModerate
+}
+
+// NewMockcompetitionModerate creates a new mock instance.
+func NewMockcompetitionModerate(ctrl *gomock.Controller) *MockcompetitionModerate {
+	mock := &MockcompetitionModerate{ctrl: ctrl}
+	mock.recorder = &MockcompetitionModerateMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockcompetitionModerate) EXPECT() *MockcompetitionModerateMockRecorder {
+	return m.recorder
+}
+
+// Handle mocks base method.
+func (m *MockcompetitionModerate) Handle(ctx context.Context, u *model.User, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, u, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MockcompetitionModerateMockRecorder) Handle(ctx, u, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockcompetitionModerate)(nil).Handle), ctx, u, in)
+}

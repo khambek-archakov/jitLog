@@ -39,20 +39,27 @@ type mocks struct {
 	scheduleEdits  *MockscheduleEditDraft
 	profileEdits   *MockprofileEditDraft
 
-	competitionCreate  *MockcompetitionCreate
-	competitionList    *MockcompetitionList
-	competitionHistory *MockcompetitionHistory
-	competitionInfo    *MockcompetitionInfo
-	competitionUpdate  *MockcompetitionUpdate
-	competitionDelete  *MockcompetitionDelete
-	competitionDrafts  *MockcompetitionDraft
-	competitionEdits   *MockcompetitionEditDraft
+	competitionCreate   *MockcompetitionCreate
+	competitionList     *MockcompetitionList
+	competitionHistory  *MockcompetitionHistory
+	competitionInfo     *MockcompetitionInfo
+	competitionUpdate   *MockcompetitionUpdate
+	competitionDelete   *MockcompetitionDelete
+	competitionSubmit   *MockcompetitionSubmit
+	competitionModerate *MockcompetitionModerate
+	competitionDrafts   *MockcompetitionDraft
+	competitionEdits    *MockcompetitionEditDraft
+	competitionMerges   *MockcompetitionMergeDraft
+
+	catalogList   *MockcatalogList
+	catalogInfo   *MockcatalogInfo
+	catalogAdd    *MockcatalogAdd
+	catalogCities *MockcatalogCityDraft
 }
 
-// noActiveDrafts stubs the training draft, training edit draft, schedule
-// draft, schedule edit draft, profile edit draft, competition draft and
-// competition edit draft lookups to "none in progress" — the shared setup
-// every case reaching the callback-prefix triggers needs.
+// noActiveDrafts stubs every draft/continuation lookup to "none in
+// progress" — the shared setup every case reaching the callback-prefix
+// triggers needs.
 func noActiveDrafts(m mocks, userID int64) {
 	m.drafts.EXPECT().
 		GetDraftByUserID(gomock.Any(), userID).
@@ -80,6 +87,14 @@ func noActiveDrafts(m mocks, userID int64) {
 
 	m.competitionEdits.EXPECT().
 		GetEditDraftByUserID(gomock.Any(), userID).
+		Return(nil, model.ErrNotFound)
+
+	m.competitionMerges.EXPECT().
+		GetMergeDraftByUserID(gomock.Any(), userID).
+		Return(nil, model.ErrNotFound)
+
+	m.catalogCities.EXPECT().
+		GetCityDraftByUserID(gomock.Any(), userID).
 		Return(nil, model.ErrNotFound)
 }
 
@@ -112,14 +127,22 @@ func run(t *testing.T, u *model.User, in dto.Input, prepare func(m mocks)) error
 		scheduleEdits:  NewMockscheduleEditDraft(ctrl),
 		profileEdits:   NewMockprofileEditDraft(ctrl),
 
-		competitionCreate:  NewMockcompetitionCreate(ctrl),
-		competitionList:    NewMockcompetitionList(ctrl),
-		competitionHistory: NewMockcompetitionHistory(ctrl),
-		competitionInfo:    NewMockcompetitionInfo(ctrl),
-		competitionUpdate:  NewMockcompetitionUpdate(ctrl),
-		competitionDelete:  NewMockcompetitionDelete(ctrl),
-		competitionDrafts:  NewMockcompetitionDraft(ctrl),
-		competitionEdits:   NewMockcompetitionEditDraft(ctrl),
+		competitionCreate:   NewMockcompetitionCreate(ctrl),
+		competitionList:     NewMockcompetitionList(ctrl),
+		competitionHistory:  NewMockcompetitionHistory(ctrl),
+		competitionInfo:     NewMockcompetitionInfo(ctrl),
+		competitionUpdate:   NewMockcompetitionUpdate(ctrl),
+		competitionDelete:   NewMockcompetitionDelete(ctrl),
+		competitionSubmit:   NewMockcompetitionSubmit(ctrl),
+		competitionModerate: NewMockcompetitionModerate(ctrl),
+		competitionDrafts:   NewMockcompetitionDraft(ctrl),
+		competitionEdits:    NewMockcompetitionEditDraft(ctrl),
+		competitionMerges:   NewMockcompetitionMergeDraft(ctrl),
+
+		catalogList:   NewMockcatalogList(ctrl),
+		catalogInfo:   NewMockcatalogInfo(ctrl),
+		catalogAdd:    NewMockcatalogAdd(ctrl),
+		catalogCities: NewMockcatalogCityDraft(ctrl),
 	}
 
 	prepare(m)
@@ -144,14 +167,22 @@ func run(t *testing.T, u *model.User, in dto.Input, prepare func(m mocks)) error
 		ScheduleEditDraft: m.scheduleEdits,
 		ProfileEditDraft:  m.profileEdits,
 
-		CompetitionCreate:    m.competitionCreate,
-		CompetitionList:      m.competitionList,
-		CompetitionHistory:   m.competitionHistory,
-		CompetitionInfo:      m.competitionInfo,
-		CompetitionUpdate:    m.competitionUpdate,
-		CompetitionDelete:    m.competitionDelete,
-		CompetitionDraft:     m.competitionDrafts,
-		CompetitionEditDraft: m.competitionEdits,
+		CompetitionCreate:     m.competitionCreate,
+		CompetitionList:       m.competitionList,
+		CompetitionHistory:    m.competitionHistory,
+		CompetitionInfo:       m.competitionInfo,
+		CompetitionUpdate:     m.competitionUpdate,
+		CompetitionDelete:     m.competitionDelete,
+		CompetitionSubmit:     m.competitionSubmit,
+		CompetitionModerate:   m.competitionModerate,
+		CompetitionDraft:      m.competitionDrafts,
+		CompetitionEditDraft:  m.competitionEdits,
+		CompetitionMergeDraft: m.competitionMerges,
+
+		CatalogList:      m.catalogList,
+		CatalogInfo:      m.catalogInfo,
+		CatalogAdd:       m.catalogAdd,
+		CatalogCityDraft: m.catalogCities,
 	})
 
 	return c.Handle(context.Background(), u, in)

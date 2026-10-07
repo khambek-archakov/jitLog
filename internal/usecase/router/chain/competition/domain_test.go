@@ -13,12 +13,14 @@ import (
 )
 
 type mocks struct {
-	create  *MockcompetitionCreate
-	list    *MockcompetitionList
-	history *MockcompetitionHistory
-	info    *MockcompetitionInfo
-	update  *MockcompetitionUpdate
-	del     *MockcompetitionDelete
+	create   *MockcompetitionCreate
+	list     *MockcompetitionList
+	history  *MockcompetitionHistory
+	info     *MockcompetitionInfo
+	update   *MockcompetitionUpdate
+	del      *MockcompetitionDelete
+	submit   *MockcompetitionSubmit
+	moderate *MockcompetitionModerate
 }
 
 // run builds a fresh mock set, lets prepare set expectations on it, then
@@ -30,17 +32,19 @@ func run(t *testing.T, u *model.User, in dto.Input, prepare func(m mocks)) error
 	ctrl := gomock.NewController(t)
 
 	m := mocks{
-		create:  NewMockcompetitionCreate(ctrl),
-		list:    NewMockcompetitionList(ctrl),
-		history: NewMockcompetitionHistory(ctrl),
-		info:    NewMockcompetitionInfo(ctrl),
-		update:  NewMockcompetitionUpdate(ctrl),
-		del:     NewMockcompetitionDelete(ctrl),
+		create:   NewMockcompetitionCreate(ctrl),
+		list:     NewMockcompetitionList(ctrl),
+		history:  NewMockcompetitionHistory(ctrl),
+		info:     NewMockcompetitionInfo(ctrl),
+		update:   NewMockcompetitionUpdate(ctrl),
+		del:      NewMockcompetitionDelete(ctrl),
+		submit:   NewMockcompetitionSubmit(ctrl),
+		moderate: NewMockcompetitionModerate(ctrl),
 	}
 
 	prepare(m)
 
-	d := competition.New(m.create, m.list, m.history, m.info, m.update, m.del)
+	d := competition.New(m.create, m.list, m.history, m.info, m.update, m.del, m.submit, m.moderate)
 
 	return d.Handle(context.Background(), u, in)
 }
@@ -129,6 +133,34 @@ func TestDomain(t *testing.T) {
 
 		err := run(t, u, in, func(m mocks) {
 			m.history.EXPECT().
+				Handle(gomock.Any(), u, in).
+				Return(nil)
+		})
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("competition:submit:* delegates to submit.Handle", func(t *testing.T) {
+		t.Parallel()
+
+		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "competition:submit:7"}
+
+		err := run(t, u, in, func(m mocks) {
+			m.submit.EXPECT().
+				Handle(gomock.Any(), u, in).
+				Return(nil)
+		})
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("competition:moderate:* delegates to moderate.Handle", func(t *testing.T) {
+		t.Parallel()
+
+		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "competition:moderate:7:approve"}
+
+		err := run(t, u, in, func(m mocks) {
+			m.moderate.EXPECT().
 				Handle(gomock.Any(), u, in).
 				Return(nil)
 		})

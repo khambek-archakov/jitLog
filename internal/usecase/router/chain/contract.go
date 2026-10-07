@@ -161,3 +161,42 @@ type competitionDraft interface {
 type competitionEditDraft interface {
 	GetEditDraftByUserID(ctx context.Context, userID int64) (*model.UserCompetitionEditDraft, error)
 }
+
+// competitionSubmit owns "📤 Предложить в каталог" (competition:submit:*).
+type competitionSubmit interface {
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
+}
+
+// competitionModerate owns the admin's ✅/❌/🔗 actions on a pending
+// submission (competition:moderate:*). Continue fires for the merge
+// draft's own free-text title search, once a pending one exists.
+type competitionModerate interface {
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
+	Continue(ctx context.Context, u *model.User, d *model.CompetitionMergeDraft, in dto.Input) error
+}
+
+type competitionMergeDraft interface {
+	GetMergeDraftByUserID(ctx context.Context, userID int64) (*model.CompetitionMergeDraft, error)
+}
+
+// catalogList shows the "📚 Каталог" screen (catalog:list, its pagination
+// and its city-filter controls). Continue fires for the city draft's own
+// free-text city name, once a pending one exists.
+type catalogList interface {
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
+	Continue(ctx context.Context, u *model.User, d *model.CatalogCityDraft, in dto.Input) error
+}
+
+// catalogInfo shows a single catalog entry's card (catalog:view:{id}).
+type catalogInfo interface {
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
+}
+
+// catalogAdd owns "➕ В мои" (catalog:add:{id}).
+type catalogAdd interface {
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
+}
+
+type catalogCityDraft interface {
+	GetCityDraftByUserID(ctx context.Context, userID int64) (*model.CatalogCityDraft, error)
+}

@@ -1110,3 +1110,299 @@ func (mr *MockcompetitionEditDraftMockRecorder) GetEditDraftByUserID(ctx, userID
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEditDraftByUserID", reflect.TypeOf((*MockcompetitionEditDraft)(nil).GetEditDraftByUserID), ctx, userID)
 }
+
+// MockcompetitionSubmit is a mock of competitionSubmit interface.
+type MockcompetitionSubmit struct {
+	ctrl     *gomock.Controller
+	recorder *MockcompetitionSubmitMockRecorder
+	isgomock struct{}
+}
+
+// MockcompetitionSubmitMockRecorder is the mock recorder for MockcompetitionSubmit.
+type MockcompetitionSubmitMockRecorder struct {
+	mock *MockcompetitionSubmit
+}
+
+// NewMockcompetitionSubmit creates a new mock instance.
+func NewMockcompetitionSubmit(ctrl *gomock.Controller) *MockcompetitionSubmit {
+	mock := &MockcompetitionSubmit{ctrl: ctrl}
+	mock.recorder = &MockcompetitionSubmitMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockcompetitionSubmit) EXPECT() *MockcompetitionSubmitMockRecorder {
+	return m.recorder
+}
+
+// Handle mocks base method.
+func (m *MockcompetitionSubmit) Handle(ctx context.Context, u *model.User, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, u, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MockcompetitionSubmitMockRecorder) Handle(ctx, u, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockcompetitionSubmit)(nil).Handle), ctx, u, in)
+}
+
+// MockcompetitionModerate is a mock of competitionModerate interface.
+type MockcompetitionModerate struct {
+	ctrl     *gomock.Controller
+	recorder *MockcompetitionModerateMockRecorder
+	isgomock struct{}
+}
+
+// MockcompetitionModerateMockRecorder is the mock recorder for MockcompetitionModerate.
+type MockcompetitionModerateMockRecorder struct {
+	mock *MockcompetitionModerate
+}
+
+// NewMockcompetitionModerate creates a new mock instance.
+func NewMockcompetitionModerate(ctrl *gomock.Controller) *MockcompetitionModerate {
+	mock := &MockcompetitionModerate{ctrl: ctrl}
+	mock.recorder = &MockcompetitionModerateMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockcompetitionModerate) EXPECT() *MockcompetitionModerateMockRecorder {
+	return m.recorder
+}
+
+// Continue mocks base method.
+func (m *MockcompetitionModerate) Continue(ctx context.Context, u *model.User, d *model.CompetitionMergeDraft, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Continue", ctx, u, d, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Continue indicates an expected call of Continue.
+func (mr *MockcompetitionModerateMockRecorder) Continue(ctx, u, d, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Continue", reflect.TypeOf((*MockcompetitionModerate)(nil).Continue), ctx, u, d, in)
+}
+
+// Handle mocks base method.
+func (m *MockcompetitionModerate) Handle(ctx context.Context, u *model.User, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, u, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MockcompetitionModerateMockRecorder) Handle(ctx, u, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockcompetitionModerate)(nil).Handle), ctx, u, in)
+}
+
+// MockcompetitionMergeDraft is a mock of competitionMergeDraft interface.
+type MockcompetitionMergeDraft struct {
+	ctrl     *gomock.Controller
+	recorder *MockcompetitionMergeDraftMockRecorder
+	isgomock struct{}
+}
+
+// MockcompetitionMergeDraftMockRecorder is the mock recorder for MockcompetitionMergeDraft.
+type MockcompetitionMergeDraftMockRecorder struct {
+	mock *MockcompetitionMergeDraft
+}
+
+// NewMockcompetitionMergeDraft creates a new mock instance.
+func NewMockcompetitionMergeDraft(ctrl *gomock.Controller) *MockcompetitionMergeDraft {
+	mock := &MockcompetitionMergeDraft{ctrl: ctrl}
+	mock.recorder = &MockcompetitionMergeDraftMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockcompetitionMergeDraft) EXPECT() *MockcompetitionMergeDraftMockRecorder {
+	return m.recorder
+}
+
+// GetMergeDraftByUserID mocks base method.
+func (m *MockcompetitionMergeDraft) GetMergeDraftByUserID(ctx context.Context, userID int64) (*model.CompetitionMergeDraft, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMergeDraftByUserID", ctx, userID)
+	ret0, _ := ret[0].(*model.CompetitionMergeDraft)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMergeDraftByUserID indicates an expected call of GetMergeDraftByUserID.
+func (mr *MockcompetitionMergeDraftMockRecorder) GetMergeDraftByUserID(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMergeDraftByUserID", reflect.TypeOf((*MockcompetitionMergeDraft)(nil).GetMergeDraftByUserID), ctx, userID)
+}
+
+// MockcatalogList is a mock of catalogList interface.
+type MockcatalogList struct {
+	ctrl     *gomock.Controller
+	recorder *MockcatalogListMockRecorder
+	isgomock struct{}
+}
+
+// MockcatalogListMockRecorder is the mock recorder for MockcatalogList.
+type MockcatalogListMockRecorder struct {
+	mock *MockcatalogList
+}
+
+// NewMockcatalogList creates a new mock instance.
+func NewMockcatalogList(ctrl *gomock.Controller) *MockcatalogList {
+	mock := &MockcatalogList{ctrl: ctrl}
+	mock.recorder = &MockcatalogListMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockcatalogList) EXPECT() *MockcatalogListMockRecorder {
+	return m.recorder
+}
+
+// Continue mocks base method.
+func (m *MockcatalogList) Continue(ctx context.Context, u *model.User, d *model.CatalogCityDraft, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Continue", ctx, u, d, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Continue indicates an expected call of Continue.
+func (mr *MockcatalogListMockRecorder) Continue(ctx, u, d, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Continue", reflect.TypeOf((*MockcatalogList)(nil).Continue), ctx, u, d, in)
+}
+
+// Handle mocks base method.
+func (m *MockcatalogList) Handle(ctx context.Context, u *model.User, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, u, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MockcatalogListMockRecorder) Handle(ctx, u, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockcatalogList)(nil).Handle), ctx, u, in)
+}
+
+// MockcatalogInfo is a mock of catalogInfo interface.
+type MockcatalogInfo struct {
+	ctrl     *gomock.Controller
+	recorder *MockcatalogInfoMockRecorder
+	isgomock struct{}
+}
+
+// MockcatalogInfoMockRecorder is the mock recorder for MockcatalogInfo.
+type MockcatalogInfoMockRecorder struct {
+	mock *MockcatalogInfo
+}
+
+// NewMockcatalogInfo creates a new mock instance.
+func NewMockcatalogInfo(ctrl *gomock.Controller) *MockcatalogInfo {
+	mock := &MockcatalogInfo{ctrl: ctrl}
+	mock.recorder = &MockcatalogInfoMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockcatalogInfo) EXPECT() *MockcatalogInfoMockRecorder {
+	return m.recorder
+}
+
+// Handle mocks base method.
+func (m *MockcatalogInfo) Handle(ctx context.Context, u *model.User, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, u, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MockcatalogInfoMockRecorder) Handle(ctx, u, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockcatalogInfo)(nil).Handle), ctx, u, in)
+}
+
+// MockcatalogAdd is a mock of catalogAdd interface.
+type MockcatalogAdd struct {
+	ctrl     *gomock.Controller
+	recorder *MockcatalogAddMockRecorder
+	isgomock struct{}
+}
+
+// MockcatalogAddMockRecorder is the mock recorder for MockcatalogAdd.
+type MockcatalogAddMockRecorder struct {
+	mock *MockcatalogAdd
+}
+
+// NewMockcatalogAdd creates a new mock instance.
+func NewMockcatalogAdd(ctrl *gomock.Controller) *MockcatalogAdd {
+	mock := &MockcatalogAdd{ctrl: ctrl}
+	mock.recorder = &MockcatalogAddMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockcatalogAdd) EXPECT() *MockcatalogAddMockRecorder {
+	return m.recorder
+}
+
+// Handle mocks base method.
+func (m *MockcatalogAdd) Handle(ctx context.Context, u *model.User, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, u, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MockcatalogAddMockRecorder) Handle(ctx, u, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockcatalogAdd)(nil).Handle), ctx, u, in)
+}
+
+// MockcatalogCityDraft is a mock of catalogCityDraft interface.
+type MockcatalogCityDraft struct {
+	ctrl     *gomock.Controller
+	recorder *MockcatalogCityDraftMockRecorder
+	isgomock struct{}
+}
+
+// MockcatalogCityDraftMockRecorder is the mock recorder for MockcatalogCityDraft.
+type MockcatalogCityDraftMockRecorder struct {
+	mock *MockcatalogCityDraft
+}
+
+// NewMockcatalogCityDraft creates a new mock instance.
+func NewMockcatalogCityDraft(ctrl *gomock.Controller) *MockcatalogCityDraft {
+	mock := &MockcatalogCityDraft{ctrl: ctrl}
+	mock.recorder = &MockcatalogCityDraftMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockcatalogCityDraft) EXPECT() *MockcatalogCityDraftMockRecorder {
+	return m.recorder
+}
+
+// GetCityDraftByUserID mocks base method.
+func (m *MockcatalogCityDraft) GetCityDraftByUserID(ctx context.Context, userID int64) (*model.CatalogCityDraft, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCityDraftByUserID", ctx, userID)
+	ret0, _ := ret[0].(*model.CatalogCityDraft)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCityDraftByUserID indicates an expected call of GetCityDraftByUserID.
+func (mr *MockcatalogCityDraftMockRecorder) GetCityDraftByUserID(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCityDraftByUserID", reflect.TypeOf((*MockcatalogCityDraft)(nil).GetCityDraftByUserID), ctx, userID)
+}

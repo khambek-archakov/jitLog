@@ -29,6 +29,8 @@ func New(
 	info competitionInfo,
 	update competitionUpdate,
 	del competitionDelete,
+	submit competitionSubmit,
+	moderate competitionModerate,
 ) *Domain {
 	return &Domain{
 		links: sequence{
@@ -38,6 +40,8 @@ func New(
 			&deleteTrigger{delete: del},
 			&listTrigger{list: list},
 			&historyTrigger{history: history},
+			&submitTrigger{submit: submit},
+			&moderateTrigger{moderate: moderate},
 		},
 	}
 }
