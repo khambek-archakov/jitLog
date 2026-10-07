@@ -16,8 +16,8 @@ const (
 )
 
 // callbackCompetitionAdd mirrors the competition list screen's own
-// "➕ Добавить турнир" button data — it's the trigger that kicks this flow
-// off, so TitleStep (the first step) needs to recognize it too.
+// "➕ Добавить соревнование" button data — it's the trigger that kicks this
+// flow off, so TitleStep (the first step) needs to recognize it too.
 const callbackCompetitionAdd = "competition:add"
 
 type TitleStep struct {

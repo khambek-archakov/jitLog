@@ -1,4 +1,4 @@
-// Package create owns the "➕ Добавить турнир" wizard: title → date, then
+// Package create owns the "➕ Добавить соревнование" wizard: title → date, then
 // an immediate save. Mirrors internal/usecase/training/create's shape
 // (step-dispatch-map, centralized cancel handling) but is deliberately
 // just two questions — everything else is added after the fact via the

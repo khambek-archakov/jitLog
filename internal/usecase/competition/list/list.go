@@ -73,7 +73,7 @@ func listText(competitions []*model.UserCompetition) string {
 		return emptyText
 	}
 
-	return "🏆 Соревнования"
+	return "🏆 Соревнования\n\n⭐ Мои соревнования:"
 }
 
 func listKeyboard(competitions []*model.UserCompetition, showCatalog bool) dto.Keyboard {
@@ -83,10 +83,10 @@ func listKeyboard(competitions []*model.UserCompetition, showCatalog bool) dto.K
 		kb = append(kb, dto.Row(dto.Button{Label: rowLabel(c), Data: fmt.Sprintf("competition:view:%d", c.ID)}))
 	}
 
-	kb = append(kb, dto.Row(dto.Button{Label: "➕ Добавить турнир", Data: callbackCompetitionAdd}))
+	kb = append(kb, dto.Row(dto.Button{Label: "➕ Добавить соревнование", Data: callbackCompetitionAdd}))
 
 	if showCatalog {
-		kb = append(kb, dto.Row(dto.Button{Label: "🔎 Найти турнир", Data: callbackCatalogList}))
+		kb = append(kb, dto.Row(dto.Button{Label: "🔎 Найти соревнование", Data: callbackCatalogList}))
 	}
 
 	if len(competitions) > 0 {
@@ -99,7 +99,7 @@ func listKeyboard(competitions []*model.UserCompetition, showCatalog bool) dto.K
 }
 
 func rowLabel(c *model.UserCompetition) string {
-	label := fmt.Sprintf("%s — %s", info.FormatDateRow(c.Date), c.Title)
+	label := fmt.Sprintf("📌 %s — %s", info.FormatDateRow(c.Date), c.Title)
 
 	if c.City != nil && *c.City != "" {
 		label += fmt.Sprintf(" (%s)", *c.City)
