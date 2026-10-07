@@ -107,12 +107,47 @@ func TestUseCase_Handle(t *testing.T) {
 					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
 						require.Len(t, kb, 7)
 						assert.Equal(t, "competition:edit:7:title", kb[0][0].Data)
+						assert.Equal(t, "Название", kb[0][0].Label)
 						assert.Equal(t, "competition:edit:7:date", kb[1][0].Data)
+						assert.Equal(t, "Дата", kb[1][0].Label)
 						assert.Equal(t, "competition:edit:7:end_date", kb[2][0].Data)
+						assert.Equal(t, "➕ Дата окончания", kb[2][0].Label)
 						assert.Equal(t, "competition:edit:7:city", kb[3][0].Data)
+						assert.Equal(t, "➕ Город", kb[3][0].Label)
 						assert.Equal(t, "competition:edit:7:url", kb[4][0].Data)
+						assert.Equal(t, "➕ Ссылка", kb[4][0].Label)
 						assert.Equal(t, "competition:edit:7:result", kb[5][0].Data)
+						assert.Equal(t, "➕ Результат", kb[5][0].Label)
 						assert.Equal(t, "competition:view:7", kb[6][0].Data)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "bare id shows the edit menu — filled optional fields drop the ➕",
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1", CallbackData: "competition:edit:7",
+			},
+			prepare: func(sender *Mocksender, repo *MockcompetitionRepo) {
+				city, url, result := "Москва", "https://example.com", "2nd place"
+				c := baseCompetition()
+				c.City, c.URL, c.Result, c.EndDate = &city, &url, &result, &date
+
+				repo.EXPECT().GetUserCompetition(gomock.Any(), int64(7)).Return(c, nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "✏️ Что изменить?", gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
+						assert.Equal(t, "Дата окончания", kb[2][0].Label)
+						assert.Equal(t, "Город", kb[3][0].Label)
+						assert.Equal(t, "Ссылка", kb[4][0].Label)
+						assert.Equal(t, "Результат", kb[5][0].Label)
 
 						return nil
 					})

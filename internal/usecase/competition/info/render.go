@@ -64,13 +64,15 @@ func Body(c *model.UserCompetition, today time.Time) string {
 }
 
 // Keyboard is the card's own layout: a URL button to the tournament page
-// (if a link is set), quick toggles for city/link/end date that read
-// "➕ ..." when the field is still empty and "✏️ ..." once it's filled, a
-// result shortcut (once the tournament has started), then
-// Изменить/Удалить/Назад. This is the one keyboard every screen that shows
-// a tournament card uses — the just-saved confirmation, the card view, and
-// the screen after any edit — so a field filled in from any of them
-// updates its own toggle everywhere else too.
+// (if a link is set), "➕ ..." quick-add shortcuts for city/link/end
+// date/result that appear only while the field is still empty — once a
+// field is filled, its only way to change is "✏️ Изменить" (which lists
+// every field, marking the still-empty ones the same "➕" way), there's no
+// standalone button for an already-filled field anymore. This is the one
+// keyboard every screen that shows a tournament card uses — the
+// just-saved confirmation, the card view, and the screen after any edit —
+// so filling a field from any of them removes its own quick-add shortcut
+// everywhere else too.
 func Keyboard(c *model.UserCompetition, today time.Time) dto.Keyboard {
 	var kb dto.Keyboard
 
@@ -78,15 +80,23 @@ func Keyboard(c *model.UserCompetition, today time.Time) dto.Keyboard {
 		kb = append(kb, dto.Row(dto.Button{Label: "🔗 Страница турнира", URL: *c.URL}))
 	}
 
-	kb = append(kb, dto.Row(
-		fieldToggle(c.ID, "city", "Город", c.City != nil && *c.City != ""),
-		fieldToggle(c.ID, "url", "Ссылка", c.URL != nil && *c.URL != ""),
-	))
+	var quickAdds []dto.Button
+	if c.City == nil || *c.City == "" {
+		quickAdds = append(quickAdds, fieldQuickAdd(c.ID, "city", "Город"))
+	}
+	if c.URL == nil || *c.URL == "" {
+		quickAdds = append(quickAdds, fieldQuickAdd(c.ID, "url", "Ссылка"))
+	}
+	if len(quickAdds) > 0 {
+		kb = append(kb, quickAdds)
+	}
 
-	kb = append(kb, dto.Row(fieldToggle(c.ID, "end_date", "Дата окончания", c.EndDate != nil)))
+	if c.EndDate == nil {
+		kb = append(kb, dto.Row(fieldQuickAdd(c.ID, "end_date", "Дата окончания")))
+	}
 
-	if !today.Before(c.Date) {
-		kb = append(kb, dto.Row(dto.Button{Label: "🏅 Результат", Data: fmt.Sprintf("%s%d:result", callbackEditPrefix, c.ID)}))
+	if !today.Before(c.Date) && (c.Result == nil || *c.Result == "") {
+		kb = append(kb, dto.Row(fieldQuickAdd(c.ID, "result", "Результат")))
 	}
 
 	if c.URL != nil && *c.URL != "" {
@@ -102,13 +112,8 @@ func Keyboard(c *model.UserCompetition, today time.Time) dto.Keyboard {
 	return kb
 }
 
-func fieldToggle(id int64, field, label string, filled bool) dto.Button {
-	icon := "➕"
-	if filled {
-		icon = "✏️"
-	}
-
-	return dto.Button{Label: icon + " " + label, Data: fmt.Sprintf("%s%d:%s", callbackEditPrefix, id, field)}
+func fieldQuickAdd(id int64, field, label string) dto.Button {
+	return dto.Button{Label: "➕ " + label, Data: fmt.Sprintf("%s%d:%s", callbackEditPrefix, id, field)}
 }
 
 // Status computes a tournament's status purely from today vs. its dates —

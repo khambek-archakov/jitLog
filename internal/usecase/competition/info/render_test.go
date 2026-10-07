@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/competition/info"
@@ -139,7 +140,7 @@ func TestKeyboard(t *testing.T) {
 		assert.Equal(t, "competition:list", kb[4][0].Data)
 	})
 
-	t.Run("filled fields toggle to edit icons", func(t *testing.T) {
+	t.Run("filled fields have no quick-add shortcuts left, only Изменить", func(t *testing.T) {
 		t.Parallel()
 
 		city, url := "Москва", "https://example.com"
@@ -147,10 +148,24 @@ func TestKeyboard(t *testing.T) {
 			ID: 7, Date: date(2026, 11, 24), City: &city, URL: &url, EndDate: ptr(date(2026, 11, 25)),
 		}, today)
 
-		// URL button comes first since a link is set.
-		assert.Equal(t, "✏️ Город", kb[1][0].Label)
-		assert.Equal(t, "✏️ Ссылка", kb[1][1].Label)
-		assert.Equal(t, "✏️ Дата окончания", kb[2][0].Label)
+		// URL button comes first since a link is set, then straight to
+		// Предложить/Изменить/Удалить/Назад — no quick-add row at all.
+		assert.Equal(t, "🔗 Страница турнира", kb[0][0].Label)
+		assert.Equal(t, "📤 Предложить в каталог", kb[1][0].Label)
+		assert.Equal(t, "✏️ Изменить", kb[2][0].Label)
+		assert.Equal(t, "🗑️ Удалить", kb[3][0].Label)
+		assert.Equal(t, "← Назад", kb[4][0].Label)
+	})
+
+	t.Run("only city filled — just the link quick-add remains, alone in its row", func(t *testing.T) {
+		t.Parallel()
+
+		city := "Москва"
+		kb := info.Keyboard(&model.UserCompetition{ID: 7, Date: date(2026, 11, 24), City: &city, EndDate: ptr(date(2026, 11, 25))}, today)
+
+		require.Len(t, kb[0], 1)
+		assert.Equal(t, "➕ Ссылка", kb[0][0].Label)
+		assert.Equal(t, "✏️ Изменить", kb[1][0].Label)
 	})
 
 	t.Run("link present — URL button first", func(t *testing.T) {
@@ -163,13 +178,22 @@ func TestKeyboard(t *testing.T) {
 		assert.Equal(t, url, kb[0][0].URL)
 	})
 
-	t.Run("started — result shortcut appears", func(t *testing.T) {
+	t.Run("started, no result yet — quick-add appears", func(t *testing.T) {
 		t.Parallel()
 
 		kb := info.Keyboard(&model.UserCompetition{ID: 7, Date: date(2026, 10, 20)}, today)
 
-		assert.Equal(t, "🏅 Результат", kb[2][0].Label)
+		assert.Equal(t, "➕ Результат", kb[2][0].Label)
 		assert.Equal(t, "competition:edit:7:result", kb[2][0].Data)
+	})
+
+	t.Run("started, result already filled — no shortcut, straight to Изменить", func(t *testing.T) {
+		t.Parallel()
+
+		result := "2nd place"
+		kb := info.Keyboard(&model.UserCompetition{ID: 7, Date: date(2026, 10, 20), Result: &result}, today)
+
+		assert.Equal(t, "✏️ Изменить", kb[2][0].Label)
 	})
 }
 

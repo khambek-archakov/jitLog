@@ -26,6 +26,11 @@ const (
 // "{id}:dup" or "{id}:merge:{existingID}".
 const callbackModeratePrefix = "competition:moderate:"
 
+// callbackCompetitionList mirrors internal/usecase/competition/list's own
+// private constant — every owner notification below ends with a button
+// into that screen, since that's where the now-updated status is visible.
+const callbackCompetitionList = "competition:list"
+
 type UseCase struct {
 	bot             sender
 	repo            repo
@@ -191,10 +196,14 @@ func (uc *UseCase) notifyOwnersDirect(ctx context.Context, ownerIDs []int64, tex
 			return fmt.Errorf("get owner: %w", err)
 		}
 
-		if err := uc.bot.Send(ctx, owner.TelegramID, text); err != nil {
+		if err := uc.bot.SendWithKeyboard(ctx, owner.TelegramID, text, competitionListKeyboard()); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func competitionListKeyboard() dto.Keyboard {
+	return dto.Keyboard{dto.Row(dto.Button{Label: "🏆 Соревнования", Data: callbackCompetitionList})}
 }

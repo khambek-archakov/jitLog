@@ -76,7 +76,7 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 
 	switch action {
 	case "":
-		return uc.showMenu(ctx, in, c.ID)
+		return uc.showMenu(ctx, in, c)
 
 	case "title":
 		return uc.promptField(
@@ -192,12 +192,12 @@ func (uc *UseCase) Continue(ctx context.Context, u *model.User, d *model.UserCom
 	}
 }
 
-func (uc *UseCase) showMenu(ctx context.Context, in dto.Input, id int64) error {
+func (uc *UseCase) showMenu(ctx context.Context, in dto.Input, c *model.UserCompetition) error {
 	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "✏️ Что изменить?", editMenuKeyboard(id))
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "✏️ Что изменить?", editMenuKeyboard(c))
 }
 
 func (uc *UseCase) promptField(
@@ -253,18 +253,30 @@ func (uc *UseCase) finishEdit(
 	return uc.bot.SendWithKeyboard(ctx, in.ChatID, info.Card(updated, today), info.Keyboard(updated, today))
 }
 
-func editMenuKeyboard(id int64) dto.Keyboard {
-	prefix := fmt.Sprintf("%s%d:", callbackEditPrefix, id)
+// editMenuKeyboard marks every still-empty optional field with the same
+// "➕" prefix the card's own quick-add shortcuts use, so it's clear which
+// fields can be filled in here — title/date are required at creation time
+// and so never get the "➕" treatment.
+func editMenuKeyboard(c *model.UserCompetition) dto.Keyboard {
+	prefix := fmt.Sprintf("%s%d:", callbackEditPrefix, c.ID)
 
 	return dto.Keyboard{
 		dto.Row(dto.Button{Label: "Название", Data: prefix + "title"}),
 		dto.Row(dto.Button{Label: "Дата", Data: prefix + "date"}),
-		dto.Row(dto.Button{Label: "Дата окончания", Data: prefix + "end_date"}),
-		dto.Row(dto.Button{Label: "Город", Data: prefix + "city"}),
-		dto.Row(dto.Button{Label: "Ссылка", Data: prefix + "url"}),
-		dto.Row(dto.Button{Label: "Результат", Data: prefix + "result"}),
-		dto.Row(dto.Button{Label: "← Назад", Data: fmt.Sprintf("competition:view:%d", id)}),
+		dto.Row(dto.Button{Label: editMenuFieldLabel("Дата окончания", c.EndDate != nil), Data: prefix + "end_date"}),
+		dto.Row(dto.Button{Label: editMenuFieldLabel("Город", c.City != nil && *c.City != ""), Data: prefix + "city"}),
+		dto.Row(dto.Button{Label: editMenuFieldLabel("Ссылка", c.URL != nil && *c.URL != ""), Data: prefix + "url"}),
+		dto.Row(dto.Button{Label: editMenuFieldLabel("Результат", c.Result != nil && *c.Result != ""), Data: prefix + "result"}),
+		dto.Row(dto.Button{Label: "← Назад", Data: fmt.Sprintf("competition:view:%d", c.ID)}),
 	}
+}
+
+func editMenuFieldLabel(label string, filled bool) string {
+	if filled {
+		return label
+	}
+
+	return "➕ " + label
 }
 
 func parseTitle(text string) (string, bool) {
