@@ -24,13 +24,13 @@ import (
 const notFoundText = "Турнир не найден."
 
 const (
-	titleNotParsed     = "Название должно быть от 1 до 100 символов, напиши ещё раз."
-	dateNotParsed      = "Не смог разобрать дату, напиши в формате ДД.ММ или ДД.ММ.ГГГГ."
-	endDateBeforeStart = "Дата окончания не может быть раньше даты начала, напиши ещё раз."
-	startDateAfterEnd  = "Дата начала не может быть позже даты окончания, напиши ещё раз."
-	cityNotParsed      = "Слишком длинно — город можно описать максимум 80 символами."
-	urlNotParsed       = "Ссылка должна начинаться с http:// или https://, напиши ещё раз."
-	resultNotParsed    = "Слишком длинно — результат можно описать максимум 200 символами."
+	titleNotParsed     = "Не получилось разобрать название 🤔\nНапиши от 1 до 100 символов."
+	dateNotParsed      = "Не получилось разобрать дату 🤔\nНапиши так: 15.11.2026 или 15.11"
+	endDateBeforeStart = "Дата окончания раньше даты начала 🤔\nНапиши дату не раньше начала турнира."
+	startDateAfterEnd  = "Дата начала позже даты окончания 🤔\nНапиши дату не позже окончания турнира."
+	cityNotParsed      = "Слишком длинно 🤔\nГород — максимум 80 символов."
+	urlNotParsed       = "Не получилось разобрать ссылку 🤔\nНапиши так: https://example.com"
+	resultNotParsed    = "Слишком длинно 🤔\nРезультат — максимум 200 символов."
 )
 
 // callbackEditPrefix is followed by "{id}", "{id}:title", "{id}:date",
@@ -79,24 +79,35 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 		return uc.showMenu(ctx, in, c.ID)
 
 	case "title":
-		return uc.promptField(ctx, in, c, model.UserCompetitionEditFieldTitle, "Как называется турнир?")
+		return uc.promptField(
+			ctx, in, c, model.UserCompetitionEditFieldTitle, "Как называется турнир?\nНапример: Moscow Open 2026",
+		)
 
 	case "date":
-		return uc.promptField(ctx, in, c, model.UserCompetitionEditFieldDate, "Когда он проходит? (ДД.ММ или ДД.ММ.ГГГГ)")
+		return uc.promptField(
+			ctx, in, c, model.UserCompetitionEditFieldDate,
+			"Когда он проходит?\nНапиши дату, например 15.11.2026 или просто 15.11.\nЕсли турнир идёт несколько дней, укажи первый",
+		)
 
 	case "end_date":
 		return uc.promptField(
-			ctx, in, c, model.UserCompetitionEditFieldEndDate, "Когда он заканчивается? (ДД.ММ или ДД.ММ.ГГГГ)",
+			ctx, in, c, model.UserCompetitionEditFieldEndDate,
+			"Когда он заканчивается?\nНапиши дату, например 16.11.2026 или просто 16.11",
 		)
 
 	case "city":
-		return uc.promptField(ctx, in, c, model.UserCompetitionEditFieldCity, "В каком городе?")
+		return uc.promptField(ctx, in, c, model.UserCompetitionEditFieldCity, "В каком городе?\nНапример: Москва")
 
 	case "url":
-		return uc.promptField(ctx, in, c, model.UserCompetitionEditFieldURL, "Пришли ссылку на турнир.")
+		return uc.promptField(
+			ctx, in, c, model.UserCompetitionEditFieldURL,
+			"Пришли ссылку на турнир.\nНапример: https://example.com/moscow-open",
+		)
 
 	case "result":
-		return uc.promptField(ctx, in, c, model.UserCompetitionEditFieldResult, "Какой результат?")
+		return uc.promptField(
+			ctx, in, c, model.UserCompetitionEditFieldResult, "Какой результат?\nНапример: 2 место, сабмишен в финале",
+		)
 
 	default:
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)

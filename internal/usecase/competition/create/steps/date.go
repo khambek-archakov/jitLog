@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	dateQuestion  = "Когда он проходит?"
-	dateNotParsed = "Не смог разобрать дату, напиши в формате ДД.ММ или ДД.ММ.ГГГГ."
+	dateQuestion  = "Когда он проходит?\nНапиши дату, например 15.11.2026 или просто 15.11.\nЕсли турнир идёт несколько дней, укажи первый"
+	dateNotParsed = "Не получилось разобрать дату 🤔\nНапиши так: 15.11.2026 или 15.11"
 )
 
 type DateStep struct {
@@ -26,6 +26,10 @@ func NewDate(bot sender, repo draftRepo) *DateStep {
 }
 
 func (s *DateStep) Handle(ctx context.Context, u *model.User, d *model.UserCompetitionDraft, in dto.Input) error {
+	if in.HasCallback && in.CallbackData == callbackBack {
+		return s.handleBack(ctx, d, in)
+	}
+
 	if in.HasCallback {
 		return s.bot.AnswerCallback(ctx, in.CallbackID)
 	}
@@ -40,6 +44,20 @@ func (s *DateStep) Handle(ctx context.Context, u *model.User, d *model.UserCompe
 	}
 
 	return s.finish(ctx, u, d, in, date)
+}
+
+func (s *DateStep) handleBack(ctx context.Context, d *model.UserCompetitionDraft, in dto.Input) error {
+	d.Step = model.UserCompetitionDraftStepAwaitingTitle
+
+	if err := s.repo.UpdateDraft(ctx, d); err != nil {
+		return fmt.Errorf("update user competition draft: %w", err)
+	}
+
+	if err := s.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
+		return err
+	}
+
+	return s.bot.SendWithKeyboard(ctx, in.ChatID, titleQuestion, titleKeyboard())
 }
 
 // finish is the wizard's terminal step — it creates the real
@@ -68,7 +86,7 @@ func (s *DateStep) finish(ctx context.Context, u *model.User, d *model.UserCompe
 }
 
 func dateKeyboard() dto.Keyboard {
-	return dto.Keyboard{dto.Row(cancelButton())}
+	return dto.Keyboard{dto.Row(backButton(), cancelButton())}
 }
 
 // parseDate accepts "02.01.2006" or bare "02.01" (current year assumed) —

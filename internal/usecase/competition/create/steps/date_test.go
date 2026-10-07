@@ -43,6 +43,47 @@ func TestDateStep_Handle(t *testing.T) {
 		},
 
 		{
+			name: "back goes to the title step, title untouched",
+			d:    &model.UserCompetitionDraft{ID: 1, UserID: userID, Title: &title},
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "competition:draft:back"},
+			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
+				repo.EXPECT().
+					UpdateDraft(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, d *model.UserCompetitionDraft) error {
+						assert.Equal(t, model.UserCompetitionDraftStepAwaitingTitle, d.Step)
+						assert.Equal(t, "Moscow Open", *d.Title)
+
+						return nil
+					})
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+				sender.EXPECT().
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, text string, _ dto.Keyboard) error {
+						assert.Contains(t, text, "Как называется турнир?")
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "failed to persist on back",
+			d:    &model.UserCompetitionDraft{ID: 1, UserID: userID, Title: &title},
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "competition:draft:back"},
+			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
+				repo.EXPECT().UpdateDraft(gomock.Any(), gomock.Any()).Return(errors.New("fail"))
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.Error(t, err)
+			},
+		},
+
+		{
 			name:    "no message, no callback — no-op",
 			d:       &model.UserCompetitionDraft{ID: 1, UserID: userID, Title: &title},
 			in:      dto.Input{ChatID: chatID},

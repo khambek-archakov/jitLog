@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	titleQuestion  = "Как называется турнир?"
-	titleNotParsed = "Название должно быть от 1 до 100 символов, напиши ещё раз."
+	titleQuestion  = "Как называется турнир?\nНапример: Moscow Open 2026"
+	titleNotParsed = "Не смог разобрать название 🤔\nПопробуй уложиться в 100 символов."
 )
 
 // callbackCompetitionAdd mirrors the competition list screen's own
@@ -61,8 +61,12 @@ func (s *TitleStep) Handle(ctx context.Context, _ *model.User, d *model.UserComp
 	return s.bot.SendWithKeyboard(ctx, in.ChatID, dateQuestion, dateKeyboard())
 }
 
+// titleKeyboard's only button is labeled "← Назад" rather than "❌ Отмена"
+// — this is the first question, so going back and cancelling the whole
+// wizard are the same action. It still carries callbackCancel, so
+// create.go's existing centralized cancel handling catches it unchanged.
 func titleKeyboard() dto.Keyboard {
-	return dto.Keyboard{dto.Row(cancelButton())}
+	return dto.Keyboard{dto.Row(dto.Button{Label: "← Назад", Data: callbackCancel})}
 }
 
 func parseTitle(text string) (string, bool) {
