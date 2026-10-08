@@ -134,7 +134,7 @@ func TestUseCase_Handle(t *testing.T) {
 					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
 						assert.Contains(t, text, "🔎 Найти соревнование")
-						assert.Contains(t, text, "Не нашёл нужное соревнование?")
+						assert.Contains(t, text, "Нужного соревнования нет в списке?")
 
 						require.Len(t, kb, 6)
 						assert.Equal(t, "15 ноя — Kazan Open (Казань)", kb[0][0].Label)
@@ -182,7 +182,7 @@ func TestUseCase_Handle(t *testing.T) {
 					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
 						assert.Contains(t, text, "Пока нет опубликованных соревнований.")
-						assert.Contains(t, text, "Не нашёл нужное соревнование?")
+						assert.Contains(t, text, "Нужного соревнования нет в списке?")
 
 						require.Len(t, kb, 2)
 						assert.Equal(t, "➕ Добавить", kb[0][0].Label)

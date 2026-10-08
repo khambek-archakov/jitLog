@@ -47,7 +47,7 @@ const cityTooLong = "Слишком длинно 🤔\nГород — макси
 // addHint nudges anyone who didn't find what they were looking for toward
 // adding it themselves — it can always be proposed into the catalog
 // afterwards via the card's own "📤 Предложить в каталог".
-const addHint = "Не нашёл нужное соревнование? Добавь его сам и потом можно предложить в каталог."
+const addHint = "Нужного соревнования нет в списке? Добавь его вручную, и потом можно будет предложить его в каталог."
 
 type UseCase struct {
 	bot  sender
