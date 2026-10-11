@@ -158,6 +158,22 @@ func DateRange(date time.Time, endDate *time.Time) string {
 	return FormatDate(date) + " – " + FormatDate(*endDate)
 }
 
+// FormatDateRangeCompact is DateRange's shorter sibling for places that
+// list several dates close together (competition/import/ajp's own admin
+// messages) — a same-month-and-year range collapses to "10–11 октября
+// 2026" instead of repeating the full date on both sides.
+func FormatDateRangeCompact(date, endDate time.Time) string {
+	if date.Equal(endDate) {
+		return FormatDate(date)
+	}
+
+	if date.Year() == endDate.Year() && date.Month() == endDate.Month() {
+		return fmt.Sprintf("%d–%d %s %d", date.Day(), endDate.Day(), russianMonthsGenitive[date.Month()-1], date.Year())
+	}
+
+	return FormatDate(date) + " – " + FormatDate(endDate)
+}
+
 func daysBetween(from, to time.Time) int {
 	return int(to.Sub(from).Hours() / 24)
 }

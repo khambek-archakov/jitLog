@@ -23,6 +23,15 @@ type repo interface {
 	MergeCompetition(ctx context.Context, pendingID, existingID int64) (bool, error)
 	SetMergeDraft(ctx context.Context, userID, pendingCompetitionID int64) error
 	DeleteMergeDraft(ctx context.Context, userID int64) error
+
+	// ListPendingUnauthored backs "✅ Одобрить все" and "👀 Смотреть по
+	// одному" — both act on every pending competition an automated import
+	// (not a person) created, live at the moment they're tapped, not just
+	// the batch a particular import run produced.
+	ListPendingUnauthored(ctx context.Context) ([]*model.Competition, error)
+	GetPrimarySourceURL(ctx context.Context, competitionID int64) (*string, error)
+	ApplyImportDiff(ctx context.Context, competitionID int64) (bool, error)
+	DeleteImportDiff(ctx context.Context, competitionID int64) error
 }
 
 // userRepo resolves a user_id (all we have from

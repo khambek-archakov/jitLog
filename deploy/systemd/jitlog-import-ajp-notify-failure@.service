@@ -1,0 +1,10 @@
+[Unit]
+Description=Notify the admin via Telegram that %i failed
+
+[Service]
+Type=oneshot
+EnvironmentFile=/opt/jitlog/import-ajp/.env
+ExecStart=/usr/bin/curl -sS -X POST \
+    "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+    --data-urlencode "chat_id=${ADMIN_TELEGRAM_ID}" \
+    --data-urlencode "text=systemd: %i упал на %H"

@@ -1,0 +1,110 @@
+# City-name dictionary for the AJP import (competition/import/ajp).
+# One "English=Russian" pair per line, loaded by AJP_CITY_DICTIONARY_PATH.
+# A city not listed here is kept exactly as AJP itself spells it, and
+# gets flagged in the import's own report ("город без перевода: X") so
+# it can be added here later. Covers AJP_COUNTRIES' default countries
+# (RU, BY, AZ, AM, KZ) in reasonable depth — extend as new cities show up
+# in the report.
+
+# Russia
+Moscow=Москва
+Saint Petersburg=Санкт-Петербург
+St. Petersburg=Санкт-Петербург
+Novosibirsk=Новосибирск
+Yekaterinburg=Екатеринбург
+Ekaterinburg=Екатеринбург
+Kazan=Казань
+Nizhny Novgorod=Нижний Новгород
+Chelyabinsk=Челябинск
+Samara=Самара
+Omsk=Омск
+Rostov-on-Don=Ростов-на-Дону
+Ufa=Уфа
+Krasnoyarsk=Красноярск
+Perm=Пермь
+Voronezh=Воронеж
+Volgograd=Волгоград
+Krasnodar=Краснодар
+Saratov=Саратов
+Tyumen=Тюмень
+Tolyatti=Тольятти
+Izhevsk=Ижевск
+Barnaul=Барнаул
+Ulyanovsk=Ульяновск
+Irkutsk=Иркутск
+Khabarovsk=Хабаровск
+Vladivostok=Владивосток
+Yaroslavl=Ярославль
+Makhachkala=Махачкала
+Tomsk=Томск
+Orenburg=Оренбург
+Kemerovo=Кемерово
+Novokuznetsk=Новокузнецк
+Ryazan=Рязань
+Astrakhan=Астрахань
+Penza=Пенза
+Lipetsk=Липецк
+Kirov=Киров
+Cheboksary=Чебоксары
+Tula=Тула
+Kaliningrad=Калининград
+Bryansk=Брянск
+Ivanovo=Иваново
+Magnitogorsk=Магнитогорск
+Tver=Тверь
+Stavropol=Ставрополь
+Belgorod=Белгород
+Sochi=Сочи
+Grozny=Грозный
+Yakutsk=Якутск
+
+# Belarus
+Minsk=Минск
+Gomel=Гомель
+Mogilev=Могилёв
+Vitebsk=Витебск
+Grodno=Гродно
+Brest=Брест
+Bobruisk=Бобруйск
+Baranovichi=Барановичи
+Pinsk=Пинск
+Orsha=Орша
+
+# Azerbaijan
+Baku=Баку
+Ganja=Гянджа
+Sumqayit=Сумгайыт
+Mingachevir=Мингячевир
+Lankaran=Ленкорань
+Nakhchivan=Нахичевань
+Shaki=Шеки
+Shirvan=Ширван
+
+# Armenia
+Yerevan=Ереван
+Gyumri=Гюмри
+Vanadzor=Ванадзор
+Vagharshapat=Вагаршапат
+Abovyan=Абовян
+Kapan=Капан
+Hrazdan=Раздан
+
+# Kazakhstan
+Almaty=Алматы
+Astana=Астана
+Nur-Sultan=Нур-Султан
+Shymkent=Шымкент
+Karaganda=Караганда
+Aktobe=Актобе
+Taraz=Тараз
+Pavlodar=Павлодар
+Oskemen=Усть-Каменогорск
+Semey=Семей
+Atyrau=Атырау
+Kostanay=Костанай
+Kyzylorda=Кызылорда
+Oral=Уральск
+Petropavl=Петропавловск
+Taldykorgan=Талдыкорган
+Turkestan=Туркестан
+Zhezkazgan=Жезказган

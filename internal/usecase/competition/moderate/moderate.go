@@ -14,17 +14,38 @@ import (
 	"strings"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
+	"github.com/khambek-archakov/jitLog/internal/usecase/competition/info"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
 
 const (
 	alreadyHandledText = "Уже обработано."
 	noAccessText       = "Нет доступа."
+	noMorePendingText  = "Больше нет соревнований на проверке."
 )
 
 // callbackModeratePrefix is followed by "{id}:approve", "{id}:reject",
-// "{id}:dup" or "{id}:merge:{existingID}".
+// "{id}:dup" or "{id}:merge:{existingID}" for a single competition, or by
+// one of the three fixed "ajp:..." actions below for an automated
+// import's own batch/diff flow.
 const callbackModeratePrefix = "competition:moderate:"
+
+// callbackApproveAll and callbackReviewPrefix back an automated import's
+// "✅ Одобрить все" / "👀 Смотреть по одному" — shown instead of per-item
+// buttons on the first-ever import run or whenever one run creates more
+// than 10 pending competitions. Both act on every pending competition
+// without an author (created_by is null — only an automated import ever
+// leaves that), live at the moment they're tapped, not just the batch one
+// particular run produced.
+const (
+	callbackApproveAll   = "competition:moderate:ajp:approve_all"
+	callbackReviewPrefix = "competition:moderate:ajp:review:"
+)
+
+// callbackDiffPrefix is followed by "{id}:apply" or "{id}:keep" — an
+// automated import's own "✏️ Обновить" / "➡️ Оставить" on a detected
+// date/city drift (see competition_import_diff).
+const callbackDiffPrefix = "competition:moderate:ajp:diff:"
 
 // callbackCompetitionList mirrors internal/usecase/competition/list's own
 // private constant — every owner notification below ends with a button
@@ -53,6 +74,17 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 
 	if u.TelegramID != uc.adminTelegramID {
 		return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, noAccessText)
+	}
+
+	switch {
+	case in.CallbackData == callbackApproveAll:
+		return uc.approveAllPendingUnauthored(ctx, in)
+
+	case strings.HasPrefix(in.CallbackData, callbackReviewPrefix):
+		return uc.reviewPendingUnauthored(ctx, in)
+
+	case strings.HasPrefix(in.CallbackData, callbackDiffPrefix):
+		return uc.handleDiff(ctx, in)
 	}
 
 	rest := strings.TrimPrefix(in.CallbackData, callbackModeratePrefix)
@@ -206,4 +238,144 @@ func (uc *UseCase) notifyOwnersDirect(ctx context.Context, ownerIDs []int64, tex
 
 func competitionListKeyboard() dto.Keyboard {
 	return dto.Keyboard{dto.Row(dto.Button{Label: "🏆 Соревнования", Data: callbackCompetitionList})}
+}
+
+// approveAllPendingUnauthored publishes every pending, author-less
+// competition in one go — owners are never notified here, since nobody's
+// own UserCompetition links to an import-created entry until someone
+// taps "➕ В мои" on it later.
+func (uc *UseCase) approveAllPendingUnauthored(ctx context.Context, in dto.Input) error {
+	pending, err := uc.repo.ListPendingUnauthored(ctx)
+	if err != nil {
+		return fmt.Errorf("list pending unauthored competitions: %w", err)
+	}
+
+	var approved int
+
+	for _, c := range pending {
+		changed, err := uc.repo.SetCompetitionStatus(ctx, c.ID, model.CompetitionStatusPublished)
+		if err != nil {
+			return fmt.Errorf("set competition status: %w", err)
+		}
+
+		if changed {
+			approved++
+		}
+	}
+
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
+		return err
+	}
+
+	return uc.bot.EditMessageWithKeyboard(
+		ctx, in.ChatID, in.MessageID, fmt.Sprintf("✅ Одобрено %d соревнований.", approved), nil,
+	)
+}
+
+// reviewPendingUnauthored shows one pending, author-less competition at a
+// time — index is a 0-based position into the live (not a frozen-at-tap)
+// list, so acting on the current one and then tapping "➡️ Следующее"
+// always surfaces whatever is now first in line. It sends a fresh message
+// rather than editing the tapped one, so the original "✅ Одобрить все" /
+// "👀 Смотреть по одному" summary stays reachable throughout.
+func (uc *UseCase) reviewPendingUnauthored(ctx context.Context, in dto.Input) error {
+	index, err := strconv.Atoi(strings.TrimPrefix(in.CallbackData, callbackReviewPrefix))
+	if err != nil || index < 0 {
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
+	}
+
+	pending, err := uc.repo.ListPendingUnauthored(ctx)
+	if err != nil {
+		return fmt.Errorf("list pending unauthored competitions: %w", err)
+	}
+
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
+		return err
+	}
+
+	if index >= len(pending) {
+		return uc.bot.Send(ctx, in.ChatID, noMorePendingText)
+	}
+
+	c := pending[index]
+
+	url, err := uc.repo.GetPrimarySourceURL(ctx, c.ID)
+	if err != nil {
+		return fmt.Errorf("get primary competition source: %w", err)
+	}
+
+	return uc.bot.SendWithKeyboard(ctx, in.ChatID, reviewText(c, url), reviewKeyboard(c.ID, index))
+}
+
+func reviewText(c *model.Competition, url *string) string {
+	link := "—"
+	if url != nil {
+		link = *url
+	}
+
+	city := "—"
+	if c.City != nil && *c.City != "" {
+		city = *c.City
+	}
+
+	return fmt.Sprintf("📥 На проверке\n\n%s\n📅 %s\n🏙 %s\n🔗 %s", c.Title, info.FormatDate(c.Date), city, link)
+}
+
+func reviewKeyboard(id int64, index int) dto.Keyboard {
+	prefix := fmt.Sprintf("%s%d:", callbackModeratePrefix, id)
+
+	return dto.Keyboard{
+		dto.Row(
+			dto.Button{Label: "✅ Одобрить", Data: prefix + "approve"},
+			dto.Button{Label: "❌ Отклонить", Data: prefix + "reject"},
+		),
+		dto.Row(dto.Button{Label: "🔗 Это дубль", Data: prefix + "dup"}),
+		dto.Row(dto.Button{Label: "➡️ Следующее", Data: fmt.Sprintf("%s%d", callbackReviewPrefix, index+1)}),
+	}
+}
+
+// handleDiff applies or dismisses an automated import's proposed
+// date/city change for an already-known competition — see
+// model.CompetitionImportDiff.
+func (uc *UseCase) handleDiff(ctx context.Context, in dto.Input) error {
+	rest := strings.TrimPrefix(in.CallbackData, callbackDiffPrefix)
+
+	idStr, action, _ := strings.Cut(rest, ":")
+
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
+	}
+
+	switch action {
+	case "apply":
+		applied, err := uc.repo.ApplyImportDiff(ctx, id)
+		if err != nil {
+			return fmt.Errorf("apply competition import diff: %w", err)
+		}
+
+		if !applied {
+			return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, alreadyHandledText)
+		}
+
+		if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
+			return err
+		}
+
+		return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "✅ Обновлено.", nil)
+
+	case "keep":
+		if err := uc.repo.DeleteImportDiff(ctx, id); err != nil {
+			return fmt.Errorf("delete competition import diff: %w", err)
+		}
+
+		if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
+			return err
+		}
+
+		return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "Оставлено как есть.", nil)
+
+	default:
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
+	}
 }

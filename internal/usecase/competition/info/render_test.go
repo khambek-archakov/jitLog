@@ -219,6 +219,14 @@ func TestFormatDateRow(t *testing.T) {
 	assert.Equal(t, "1 янв", info.FormatDateRow(date(2026, 1, 1)))
 }
 
+func TestFormatDateRangeCompact(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "15 ноября 2026", info.FormatDateRangeCompact(date(2026, 11, 15), date(2026, 11, 15)))
+	assert.Equal(t, "10–11 октября 2026", info.FormatDateRangeCompact(date(2026, 10, 10), date(2026, 10, 11)))
+	assert.Equal(t, "30 декабря 2026 – 2 января 2027", info.FormatDateRangeCompact(date(2026, 12, 30), date(2027, 1, 2)))
+}
+
 func TestFormatDays(t *testing.T) {
 	t.Parallel()
 

@@ -1,0 +1,12 @@
+[Unit]
+Description=jitLog AJP competition import (one-shot)
+After=network-online.target
+Wants=network-online.target
+OnFailure=jitlog-import-ajp-notify-failure@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/jitlog/import-ajp
+EnvironmentFile=/opt/jitlog/import-ajp/.env
+ExecStart=/opt/jitlog/import-ajp/ajp-import
+TimeoutStartSec=300

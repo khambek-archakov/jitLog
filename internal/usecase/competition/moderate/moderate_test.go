@@ -226,6 +226,133 @@ func TestUseCase_Handle(t *testing.T) {
 				assert.Error(t, err)
 			},
 		},
+
+		{
+			name: "approve all publishes every pending unauthored competition",
+			u:    adminUser(),
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "competition:moderate:ajp:approve_all",
+			},
+			prepare: func(sender *Mocksender, repo *Mockrepo, users *MockuserRepo) {
+				pending := []*model.Competition{{ID: 70}, {ID: 71}}
+				repo.EXPECT().ListPendingUnauthored(gomock.Any()).Return(pending, nil)
+				repo.EXPECT().SetCompetitionStatus(gomock.Any(), int64(70), model.CompetitionStatusPublished).Return(true, nil)
+				repo.EXPECT().SetCompetitionStatus(gomock.Any(), int64(71), model.CompetitionStatusPublished).Return(false, nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "✅ Одобрено 1 соревнований.", gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "review shows the item at the given index with a Следующее button",
+			u:    adminUser(),
+			in: dto.Input{
+				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "competition:moderate:ajp:review:0",
+			},
+			prepare: func(sender *Mocksender, repo *Mockrepo, users *MockuserRepo) {
+				date := time.Date(2026, 11, 20, 0, 0, 0, 0, time.UTC)
+				city := "Москва"
+				pending := []*model.Competition{{ID: 70, Title: "Moscow Open", Date: date, City: &city}}
+				repo.EXPECT().ListPendingUnauthored(gomock.Any()).Return(pending, nil)
+
+				url := "https://ajptour.com/en/event/70"
+				repo.EXPECT().GetPrimarySourceURL(gomock.Any(), int64(70)).Return(&url, nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+				sender.EXPECT().
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, text string, kb dto.Keyboard) error {
+						assert.Contains(t, text, "Moscow Open")
+						assert.Contains(t, text, url)
+
+						require.Len(t, kb, 3)
+						assert.Equal(t, "competition:moderate:70:approve", kb[0][0].Data)
+						assert.Equal(t, "competition:moderate:70:reject", kb[0][1].Data)
+						assert.Equal(t, "competition:moderate:70:dup", kb[1][0].Data)
+						assert.Equal(t, "competition:moderate:ajp:review:1", kb[2][0].Data)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "review past the end says there's nothing left",
+			u:    adminUser(),
+			in: dto.Input{
+				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "competition:moderate:ajp:review:3",
+			},
+			prepare: func(sender *Mocksender, repo *Mockrepo, users *MockuserRepo) {
+				repo.EXPECT().ListPendingUnauthored(gomock.Any()).Return([]*model.Competition{{ID: 70}}, nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().Send(gomock.Any(), chatID, "Больше нет соревнований на проверке.").Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "diff apply copies the proposed date/city over",
+			u:    adminUser(),
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "competition:moderate:ajp:diff:70:apply",
+			},
+			prepare: func(sender *Mocksender, repo *Mockrepo, users *MockuserRepo) {
+				repo.EXPECT().ApplyImportDiff(gomock.Any(), int64(70)).Return(true, nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "✅ Обновлено.", gomock.Any()).Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "diff apply twice is a silent no-op",
+			u:    adminUser(),
+			in: dto.Input{
+				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "competition:moderate:ajp:diff:70:apply",
+			},
+			prepare: func(sender *Mocksender, repo *Mockrepo, users *MockuserRepo) {
+				repo.EXPECT().ApplyImportDiff(gomock.Any(), int64(70)).Return(false, nil)
+				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Уже обработано.").Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "diff keep just deletes the proposal",
+			u:    adminUser(),
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "competition:moderate:ajp:diff:70:keep",
+			},
+			prepare: func(sender *Mocksender, repo *Mockrepo, users *MockuserRepo) {
+				repo.EXPECT().DeleteImportDiff(gomock.Any(), int64(70)).Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "Оставлено как есть.", gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
 	}
 
 	for _, tc := range tests {

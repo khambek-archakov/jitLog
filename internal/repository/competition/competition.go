@@ -463,6 +463,149 @@ func (r *Repository) CreateCompetition(
 	return c, nil
 }
 
+// CreateImportedCompetition is CreateCompetition's counterpart for an
+// automated import (currently just AJP) — created_by stays NULL, which is
+// otherwise never written by any other path, so it doubles as "nobody
+// submitted this by hand" for ListPendingUnauthored below.
+func (r *Repository) CreateImportedCompetition(
+	ctx context.Context, title string, date time.Time, endDate *time.Time, city *string,
+) (*model.Competition, error) {
+	const query = `
+		insert into competition (title, date, end_date, city, status, created_by)
+		values ($1, $2, $3, $4, $5, null)
+		returning id, title, date, end_date, city, status, created_by, created_at
+	`
+
+	c, err := scanCompetition(
+		r.db.QueryRow(ctx, query, title, date, endDate, city, competitionStatusToDB(model.CompetitionStatusPending)),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create imported competition: %w", err)
+	}
+
+	return c, nil
+}
+
+// ListPendingUnauthored returns every pending competition nobody submitted
+// by hand (created_by is null — only an automated import ever leaves that),
+// ordered by id so a stable 0-based index can address one of them (see
+// competition/moderate's own "Смотреть по одному").
+func (r *Repository) ListPendingUnauthored(ctx context.Context) ([]*model.Competition, error) {
+	const query = `
+		select id, title, date, end_date, city, status, created_by, created_at
+		from competition
+		where status = $1 and created_by is null
+		order by id asc
+	`
+
+	rows, err := r.db.Query(ctx, query, competitionStatusToDB(model.CompetitionStatusPending))
+	if err != nil {
+		return nil, fmt.Errorf("list pending unauthored competitions: %w", err)
+	}
+	defer rows.Close()
+
+	return scanCompetitions(rows)
+}
+
+// CreateImportDiff upserts a pending "the source proposes a different
+// date/city" note for an already-imported competition — a second import
+// run detecting the same drift before the admin acts on the first one just
+// replaces it with the latest proposal rather than erroring.
+func (r *Repository) CreateImportDiff(
+	ctx context.Context, competitionID int64, proposedDate time.Time, proposedEndDate *time.Time, proposedCity *string,
+) error {
+	const query = `
+		insert into competition_import_diff (competition_id, proposed_date, proposed_end_date, proposed_city)
+		values ($1, $2, $3, $4)
+		on conflict (competition_id) do update set
+			proposed_date = excluded.proposed_date,
+			proposed_end_date = excluded.proposed_end_date,
+			proposed_city = excluded.proposed_city,
+			created_at = now()
+	`
+
+	_, err := r.db.Exec(ctx, query, competitionID, proposedDate, proposedEndDate, proposedCity)
+	if err != nil {
+		return fmt.Errorf("create competition import diff: %w", err)
+	}
+
+	return nil
+}
+
+func (r *Repository) GetImportDiff(ctx context.Context, competitionID int64) (*model.CompetitionImportDiff, error) {
+	const query = `
+		select competition_id, proposed_date, proposed_end_date, proposed_city, created_at
+		from competition_import_diff
+		where competition_id = $1
+	`
+
+	var d model.CompetitionImportDiff
+
+	err := r.db.QueryRow(ctx, query, competitionID).
+		Scan(&d.CompetitionID, &d.ProposedDate, &d.ProposedEndDate, &d.ProposedCity, &d.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, model.ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get competition import diff: %w", err)
+	}
+
+	return &d, nil
+}
+
+func (r *Repository) DeleteImportDiff(ctx context.Context, competitionID int64) error {
+	const query = `delete from competition_import_diff where competition_id = $1`
+
+	_, err := r.db.Exec(ctx, query, competitionID)
+	if err != nil {
+		return fmt.Errorf("delete competition import diff: %w", err)
+	}
+
+	return nil
+}
+
+// ApplyImportDiff is "✏️ Обновить" on a pending competition_import_diff —
+// it copies the proposed date/end_date/city onto the competition itself
+// and removes the diff row, in one transaction, guarded by the diff row
+// actually still existing (a second tap, or a tap after "➡️ Оставить"
+// already deleted it, is a silent no-op rather than an error).
+func (r *Repository) ApplyImportDiff(ctx context.Context, competitionID int64) (bool, error) {
+	var applied bool
+
+	err := tx.WithTx(ctx, r.db, func(ctx context.Context) error {
+		q := tx.QuerierFromContext(ctx, r.db)
+
+		tag, err := q.Exec(
+			ctx,
+			`update competition set date = d.proposed_date, end_date = d.proposed_end_date, city = d.proposed_city
+			 from competition_import_diff d
+			 where competition.id = $1 and d.competition_id = competition.id`,
+			competitionID,
+		)
+		if err != nil {
+			return fmt.Errorf("apply proposed date/city: %w", err)
+		}
+
+		applied = tag.RowsAffected() > 0
+
+		if !applied {
+			return nil
+		}
+
+		_, err = q.Exec(ctx, `delete from competition_import_diff where competition_id = $1`, competitionID)
+		if err != nil {
+			return fmt.Errorf("delete applied competition import diff: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+
+	return applied, nil
+}
+
 func (r *Repository) AddCompetitionSource(ctx context.Context, competitionID int64, url string, isPrimary bool) error {
 	const query = `
 		insert into competition_source (competition_id, url, is_primary)

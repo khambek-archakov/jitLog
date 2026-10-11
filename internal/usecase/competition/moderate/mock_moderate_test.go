@@ -136,6 +136,35 @@ func (m *Mockrepo) EXPECT() *MockrepoMockRecorder {
 	return m.recorder
 }
 
+// ApplyImportDiff mocks base method.
+func (m *Mockrepo) ApplyImportDiff(ctx context.Context, competitionID int64) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ApplyImportDiff", ctx, competitionID)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ApplyImportDiff indicates an expected call of ApplyImportDiff.
+func (mr *MockrepoMockRecorder) ApplyImportDiff(ctx, competitionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyImportDiff", reflect.TypeOf((*Mockrepo)(nil).ApplyImportDiff), ctx, competitionID)
+}
+
+// DeleteImportDiff mocks base method.
+func (m *Mockrepo) DeleteImportDiff(ctx context.Context, competitionID int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteImportDiff", ctx, competitionID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteImportDiff indicates an expected call of DeleteImportDiff.
+func (mr *MockrepoMockRecorder) DeleteImportDiff(ctx, competitionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteImportDiff", reflect.TypeOf((*Mockrepo)(nil).DeleteImportDiff), ctx, competitionID)
+}
+
 // DeleteMergeDraft mocks base method.
 func (m *Mockrepo) DeleteMergeDraft(ctx context.Context, userID int64) error {
 	m.ctrl.T.Helper()
@@ -148,6 +177,21 @@ func (m *Mockrepo) DeleteMergeDraft(ctx context.Context, userID int64) error {
 func (mr *MockrepoMockRecorder) DeleteMergeDraft(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMergeDraft", reflect.TypeOf((*Mockrepo)(nil).DeleteMergeDraft), ctx, userID)
+}
+
+// GetPrimarySourceURL mocks base method.
+func (m *Mockrepo) GetPrimarySourceURL(ctx context.Context, competitionID int64) (*string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPrimarySourceURL", ctx, competitionID)
+	ret0, _ := ret[0].(*string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPrimarySourceURL indicates an expected call of GetPrimarySourceURL.
+func (mr *MockrepoMockRecorder) GetPrimarySourceURL(ctx, competitionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPrimarySourceURL", reflect.TypeOf((*Mockrepo)(nil).GetPrimarySourceURL), ctx, competitionID)
 }
 
 // ListOwnersByCompetitionID mocks base method.
@@ -163,6 +207,21 @@ func (m *Mockrepo) ListOwnersByCompetitionID(ctx context.Context, competitionID 
 func (mr *MockrepoMockRecorder) ListOwnersByCompetitionID(ctx, competitionID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOwnersByCompetitionID", reflect.TypeOf((*Mockrepo)(nil).ListOwnersByCompetitionID), ctx, competitionID)
+}
+
+// ListPendingUnauthored mocks base method.
+func (m *Mockrepo) ListPendingUnauthored(ctx context.Context) ([]*model.Competition, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPendingUnauthored", ctx)
+	ret0, _ := ret[0].([]*model.Competition)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPendingUnauthored indicates an expected call of ListPendingUnauthored.
+func (mr *MockrepoMockRecorder) ListPendingUnauthored(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPendingUnauthored", reflect.TypeOf((*Mockrepo)(nil).ListPendingUnauthored), ctx)
 }
 
 // MergeCompetition mocks base method.
