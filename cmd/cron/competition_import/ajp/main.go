@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -54,6 +55,9 @@ func run() int {
 	_ = godotenv.Load()
 
 	dryRun := flag.Bool("dry-run", false, "parse and compare only, write nothing and send no Telegram messages")
+	fromFile := flag.String(
+		"from-file", "", "read a previously saved copy of the page instead of fetching it live (see deploy/systemd/README.md)",
+	)
 	flag.Parse()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
@@ -141,9 +145,20 @@ func run() int {
 
 	gateway := tgbotapigateway.New(bot)
 	competitions := competitionrepo.New(db)
-	pages := ajp.NewHTTPPageLoader(requestTimeout)
 
-	importer := ajp.New(gateway, competitions, pages, adminTelegramID, countries, cityDict)
+	var importer *ajp.UseCase
+
+	if *fromFile != "" {
+		// A human already solved whatever bot-check the live site might
+		// show by saving this copy in their own browser — QuietFailureSender
+		// just keeps the one monitoring-failure message from also hitting
+		// Telegram, since that same person is watching this terminal.
+		importer = ajp.New(ajp.QuietFailureSender(gateway), competitions, ajp.NewFilePageLoader(*fromFile),
+			adminTelegramID, countries, cityDict)
+		importer.SetSourceLabel("файл " + filepath.Base(*fromFile))
+	} else {
+		importer = ajp.New(gateway, competitions, ajp.NewHTTPPageLoader(requestTimeout), adminTelegramID, countries, cityDict)
+	}
 
 	report, err := importer.Run(ctx, *dryRun)
 	if err != nil {

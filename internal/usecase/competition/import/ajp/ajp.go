@@ -91,6 +91,7 @@ type UseCase struct {
 	countries   map[string]struct{}
 	cityDict    map[string]string
 	now         func() time.Time
+	sourceLabel string
 }
 
 // New builds the importer. countries is AJP_COUNTRIES already split on
@@ -119,6 +120,16 @@ func NewWithClock(
 	uc.now = now
 
 	return uc
+}
+
+// SetSourceLabel adds a one-line "Источник: ..." note under every new-
+// competition notification this run sends (see sendNewCombined/
+// sendNewBatchSummary) — cmd/cron/competition_import/ajp sets this to the
+// file's own name when run with --from-file, so it's obvious the data
+// didn't come from the live site. Left empty (the default), nothing is
+// added.
+func (uc *UseCase) SetSourceLabel(label string) {
+	uc.sourceLabel = label
 }
 
 // Run performs one import. dryRun skips every database write and every

@@ -73,6 +73,8 @@ func (uc *UseCase) sendNewCombined(ctx context.Context, created []*model.Competi
 		)
 	}
 
+	uc.appendSourceLabel(&text)
+
 	return uc.bot.SendWithKeyboard(ctx, uc.adminChatID, text.String(), kb)
 }
 
@@ -89,12 +91,25 @@ func (uc *UseCase) sendNewBatchSummary(ctx context.Context, created []*model.Com
 		fmt.Fprintf(&text, "\n• %s — %s", c.Title, dateLabel(c))
 	}
 
+	uc.appendSourceLabel(&text)
+
 	kb := dto.Keyboard{
 		dto.Row(dto.Button{Label: "✅ Одобрить все", Data: callbackApproveAll}),
 		dto.Row(dto.Button{Label: "👀 Смотреть по одному", Data: callbackReviewZero}),
 	}
 
 	return uc.bot.SendWithKeyboard(ctx, uc.adminChatID, text.String(), kb)
+}
+
+// appendSourceLabel adds "Источник: файл X" under a new-competitions
+// message when this run read from a file (see SetSourceLabel) — a diff
+// notice never gets this line, only new-competition messages do.
+func (uc *UseCase) appendSourceLabel(text *strings.Builder) {
+	if uc.sourceLabel == "" {
+		return
+	}
+
+	fmt.Fprintf(text, "\n\nИсточник: %s", uc.sourceLabel)
 }
 
 func (uc *UseCase) sendDiffNotice(ctx context.Context, d DiffNotice) error {
