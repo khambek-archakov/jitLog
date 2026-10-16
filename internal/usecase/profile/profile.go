@@ -25,7 +25,6 @@ const (
 	callbackProfileAgeCancel     = "profile:age:cancel"
 	callbackProfileTZEdit        = "profile:tz:edit"
 	callbackProfileTZSetPrefix   = "profile:tz:set:"
-	callbackProfileTZCancel      = "profile:tz:cancel"
 )
 
 type UseCase struct {
@@ -68,9 +67,6 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 	case strings.HasPrefix(in.CallbackData, callbackProfileTZSetPrefix):
 		return uc.setTZ(ctx, u, in)
 
-	case in.CallbackData == callbackProfileTZCancel:
-		return uc.showProfile(ctx, u, in)
-
 	default:
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
@@ -99,7 +95,7 @@ func (uc *UseCase) Continue(ctx context.Context, u *model.User, d *model.Profile
 		return fmt.Errorf("delete profile edit draft: %w", err)
 	}
 
-	return uc.bot.SendWithKeyboard(ctx, in.ChatID, profileText(u), profileKeyboard(u))
+	return uc.bot.SendWithKeyboard(ctx, in.ChatID, profileText(u), profileKeyboard())
 }
 
 func (uc *UseCase) showProfile(ctx context.Context, u *model.User, in dto.Input) error {
@@ -107,7 +103,7 @@ func (uc *UseCase) showProfile(ctx context.Context, u *model.User, in dto.Input)
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, profileText(u), profileKeyboard(u))
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, profileText(u), profileKeyboard())
 }
 
 func (uc *UseCase) showEditMenu(ctx context.Context, u *model.User, in dto.Input) error {
@@ -181,7 +177,7 @@ func (uc *UseCase) setTZ(ctx context.Context, u *model.User, in dto.Input) error
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, profileText(u), profileKeyboard(u))
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, profileText(u), profileKeyboard())
 }
 
 func cancelAgeKeyboard() dto.Keyboard {
@@ -209,5 +205,5 @@ func (uc *UseCase) setBelt(ctx context.Context, u *model.User, in dto.Input) err
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, profileText(u), profileKeyboard(u))
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, profileText(u), profileKeyboard())
 }

@@ -36,32 +36,27 @@ func profileText(u *model.User) string {
 		label = l
 	}
 
-	remindersStatus := "выкл"
-	if u.RemindersEnabled {
-		remindersStatus = "вкл"
-	}
-
-	return fmt.Sprintf("%s\nЧасовой пояс: %s\nНапоминания: %s", text, label, remindersStatus)
+	// Reminders on/off status lives on the "📅 Расписание" screen, not
+	// here — see internal/usecase/schedule/list.
+	return fmt.Sprintf("%s\nЧасовой пояс: %s", text, label)
 }
 
-func profileKeyboard(u *model.User) dto.Keyboard {
-	kb := dto.Keyboard{
+func profileKeyboard() dto.Keyboard {
+	return dto.Keyboard{
 		dto.Row(dto.Button{Label: "✏️ Редактировать", Data: callbackProfileEdit}),
+		dto.Row(dto.Button{Label: "← Главное меню", Data: callbackMenuBack}),
 	}
-
-	if u.Timezone != nil {
-		kb = append(kb, dto.Row(dto.Button{Label: "🕐 Сменить часовой пояс", Data: callbackProfileTZEdit}))
-	}
-
-	return append(kb, dto.Row(dto.Button{Label: "← Главное меню", Data: callbackMenuBack}))
 }
 
 const tzPickerText = "Выбери свой часовой пояс:"
 
+// tzPickerKeyboard's own "← Назад" reuses callbackProfileEdit directly
+// (same as beltPickerKeyboard's) — picking a zone is stateless, so there's
+// no draft to clean up on the way back, just like belt.
 func tzPickerKeyboard() dto.Keyboard {
 	kb := timezone.Rows(callbackProfileTZSetPrefix)
 
-	return append(kb, dto.Row(dto.Button{Label: "← Назад", Data: callbackProfileTZCancel}))
+	return append(kb, dto.Row(dto.Button{Label: "← Назад", Data: callbackProfileEdit}))
 }
 
 const editMenuText = "✏️ Что изменить?"
@@ -70,6 +65,7 @@ func editMenuKeyboard() dto.Keyboard {
 	return dto.Keyboard{
 		dto.Row(dto.Button{Label: "🥋 Пояс", Data: callbackProfileBeltEdit}),
 		dto.Row(dto.Button{Label: "🎂 Возраст", Data: callbackProfileAgeEdit}),
+		dto.Row(dto.Button{Label: "🕐 Часовой пояс", Data: callbackProfileTZEdit}),
 		dto.Row(dto.Button{Label: "← Назад", Data: callbackProfileShow}),
 	}
 }

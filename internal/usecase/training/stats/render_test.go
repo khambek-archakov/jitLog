@@ -96,6 +96,17 @@ func TestStatsText(t *testing.T) {
 		assert.Contains(t, text, "🔥 Серия — 3 недели подряд")
 	})
 
+	t.Run("zero rounds this period omits the rounds line entirely", func(t *testing.T) {
+		t.Parallel()
+
+		c := counts{Total: 2, TotalMinutes: 120, TotalRounds: 0, GiCount: 2}
+
+		text := statsText(periodWeek, now, c, 0)
+
+		assert.Contains(t, text, "🥋 Тренировок: 2")
+		assert.NotContains(t, text, "Схваток")
+	})
+
 	t.Run("empty period still shows the streak", func(t *testing.T) {
 		t.Parallel()
 

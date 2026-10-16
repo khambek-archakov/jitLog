@@ -97,10 +97,11 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().
 					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
-						require.Len(t, kb, 3)
+						require.Len(t, kb, 4)
 						assert.Equal(t, "profile:belt:edit", kb[0][0].Data)
 						assert.Equal(t, "profile:age:edit", kb[1][0].Data)
-						assert.Equal(t, "profile:show", kb[2][0].Data)
+						assert.Equal(t, "profile:tz:edit", kb[2][0].Data)
+						assert.Equal(t, "profile:show", kb[3][0].Data)
 
 						return nil
 					})
@@ -267,7 +268,7 @@ func TestUseCase_Handle(t *testing.T) {
 					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
 						assert.Equal(t, "profile:tz:set:msk", kb[0][0].Data)
-						assert.Equal(t, "profile:tz:cancel", kb[3][0].Data)
+						assert.Equal(t, "profile:edit", kb[3][0].Data)
 
 						return nil
 					})
@@ -318,25 +319,6 @@ func TestUseCase_Handle(t *testing.T) {
 			},
 			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
-			},
-			expected: func(t assert.TestingT, u *model.User, err error) {
-				assert.NoError(t, err)
-			},
-		},
-
-		{
-			name: "profile:tz:cancel just redraws the profile card",
-			u:    baseUser(),
-			in: dto.Input{
-				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
-				CallbackData: "profile:tz:cancel",
-			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
-				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
-
-				sender.EXPECT().
-					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
-					Return(nil)
 			},
 			expected: func(t assert.TestingT, u *model.User, err error) {
 				assert.NoError(t, err)
