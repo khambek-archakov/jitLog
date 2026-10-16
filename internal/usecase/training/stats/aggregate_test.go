@@ -74,15 +74,24 @@ func TestFilterByPeriod_NowInNonUTCLocation(t *testing.T) {
 func TestCountStats(t *testing.T) {
 	t.Parallel()
 
-	c := countStats([]*model.Training{
-		trainingOn("2026-03-16", model.TrainingTypeGi, 60),
-		trainingOn("2026-03-17", model.TrainingTypeGi, 90),
-		trainingOn("2026-03-18", model.TrainingTypeNoGi, 45),
-		trainingOn("2026-03-19", model.TrainingTypeOpenMat, 120),
-	})
+	rounds5, rounds3 := int16(5), int16(3)
+
+	gi1 := trainingOn("2026-03-16", model.TrainingTypeGi, 60)
+	gi1.Rounds = &rounds5
+
+	gi2 := trainingOn("2026-03-17", model.TrainingTypeGi, 90)
+	gi2.Rounds = &rounds3
+
+	// No-Gi deliberately has no rounds recorded — must not contribute (or panic).
+	noGi := trainingOn("2026-03-18", model.TrainingTypeNoGi, 45)
+
+	openMat := trainingOn("2026-03-19", model.TrainingTypeOpenMat, 120)
+
+	c := countStats([]*model.Training{gi1, gi2, noGi, openMat})
 
 	assert.Equal(t, 4, c.Total)
 	assert.Equal(t, int32(315), c.TotalMinutes)
+	assert.Equal(t, int32(8), c.TotalRounds)
 	assert.Equal(t, 2, c.GiCount)
 	assert.Equal(t, 1, c.NoGiCount)
 	assert.Equal(t, 1, c.OpenMatCount)

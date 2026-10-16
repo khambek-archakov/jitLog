@@ -79,10 +79,10 @@ func TestStatsText(t *testing.T) {
 
 	now := time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC)
 
-	t.Run("with data shows counts, hours and type breakdown", func(t *testing.T) {
+	t.Run("with data shows counts, hours, rounds and type breakdown", func(t *testing.T) {
 		t.Parallel()
 
-		c := counts{Total: 4, TotalMinutes: 360, GiCount: 2, NoGiCount: 1, OpenMatCount: 1}
+		c := counts{Total: 4, TotalMinutes: 360, TotalRounds: 18, GiCount: 2, NoGiCount: 1, OpenMatCount: 1}
 
 		text := statsText(periodWeek, now, c, 3)
 
@@ -90,6 +90,7 @@ func TestStatsText(t *testing.T) {
 		assert.Contains(t, text, "16–22 марта")
 		assert.Contains(t, text, "🥋 Тренировок: 4")
 		assert.Contains(t, text, "⏱ Время на мате: 6 ч")
+		assert.Contains(t, text, "🔄 Схваток: 18")
 		assert.Contains(t, text, "🥋 Gi")
 		assert.Contains(t, text, "50%")
 		assert.Contains(t, text, "🔥 Серия — 3 недели подряд")

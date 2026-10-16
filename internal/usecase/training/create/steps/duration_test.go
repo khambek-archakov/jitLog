@@ -221,7 +221,7 @@ func TestDurationStep_Handle(t *testing.T) {
 						assert.Contains(t, text, "90 минут")
 
 						require.Len(t, keyboard, 2)
-						assert.Equal(t, "➕ Раунды", keyboard[0][0].Label)
+						assert.Equal(t, "➕ Схватки", keyboard[0][0].Label)
 						assert.Equal(t, "training:edit:7:rounds", keyboard[0][0].Data)
 						assert.Equal(t, "📝 Заметка", keyboard[0][1].Label)
 						assert.Equal(t, "training:edit:7:notes", keyboard[0][1].Data)

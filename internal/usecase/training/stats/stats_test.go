@@ -117,10 +117,12 @@ func TestUseCase_Handle(t *testing.T) {
 				CallbackData: "stats:period:all",
 			},
 			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
+				rounds := int16(6)
+
 				repo.EXPECT().
 					ListAllTrainings(gomock.Any(), userID).
 					Return([]*model.Training{
-						{Date: today, TrainingType: model.TrainingTypeGi, DurationMinutes: 60},
+						{Date: today, TrainingType: model.TrainingTypeGi, DurationMinutes: 60, Rounds: &rounds},
 						{Date: today, TrainingType: model.TrainingTypeNoGi, DurationMinutes: 90},
 					}, nil)
 
@@ -136,6 +138,7 @@ func TestUseCase_Handle(t *testing.T) {
 					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
 						assert.Contains(t, text, "Тренировок: 2")
+						assert.Contains(t, text, "Схваток: 6")
 						assert.Contains(t, text, "Всё время")
 
 						require.Len(t, kb, 2) // no mode-switch row

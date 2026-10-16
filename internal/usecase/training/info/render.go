@@ -103,18 +103,18 @@ func FormatRounds(n int16) string {
 	return fmt.Sprintf("%d %s", n, roundsWord(n))
 }
 
-// roundsWord picks the right Russian plural form of "раунд" for n.
+// roundsWord picks the right Russian plural form of "схватка" for n.
 func roundsWord(n int16) string {
 	if n%100 >= 11 && n%100 <= 14 {
-		return "раундов"
+		return "схваток"
 	}
 
 	switch n % 10 {
 	case 1:
-		return "раунд"
+		return "схватка"
 	case 2, 3, 4:
-		return "раунда"
+		return "схватки"
 	default:
-		return "раундов"
+		return "схваток"
 	}
 }

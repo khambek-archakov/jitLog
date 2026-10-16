@@ -47,7 +47,7 @@ func TestBody(t *testing.T) {
 			Date: date, TrainingType: model.TrainingTypeGi, DurationMinutes: 60, Rounds: &rounds,
 		})
 
-		assert.Contains(t, body, "🔄 5 раундов")
+		assert.Contains(t, body, "🔄 5 схваток")
 	})
 
 	t.Run("zero rounds is shown, not treated as absent", func(t *testing.T) {
@@ -59,7 +59,7 @@ func TestBody(t *testing.T) {
 			Date: date, TrainingType: model.TrainingTypeGi, DurationMinutes: 60, Rounds: &rounds,
 		})
 
-		assert.Contains(t, body, "🔄 0 раундов")
+		assert.Contains(t, body, "🔄 0 схваток")
 	})
 
 	t.Run("without rounds", func(t *testing.T) {
@@ -146,13 +146,13 @@ func TestFormatRounds(t *testing.T) {
 		rounds int16
 		want   string
 	}{
-		{rounds: 0, want: "0 раундов"},
-		{rounds: 1, want: "1 раунд"},
-		{rounds: 2, want: "2 раунда"},
-		{rounds: 4, want: "4 раунда"},
-		{rounds: 5, want: "5 раундов"},
-		{rounds: 11, want: "11 раундов"},
-		{rounds: 21, want: "21 раунд"},
+		{rounds: 0, want: "0 схваток"},
+		{rounds: 1, want: "1 схватка"},
+		{rounds: 2, want: "2 схватки"},
+		{rounds: 4, want: "4 схватки"},
+		{rounds: 5, want: "5 схваток"},
+		{rounds: 11, want: "11 схваток"},
+		{rounds: 21, want: "21 схватка"},
 	}
 
 	for _, tc := range tests {

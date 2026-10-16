@@ -10,6 +10,7 @@ import (
 type counts struct {
 	Total        int
 	TotalMinutes int32
+	TotalRounds  int32
 	GiCount      int
 	NoGiCount    int
 	OpenMatCount int
@@ -42,6 +43,10 @@ func countStats(trainings []*model.Training) counts {
 	for _, t := range trainings {
 		c.Total++
 		c.TotalMinutes += t.DurationMinutes
+
+		if t.Rounds != nil {
+			c.TotalRounds += int32(*t.Rounds)
+		}
 
 		switch t.TrainingType {
 		case model.TrainingTypeGi:

@@ -118,7 +118,8 @@ func statsText(p period, now time.Time, c counts, streakWeeks int) string {
 	var b strings.Builder
 
 	fmt.Fprintf(
-		&b, "%s\n\n🥋 Тренировок: %d\n⏱ Время на мате: %s\n\nПо типу\n", header, c.Total, formatDuration(c.TotalMinutes),
+		&b, "%s\n\n🥋 Тренировок: %d\n⏱ Время на мате: %s\n🔄 Схваток: %d\n\nПо типу\n",
+		header, c.Total, formatDuration(c.TotalMinutes), c.TotalRounds,
 	)
 	b.WriteString(typeLine("🥋 Gi", c.GiCount, c))
 	b.WriteString(typeLine("🥷 No-Gi", c.NoGiCount, c))

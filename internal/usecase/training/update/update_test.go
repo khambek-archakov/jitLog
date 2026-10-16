@@ -373,7 +373,7 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "Сколько было раундов?", gomock.Any()).
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "Сколько было схваток?", gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
 						assert.Equal(t, "training:edit:7:rounds:3", kb[0][0].Data)
 						assert.Equal(t, "training:edit:7:rounds:5", kb[0][1].Data)
@@ -430,7 +430,7 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(gomock.Any(), chatID, "Напиши количество раундов цифрами, например: 6", gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, "Напиши количество схваток цифрами, например: 6", gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ string, kb dto.Keyboard) error {
 						assert.Equal(t, "training:edit:7:cancel", kb[0][0].Data)
 

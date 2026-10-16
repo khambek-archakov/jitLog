@@ -22,7 +22,7 @@ import (
 
 const notFoundText = "Тренировка не найдена."
 
-const roundsNotParsed = "Не смог разобрать число, напиши количество раундов цифрами (0–49)."
+const roundsNotParsed = "Не смог разобрать число, напиши количество схваток цифрами (0–49)."
 
 // callbackEditPrefix is followed by "{id}", "{id}:date", "{id}:date:cal:…",
 // "{id}:date:pick:…", "{id}:type", "{id}:type:{value}", "{id}:duration",
@@ -242,7 +242,7 @@ func (uc *UseCase) handleRounds(ctx context.Context, in dto.Input, t *model.Trai
 			return err
 		}
 
-		return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "Сколько было раундов?", roundsKeyboard(t.ID))
+		return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "Сколько было схваток?", roundsKeyboard(t.ID))
 	}
 
 	value := strings.TrimPrefix(sub, ":")
@@ -256,7 +256,7 @@ func (uc *UseCase) handleRounds(ctx context.Context, in dto.Input, t *model.Trai
 			return err
 		}
 
-		return uc.bot.SendWithKeyboard(ctx, in.ChatID, "Напиши количество раундов цифрами, например: 6", cancelKeyboard(t.ID))
+		return uc.bot.SendWithKeyboard(ctx, in.ChatID, "Напиши количество схваток цифрами, например: 6", cancelKeyboard(t.ID))
 	}
 
 	rounds, ok := roundsFromToken(value)
@@ -338,7 +338,7 @@ func editMenuKeyboard(id int64) dto.Keyboard {
 		dto.Row(dto.Button{Label: "📅 Дата", Data: prefix + "date"}),
 		dto.Row(dto.Button{Label: "🥋 Тип тренировки", Data: prefix + "type"}),
 		dto.Row(dto.Button{Label: "⏱ Длительность", Data: prefix + "duration"}),
-		dto.Row(dto.Button{Label: "🔄 Раунды", Data: prefix + "rounds"}),
+		dto.Row(dto.Button{Label: "🔄 Схватки", Data: prefix + "rounds"}),
 		dto.Row(dto.Button{Label: "📝 Заметка", Data: prefix + "notes"}),
 		dto.Row(dto.Button{Label: "← Назад", Data: fmt.Sprintf("training:view:%d", id)}),
 	}

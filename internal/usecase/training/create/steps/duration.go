@@ -170,7 +170,7 @@ func confirmationKeyboard(trainingID int64) dto.Keyboard {
 
 	return dto.Keyboard{
 		dto.Row(
-			dto.Button{Label: "➕ Раунды", Data: editPrefix + "rounds"},
+			dto.Button{Label: "➕ Схватки", Data: editPrefix + "rounds"},
 			dto.Button{Label: "📝 Заметка", Data: editPrefix + "notes"},
 		),
 		dto.Row(
