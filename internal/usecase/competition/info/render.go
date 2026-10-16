@@ -6,6 +6,7 @@ import (
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/internal/usertime"
 )
 
 const (
@@ -20,21 +21,11 @@ const (
 )
 
 // Today returns "today" as a UTC-midnight time.Time (matching how a date
-// column round-trips through pgx) in u's own timezone, falling back to UTC
-// when Timezone is unset or isn't a name time.LoadLocation recognizes —
-// nothing sets it yet, so that fallback is the common case today.
+// column round-trips through pgx), in u's own timezone — see
+// usertime.Today, which this delegates to so every other "today" in the
+// app (stats, the reminder job) agrees with this one.
 func Today(u *model.User) time.Time {
-	loc := time.UTC
-
-	if u.Timezone != nil {
-		if l, err := time.LoadLocation(*u.Timezone); err == nil {
-			loc = l
-		}
-	}
-
-	now := time.Now().In(loc)
-
-	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	return usertime.Today(u)
 }
 
 // Card is the full single-tournament view — just Body, since the title

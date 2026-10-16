@@ -196,6 +196,25 @@ func (r *Repository) ListAllTrainings(ctx context.Context, userID int64) ([]*mod
 	return trainings, nil
 }
 
+// HasTrainingBetween reports whether userID has any training logged with a
+// date in [from, to] inclusive — the reminder job's own "already trained
+// this week" check.
+func (r *Repository) HasTrainingBetween(ctx context.Context, userID int64, from, to time.Time) (bool, error) {
+	const query = `
+		select exists(
+			select 1 from training where user_id = $1 and training_date >= $2 and training_date <= $3
+		)
+	`
+
+	var exists bool
+
+	if err := r.db.QueryRow(ctx, query, userID, from, to).Scan(&exists); err != nil {
+		return false, fmt.Errorf("check training between: %w", err)
+	}
+
+	return exists, nil
+}
+
 func (r *Repository) UpdateTraining(
 	ctx context.Context,
 	id int64,

@@ -8,6 +8,12 @@ var ErrNotFound = errors.New("not found")
 // recorded for a user (see belt_promotion's unique constraint).
 var ErrDuplicateBeltPromotion = errors.New("belt promotion already recorded")
 
+// ErrUserBlockedBot is returned by the gateway when Telegram reports that a
+// user has blocked the bot (API error code 403) — callers that send
+// unsolicited messages (e.g. internal/usecase/reminder) use this to disable
+// whatever triggered the send instead of retrying.
+var ErrUserBlockedBot = errors.New("user blocked the bot")
+
 // ErrSkip is what a router/chain Handler returns when an input isn't its
 // case — callers must check for it with errors.Is before treating a
 // non-nil return as a real failure. It lives here (not in the chain

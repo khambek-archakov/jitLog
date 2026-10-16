@@ -55,6 +55,8 @@ type mocks struct {
 	catalogInfo   *MockcatalogInfo
 	catalogAdd    *MockcatalogAdd
 	catalogCities *MockcatalogCityDraft
+
+	reminder *MockreminderDisable
 }
 
 // noActiveDrafts stubs every draft/continuation lookup to "none in
@@ -129,6 +131,8 @@ func run(t *testing.T, u *model.User, in dto.Input, prepare func(m mocks)) error
 		catalogInfo:   NewMockcatalogInfo(ctrl),
 		catalogAdd:    NewMockcatalogAdd(ctrl),
 		catalogCities: NewMockcatalogCityDraft(ctrl),
+
+		reminder: NewMockreminderDisable(ctrl),
 	}
 
 	prepare(m)
@@ -169,6 +173,8 @@ func run(t *testing.T, u *model.User, in dto.Input, prepare func(m mocks)) error
 		CatalogInfo:      m.catalogInfo,
 		CatalogAdd:       m.catalogAdd,
 		CatalogCityDraft: m.catalogCities,
+
+		ReminderDisable: m.reminder,
 	})
 
 	return c.Handle(context.Background(), u, in)

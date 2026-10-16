@@ -7,12 +7,33 @@ package tgbotapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
+	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
+
+// telegramForbidden is the Bot API's own error code for "bot was blocked
+// by the user" (and a few other access-revoked cases Telegram folds into
+// the same code) — classified here, at the one place allowed to see a raw
+// tgbotapi.Error, into model.ErrUserBlockedBot so every other package only
+// ever deals with a transport-agnostic sentinel.
+const telegramForbidden = 403
+
+// classify turns a raw transport error into model.ErrUserBlockedBot when
+// it's Telegram reporting code 403, leaving every other error (network
+// failures, other API error codes) untouched.
+func classify(err error) error {
+	var tgErr *tgbotapi.Error
+	if errors.As(err, &tgErr) && tgErr.Code == telegramForbidden {
+		return model.ErrUserBlockedBot
+	}
+
+	return err
+}
 
 // Gateway wraps a transport for sending messages and answering callbacks.
 type Gateway struct {
@@ -27,7 +48,7 @@ func New(bot transport) *Gateway {
 func (g *Gateway) Send(ctx context.Context, chatID int64, text string) error {
 	_, err := request(ctx, g.bot, tgbotapi.NewMessage(chatID, text))
 	if err != nil {
-		return fmt.Errorf("send message: %w", err)
+		return fmt.Errorf("send message: %w", classify(err))
 	}
 
 	return nil
@@ -40,7 +61,7 @@ func (g *Gateway) SendWithKeyboard(ctx context.Context, chatID int64, text strin
 
 	_, err := request(ctx, g.bot, msg)
 	if err != nil {
-		return fmt.Errorf("send message: %w", err)
+		return fmt.Errorf("send message: %w", classify(err))
 	}
 
 	return nil
@@ -55,7 +76,7 @@ func (g *Gateway) EditMessageWithKeyboard(
 
 	_, err := request(ctx, g.bot, edit)
 	if err != nil {
-		return fmt.Errorf("edit message: %w", err)
+		return fmt.Errorf("edit message: %w", classify(err))
 	}
 
 	return nil

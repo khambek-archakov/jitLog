@@ -254,6 +254,121 @@ func TestUseCase_Handle(t *testing.T) {
 		},
 
 		{
+			name: "profile:tz:edit opens the zone picker",
+			u:    baseUser(),
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "profile:tz:edit",
+			},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
+						assert.Equal(t, "profile:tz:set:msk", kb[0][0].Data)
+						assert.Equal(t, "profile:tz:cancel", kb[3][0].Data)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "picking a zone sets timezone without touching reminders_enabled",
+			u:    baseUser(),
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "profile:tz:set:sam",
+			},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+				user.EXPECT().
+					Update(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, u *model.User) error {
+						require.NotNil(t, u.Timezone)
+						assert.Equal(t, "Europe/Samara", *u.Timezone)
+
+						return nil
+					})
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, _ dto.Keyboard) error {
+						assert.Contains(t, text, "Часовой пояс: Самара, Баку, Ереван +4")
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.NoError(t, err)
+				assert.False(t, u.RemindersEnabled)
+			},
+		},
+
+		{
+			name: "an unrecognized zone code is rejected",
+			u:    baseUser(),
+			in: dto.Input{
+				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "profile:tz:set:utc",
+			},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "profile:tz:cancel just redraws the profile card",
+			u:    baseUser(),
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "profile:tz:cancel",
+			},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "re-tapping an already-picked zone is a no-op repeat, not an error",
+			u: func() *model.User {
+				u := baseUser()
+				tz := "Europe/Samara"
+				u.Timezone = &tz
+
+				return u
+			}(),
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "profile:tz:set:sam",
+			},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+				user.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
 			name: "profile:age:edit sets the draft and asks for the age",
 			u:    baseUser(),
 			in: dto.Input{

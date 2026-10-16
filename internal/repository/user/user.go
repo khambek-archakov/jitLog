@@ -28,7 +28,8 @@ func New(db *pgxpool.Pool) *Repository {
 
 func (r *Repository) GetByTelegramID(ctx context.Context, telegramID int64) (*model.User, error) {
 	const query = `
-		select id, telegram_id, name, age, belt, onboarding_step, timezone, city, created_at, updated_at
+		select id, telegram_id, name, age, belt, onboarding_step, timezone, city, reminders_enabled,
+			created_at, updated_at
 		from "user"
 		where telegram_id = $1
 	`
@@ -50,7 +51,8 @@ func (r *Repository) GetByTelegramID(ctx context.Context, telegramID int64) (*mo
 // got relinked, not just the original submitter).
 func (r *Repository) GetByID(ctx context.Context, id int64) (*model.User, error) {
 	const query = `
-		select id, telegram_id, name, age, belt, onboarding_step, timezone, city, created_at, updated_at
+		select id, telegram_id, name, age, belt, onboarding_step, timezone, city, reminders_enabled,
+			created_at, updated_at
 		from "user"
 		where id = $1
 	`
@@ -70,7 +72,8 @@ func (r *Repository) Create(ctx context.Context, telegramID int64) (*model.User,
 	const query = `
 		insert into "user" (telegram_id)
 		values ($1)
-		returning id, telegram_id, name, age, belt, onboarding_step, timezone, city, created_at, updated_at
+		returning id, telegram_id, name, age, belt, onboarding_step, timezone, city, reminders_enabled,
+			created_at, updated_at
 	`
 
 	u, err := scanUser(r.db.QueryRow(ctx, query, telegramID))
@@ -84,18 +87,55 @@ func (r *Repository) Create(ctx context.Context, telegramID int64) (*model.User,
 func (r *Repository) Update(ctx context.Context, u *model.User) error {
 	const query = `
 		update "user"
-		set name = $2, age = $3, belt = $4, onboarding_step = $5, timezone = $6, city = $7, updated_at = now()
+		set name = $2, age = $3, belt = $4, onboarding_step = $5, timezone = $6, city = $7,
+			reminders_enabled = $8, updated_at = now()
 		where id = $1
 	`
 
 	_, err := r.db.Exec(
 		ctx, query, u.ID, u.Name, u.Age, beltToDB(u.Belt), onboardingStepToDB(u.OnboardingStep), u.Timezone, u.City,
+		u.RemindersEnabled,
 	)
 	if err != nil {
 		return fmt.Errorf("update user: %w", err)
 	}
 
 	return nil
+}
+
+// ListRemindersEnabled returns every user with reminders_enabled set —
+// internal/usecase/reminder's own ticker walks this list each tick rather
+// than scanning the whole "user" table.
+func (r *Repository) ListRemindersEnabled(ctx context.Context) ([]*model.User, error) {
+	const query = `
+		select id, telegram_id, name, age, belt, onboarding_step, timezone, city, reminders_enabled,
+			created_at, updated_at
+		from "user"
+		where reminders_enabled = true
+	`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("list reminders enabled users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*model.User
+
+	for rows.Next() {
+		u, err := scanUser(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan user: %w", err)
+		}
+
+		users = append(users, u)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list reminders enabled users: %w", err)
+	}
+
+	return users, nil
 }
 
 // AddBeltPromotion records a belt as having started on promotedAt. Each
@@ -246,6 +286,7 @@ func scanUser(row pgx.Row) (*model.User, error) {
 		&step,
 		&u.Timezone,
 		&u.City,
+		&u.RemindersEnabled,
 		&u.CreatedAt,
 		&u.UpdatedAt,
 	)

@@ -84,7 +84,7 @@ func TestDomainWiring(t *testing.T) {
 			name: "schedule:list reaches scheduleList",
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "schedule:list"},
 			call: func(m mocks, in dto.Input) {
-				m.scheduleList.EXPECT().Handle(gomock.Any(), userID, in).Return(nil)
+				m.scheduleList.EXPECT().Handle(gomock.Any(), u, in).Return(nil)
 			},
 		},
 	}

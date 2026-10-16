@@ -323,7 +323,7 @@ func TestUseCase_Handle(t *testing.T) {
 
 			uc := stats.New(mockSender, mockRepo, mockBelts)
 
-			err := uc.Handle(context.Background(), userID, tc.in)
+			err := uc.Handle(context.Background(), &model.User{ID: userID}, tc.in)
 
 			tc.expected(t, err)
 		})

@@ -250,16 +250,20 @@ func TestFormatDays(t *testing.T) {
 func TestToday(t *testing.T) {
 	t.Parallel()
 
-	t.Run("no timezone falls back to UTC", func(t *testing.T) {
+	t.Run("no timezone falls back to Europe/Moscow", func(t *testing.T) {
 		t.Parallel()
 
 		got := info.Today(&model.User{})
-		want := time.Now().UTC()
+
+		moscow, err := time.LoadLocation("Europe/Moscow")
+		require.NoError(t, err)
+
+		want := time.Now().In(moscow)
 
 		assert.Equal(t, time.Date(want.Year(), want.Month(), want.Day(), 0, 0, 0, 0, time.UTC), got)
 	})
 
-	t.Run("invalid timezone falls back to UTC instead of erroring", func(t *testing.T) {
+	t.Run("invalid timezone falls back to Europe/Moscow instead of erroring", func(t *testing.T) {
 		t.Parallel()
 
 		tz := "not/a-real-zone"

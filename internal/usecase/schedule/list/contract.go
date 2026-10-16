@@ -19,3 +19,10 @@ type sender interface {
 type slotRepo interface {
 	ListSlots(ctx context.Context, userID int64) ([]*model.ScheduleSlot, error)
 }
+
+// userRepo is just enough to persist the reminder toggle and timezone pick
+// — the full *model.User to read/mutate comes from the chain already (see
+// router/chain/schedule's listTrigger).
+type userRepo interface {
+	Update(ctx context.Context, u *model.User) error
+}

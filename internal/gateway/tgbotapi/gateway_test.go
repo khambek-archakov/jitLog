@@ -12,6 +12,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	gateway "github.com/khambek-archakov/jitLog/internal/gateway/tgbotapi"
+	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
 
@@ -46,6 +47,31 @@ func TestGateway_Send(t *testing.T) {
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.Error(t, err)
+			},
+		},
+
+		{
+			name: "telegram 403 (bot blocked) is classified as model.ErrUserBlockedBot",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					Return(nil, &tgbotapi.Error{Code: 403, Message: "Forbidden: bot was blocked by the user"})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.ErrorIs(t, err, model.ErrUserBlockedBot)
+			},
+		},
+
+		{
+			name: "a different telegram error code is left untouched",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					Return(nil, &tgbotapi.Error{Code: 400, Message: "Bad Request"})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.Error(t, err)
+				assert.NotErrorIs(t, err, model.ErrUserBlockedBot)
 			},
 		},
 	}

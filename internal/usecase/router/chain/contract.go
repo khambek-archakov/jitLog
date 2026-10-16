@@ -48,9 +48,11 @@ type trainingDelete interface {
 	Handle(ctx context.Context, userID int64, in dto.Input) error
 }
 
-// trainingStats shows the "📊 Статистика" screen (stats:period:*).
+// trainingStats shows the "📊 Статистика" screen (stats:period:*). Needs the
+// full *model.User, not just the ID -- it reads Timezone to compute
+// per-user week/month boundaries instead of the server's own UTC clock.
 type trainingStats interface {
-	Handle(ctx context.Context, userID int64, in dto.Input) error
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
 }
 
 // profile shows the "👤 Профиль" screen and its belt-change/age-change
@@ -69,9 +71,11 @@ type scheduleCreate interface {
 	Continue(ctx context.Context, d *model.ScheduleDraft, in dto.Input) error
 }
 
-// scheduleList shows the "📅 Расписание" screen (schedule:list).
+// scheduleList shows the "📅 Расписание" screen (schedule:list). Needs the
+// full *model.User, not just the ID -- the reminder toggle it owns reads
+// and mutates Timezone/RemindersEnabled directly.
 type scheduleList interface {
-	Handle(ctx context.Context, userID int64, in dto.Input) error
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
 }
 
 // scheduleInfo shows a single slot's card (schedule:view:{id}).
@@ -199,4 +203,10 @@ type catalogAdd interface {
 
 type catalogCityDraft interface {
 	GetCityDraftByUserID(ctx context.Context, userID int64) (*model.CatalogCityDraft, error)
+}
+
+// reminderDisable owns the "🔕 Отключить напоминания" button
+// (reminder:disable) on the weekly reminder message itself.
+type reminderDisable interface {
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
 }

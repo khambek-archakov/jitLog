@@ -150,3 +150,41 @@ func (mr *MockslotRepoMockRecorder) ListSlots(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSlots", reflect.TypeOf((*MockslotRepo)(nil).ListSlots), ctx, userID)
 }
+
+// MockuserRepo is a mock of userRepo interface.
+type MockuserRepo struct {
+	ctrl     *gomock.Controller
+	recorder *MockuserRepoMockRecorder
+	isgomock struct{}
+}
+
+// MockuserRepoMockRecorder is the mock recorder for MockuserRepo.
+type MockuserRepoMockRecorder struct {
+	mock *MockuserRepo
+}
+
+// NewMockuserRepo creates a new mock instance.
+func NewMockuserRepo(ctrl *gomock.Controller) *MockuserRepo {
+	mock := &MockuserRepo{ctrl: ctrl}
+	mock.recorder = &MockuserRepoMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockuserRepo) EXPECT() *MockuserRepoMockRecorder {
+	return m.recorder
+}
+
+// Update mocks base method.
+func (m *MockuserRepo) Update(ctx context.Context, u *model.User) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update", ctx, u)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update.
+func (mr *MockuserRepoMockRecorder) Update(ctx, u any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockuserRepo)(nil).Update), ctx, u)
+}

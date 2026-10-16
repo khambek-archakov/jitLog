@@ -119,17 +119,17 @@ func (m *MockscheduleList) EXPECT() *MockscheduleListMockRecorder {
 }
 
 // Handle mocks base method.
-func (m *MockscheduleList) Handle(ctx context.Context, userID int64, in dto.Input) error {
+func (m *MockscheduleList) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Handle", ctx, userID, in)
+	ret := m.ctrl.Call(m, "Handle", ctx, u, in)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Handle indicates an expected call of Handle.
-func (mr *MockscheduleListMockRecorder) Handle(ctx, userID, in any) *gomock.Call {
+func (mr *MockscheduleListMockRecorder) Handle(ctx, u, in any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockscheduleList)(nil).Handle), ctx, userID, in)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockscheduleList)(nil).Handle), ctx, u, in)
 }
 
 // MockscheduleInfo is a mock of scheduleInfo interface.

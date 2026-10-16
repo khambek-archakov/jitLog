@@ -26,7 +26,7 @@ func TestStatsTrigger(t *testing.T) {
 			noActiveDrafts(m, userID)
 
 			m.stats.EXPECT().
-				Handle(gomock.Any(), userID, in).
+				Handle(gomock.Any(), u, in).
 				Return(nil)
 		})
 
@@ -42,7 +42,7 @@ func TestStatsTrigger(t *testing.T) {
 			noActiveDrafts(m, userID)
 
 			m.stats.EXPECT().
-				Handle(gomock.Any(), userID, in).
+				Handle(gomock.Any(), u, in).
 				Return(nil)
 		})
 

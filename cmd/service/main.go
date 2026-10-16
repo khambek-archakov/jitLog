@@ -19,6 +19,7 @@ import (
 	tgbotapigateway "github.com/khambek-archakov/jitLog/internal/gateway/tgbotapi"
 	updatehandler "github.com/khambek-archakov/jitLog/internal/handler/update"
 	competitionrepo "github.com/khambek-archakov/jitLog/internal/repository/competition"
+	reminderrepo "github.com/khambek-archakov/jitLog/internal/repository/reminder"
 	schedulerepo "github.com/khambek-archakov/jitLog/internal/repository/schedule"
 	trainingrepo "github.com/khambek-archakov/jitLog/internal/repository/training"
 	userrepo "github.com/khambek-archakov/jitLog/internal/repository/user"
@@ -35,6 +36,7 @@ import (
 	competitionupdate "github.com/khambek-archakov/jitLog/internal/usecase/competition/update"
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding"
 	"github.com/khambek-archakov/jitLog/internal/usecase/profile"
+	"github.com/khambek-archakov/jitLog/internal/usecase/reminder"
 	"github.com/khambek-archakov/jitLog/internal/usecase/router"
 	"github.com/khambek-archakov/jitLog/internal/usecase/router/chain"
 	schedulecreate "github.com/khambek-archakov/jitLog/internal/usecase/schedule/create"
@@ -54,6 +56,13 @@ const (
 	success = 0
 	fail    = 1
 )
+
+// reminderInterval is how often the weekly training reminder's own ticker
+// checks every reminders_enabled user — see internal/usecase/reminder.
+// Deliberately in-process (no separate binary, no systemd unit): the job
+// is cheap and its own idempotency (reminder_sent) already tolerates being
+// checked this often.
+const reminderInterval = 15 * time.Minute
 
 func main() {
 	os.Exit(run())
@@ -133,6 +142,7 @@ func run() int {
 	trainings := trainingrepo.New(DB)
 	schedules := schedulerepo.New(DB)
 	competitions := competitionrepo.New(DB)
+	reminders := reminderrepo.New(DB)
 	gateway := tgbotapigateway.New(bot)
 
 	onboardingUseCase := onboarding.New(gateway, users)
@@ -144,7 +154,7 @@ func run() int {
 	trainingStatsUseCase := stats.New(gateway, trainings, users)
 	profileUseCase := profile.New(gateway, users, users)
 	scheduleCreateUseCase := schedulecreate.New(gateway, schedules)
-	scheduleListUseCase := schedulelist.New(gateway, schedules)
+	scheduleListUseCase := schedulelist.New(gateway, schedules, users)
 	scheduleInfoUseCase := scheduleinfo.New(gateway, schedules)
 	scheduleUpdateUseCase := scheduleupdate.New(gateway, schedules)
 	scheduleDeleteUseCase := scheduledelete.New(gateway, schedules)
@@ -159,6 +169,7 @@ func run() int {
 	competitionModerateUseCase := moderate.New(gateway, competitions, users, adminTelegramID)
 	catalogInfoUseCase := cataloginfo.New(gateway, competitions)
 	catalogAddUseCase := catalogadd.New(gateway, competitions)
+	reminderUseCase := reminder.New(gateway, users, schedules, trainings, reminders, logger)
 
 	appChain := chain.New(chain.Dependencies{
 		Onboarding:        onboardingUseCase,
@@ -196,6 +207,8 @@ func run() int {
 		CatalogInfo:      catalogInfoUseCase,
 		CatalogAdd:       catalogAddUseCase,
 		CatalogCityDraft: competitions,
+
+		ReminderDisable: reminderUseCase,
 	})
 	appRouter := router.New(appChain, users)
 
@@ -223,6 +236,29 @@ func run() int {
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("http server failed", "error", err)
 			cancel()
+		}
+	}()
+
+	// weekly training reminder — runs once immediately (so a restart
+	// mid-send-window doesn't have to wait out a full tick) and then every
+	// reminderInterval.
+	go func() {
+		if err := reminderUseCase.Run(ctx); err != nil {
+			logger.Error("reminder run failed", "error", err)
+		}
+
+		ticker := time.NewTicker(reminderInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if err := reminderUseCase.Run(ctx); err != nil {
+					logger.Error("reminder run failed", "error", err)
+				}
+			}
 		}
 	}()
 

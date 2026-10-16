@@ -13,6 +13,7 @@ import (
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/internal/timezone"
 )
 
 const (
@@ -22,6 +23,9 @@ const (
 	callbackProfileBeltSetPrefix = "profile:belt:set:"
 	callbackProfileAgeEdit       = "profile:age:edit"
 	callbackProfileAgeCancel     = "profile:age:cancel"
+	callbackProfileTZEdit        = "profile:tz:edit"
+	callbackProfileTZSetPrefix   = "profile:tz:set:"
+	callbackProfileTZCancel      = "profile:tz:cancel"
 )
 
 type UseCase struct {
@@ -58,6 +62,15 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 	case in.CallbackData == callbackProfileAgeCancel:
 		return uc.cancelAgeEdit(ctx, u, in)
 
+	case in.CallbackData == callbackProfileTZEdit:
+		return uc.showTZPicker(ctx, u, in)
+
+	case strings.HasPrefix(in.CallbackData, callbackProfileTZSetPrefix):
+		return uc.setTZ(ctx, u, in)
+
+	case in.CallbackData == callbackProfileTZCancel:
+		return uc.showProfile(ctx, u, in)
+
 	default:
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
@@ -86,7 +99,7 @@ func (uc *UseCase) Continue(ctx context.Context, u *model.User, d *model.Profile
 		return fmt.Errorf("delete profile edit draft: %w", err)
 	}
 
-	return uc.bot.SendWithKeyboard(ctx, in.ChatID, profileText(u), profileKeyboard())
+	return uc.bot.SendWithKeyboard(ctx, in.ChatID, profileText(u), profileKeyboard(u))
 }
 
 func (uc *UseCase) showProfile(ctx context.Context, u *model.User, in dto.Input) error {
@@ -94,7 +107,7 @@ func (uc *UseCase) showProfile(ctx context.Context, u *model.User, in dto.Input)
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, profileText(u), profileKeyboard())
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, profileText(u), profileKeyboard(u))
 }
 
 func (uc *UseCase) showEditMenu(ctx context.Context, u *model.User, in dto.Input) error {
@@ -140,6 +153,37 @@ func (uc *UseCase) cancelAgeEdit(ctx context.Context, u *model.User, in dto.Inpu
 	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, editMenuText, editMenuKeyboard())
 }
 
+func (uc *UseCase) showTZPicker(ctx context.Context, u *model.User, in dto.Input) error {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
+		return err
+	}
+
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, tzPickerText, tzPickerKeyboard())
+}
+
+// setTZ saves a newly picked zone without touching RemindersEnabled —
+// changing timezone from here is a correction, not an opt-in/opt-out.
+// Safe to run twice (a stale picker message tapped again).
+func (uc *UseCase) setTZ(ctx context.Context, u *model.User, in dto.Input) error {
+	z, ok := timezone.ByCode(strings.TrimPrefix(in.CallbackData, callbackProfileTZSetPrefix))
+	if !ok {
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
+	}
+
+	iana := z.IANA
+	u.Timezone = &iana
+
+	if err := uc.user.Update(ctx, u); err != nil {
+		return fmt.Errorf("update user timezone: %w", err)
+	}
+
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
+		return err
+	}
+
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, profileText(u), profileKeyboard(u))
+}
+
 func cancelAgeKeyboard() dto.Keyboard {
 	return dto.Keyboard{dto.Row(dto.Button{Label: "❌ Отмена", Data: callbackProfileAgeCancel})}
 }
@@ -165,5 +209,5 @@ func (uc *UseCase) setBelt(ctx context.Context, u *model.User, in dto.Input) err
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, profileText(u), profileKeyboard())
+	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, profileText(u), profileKeyboard(u))
 }

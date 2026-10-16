@@ -113,7 +113,35 @@ func TestDomain(t *testing.T) {
 
 		err := run(t, u, in, func(m mocks) {
 			m.list.EXPECT().
-				Handle(gomock.Any(), userID, in).
+				Handle(gomock.Any(), u, in).
+				Return(nil)
+		})
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("schedule:reminders:toggle also delegates to list.Handle", func(t *testing.T) {
+		t.Parallel()
+
+		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "schedule:reminders:toggle"}
+
+		err := run(t, u, in, func(m mocks) {
+			m.list.EXPECT().
+				Handle(gomock.Any(), u, in).
+				Return(nil)
+		})
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("schedule:tz:* also delegates to list.Handle", func(t *testing.T) {
+		t.Parallel()
+
+		in := dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "schedule:tz:set:msk"}
+
+		err := run(t, u, in, func(m mocks) {
+			m.list.EXPECT().
+				Handle(gomock.Any(), u, in).
 				Return(nil)
 		})
 

@@ -9,9 +9,10 @@ package stats
 import (
 	"context"
 	"fmt"
-	"time"
 
+	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/internal/usertime"
 )
 
 type UseCase struct {
@@ -24,13 +25,13 @@ func New(bot sender, repo trainingRepo, belts beltRepo) *UseCase {
 	return &UseCase{bot: bot, repo: repo, belts: belts}
 }
 
-func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error {
+func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	if !in.HasCallback {
 		return nil
 	}
 
 	if in.CallbackData == callbackStatsBelts {
-		return uc.handleBelts(ctx, userID, in)
+		return uc.handleBelts(ctx, u, in)
 	}
 
 	p, ok := parsePeriod(in.CallbackData)
@@ -38,11 +39,11 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
-	return uc.handlePeriod(ctx, userID, in, p)
+	return uc.handlePeriod(ctx, u, in, p)
 }
 
-func (uc *UseCase) handlePeriod(ctx context.Context, userID int64, in dto.Input, p period) error {
-	all, err := uc.repo.ListAllTrainings(ctx, userID)
+func (uc *UseCase) handlePeriod(ctx context.Context, u *model.User, in dto.Input, p period) error {
+	all, err := uc.repo.ListAllTrainings(ctx, u.ID)
 	if err != nil {
 		return fmt.Errorf("list all trainings: %w", err)
 	}
@@ -57,7 +58,7 @@ func (uc *UseCase) handlePeriod(ctx context.Context, userID int64, in dto.Input,
 
 	// Only needed to decide whether the mode switch shows at all, so it's
 	// skipped above when there's nothing to show regardless.
-	promotions, err := uc.belts.ListBeltPromotions(ctx, userID)
+	promotions, err := uc.belts.ListBeltPromotions(ctx, u.ID)
 	if err != nil {
 		return fmt.Errorf("list belt promotions: %w", err)
 	}
@@ -66,7 +67,7 @@ func (uc *UseCase) handlePeriod(ctx context.Context, userID int64, in dto.Input,
 		return err
 	}
 
-	now := time.Now()
+	now := usertime.Now(u)
 	c := countStats(filterByPeriod(all, p, now))
 	weeks := streak(all, now)
 	showModeSwitch := len(promotions) >= 2
@@ -76,8 +77,8 @@ func (uc *UseCase) handlePeriod(ctx context.Context, userID int64, in dto.Input,
 	)
 }
 
-func (uc *UseCase) handleBelts(ctx context.Context, userID int64, in dto.Input) error {
-	promotions, err := uc.belts.ListBeltPromotions(ctx, userID)
+func (uc *UseCase) handleBelts(ctx context.Context, u *model.User, in dto.Input) error {
+	promotions, err := uc.belts.ListBeltPromotions(ctx, u.ID)
 	if err != nil {
 		return fmt.Errorf("list belt promotions: %w", err)
 	}
@@ -86,10 +87,10 @@ func (uc *UseCase) handleBelts(ctx context.Context, userID int64, in dto.Input) 
 	// rather than showing a belts screen that can only ever be 100% one
 	// belt.
 	if len(promotions) < 2 {
-		return uc.handlePeriod(ctx, userID, in, periodWeek)
+		return uc.handlePeriod(ctx, u, in, periodWeek)
 	}
 
-	all, err := uc.repo.ListAllTrainings(ctx, userID)
+	all, err := uc.repo.ListAllTrainings(ctx, u.ID)
 	if err != nil {
 		return fmt.Errorf("list all trainings: %w", err)
 	}
@@ -103,7 +104,7 @@ func (uc *UseCase) handleBelts(ctx context.Context, userID int64, in dto.Input) 
 	}
 
 	c := countByBelt(all, promotions)
-	weeks := streak(all, time.Now())
+	weeks := streak(all, usertime.Now(u))
 
 	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, beltsText(c, promotions, weeks), beltsKeyboard())
 }

@@ -21,9 +21,11 @@ type scheduleCreate interface {
 	Begin(ctx context.Context, userID int64, in dto.Input) error
 }
 
-// scheduleList shows the "📅 Расписание" screen (schedule:list).
+// scheduleList shows the "📅 Расписание" screen (schedule:list), plus its
+// reminder toggle and timezone picker — needs the full *model.User to
+// read/mutate Timezone and RemindersEnabled.
 type scheduleList interface {
-	Handle(ctx context.Context, userID int64, in dto.Input) error
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
 }
 
 // scheduleInfo shows a single slot's card (schedule:view:{id}).

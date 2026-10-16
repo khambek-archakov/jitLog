@@ -7,6 +7,7 @@ import (
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/internal/timezone"
 )
 
 // callbackMenuBack mirrors internal/usecase/onboarding/steps' own private
@@ -24,14 +25,43 @@ func profileText(u *model.User) string {
 		age = fmt.Sprintf("%d", *u.Age)
 	}
 
-	return fmt.Sprintf("👤 Профиль\n\nИмя: %s\nВозраст: %s\nПояс: %s", name, age, beltLabel(u.Belt))
+	text := fmt.Sprintf("👤 Профиль\n\nИмя: %s\nВозраст: %s\nПояс: %s", name, age, beltLabel(u.Belt))
+
+	if u.Timezone == nil {
+		return text
+	}
+
+	label := "—"
+	if l, ok := timezone.LabelForIANA(*u.Timezone); ok {
+		label = l
+	}
+
+	remindersStatus := "выкл"
+	if u.RemindersEnabled {
+		remindersStatus = "вкл"
+	}
+
+	return fmt.Sprintf("%s\nЧасовой пояс: %s\nНапоминания: %s", text, label, remindersStatus)
 }
 
-func profileKeyboard() dto.Keyboard {
-	return dto.Keyboard{
+func profileKeyboard(u *model.User) dto.Keyboard {
+	kb := dto.Keyboard{
 		dto.Row(dto.Button{Label: "✏️ Редактировать", Data: callbackProfileEdit}),
-		dto.Row(dto.Button{Label: "← Главное меню", Data: callbackMenuBack}),
 	}
+
+	if u.Timezone != nil {
+		kb = append(kb, dto.Row(dto.Button{Label: "🕐 Сменить часовой пояс", Data: callbackProfileTZEdit}))
+	}
+
+	return append(kb, dto.Row(dto.Button{Label: "← Главное меню", Data: callbackMenuBack}))
+}
+
+const tzPickerText = "Выбери свой часовой пояс:"
+
+func tzPickerKeyboard() dto.Keyboard {
+	kb := timezone.Rows(callbackProfileTZSetPrefix)
+
+	return append(kb, dto.Row(dto.Button{Label: "← Назад", Data: callbackProfileTZCancel}))
 }
 
 const editMenuText = "✏️ Что изменить?"

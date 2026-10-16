@@ -17,7 +17,11 @@ type User struct {
 	// internal/usecase/catalog/list) — nullable, and like Timezone nothing
 	// sets it yet. A per-view filter change in the catalog screen never
 	// writes back here.
-	City      *string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	City *string
+	// RemindersEnabled gates the weekly training reminder (see
+	// internal/usecase/reminder) — it only ever fires once Timezone is also
+	// set and at least one schedule slot exists.
+	RemindersEnabled bool
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }

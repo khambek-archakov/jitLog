@@ -24,5 +24,5 @@ func (h *statsTrigger) Handle(ctx context.Context, u *model.User, in dto.Input) 
 		return model.ErrSkip
 	}
 
-	return h.stats.Handle(ctx, u.ID, in)
+	return h.stats.Handle(ctx, u, in)
 }

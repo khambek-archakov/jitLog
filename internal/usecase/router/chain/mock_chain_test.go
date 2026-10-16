@@ -299,17 +299,17 @@ func (m *MocktrainingStats) EXPECT() *MocktrainingStatsMockRecorder {
 }
 
 // Handle mocks base method.
-func (m *MocktrainingStats) Handle(ctx context.Context, userID int64, in dto.Input) error {
+func (m *MocktrainingStats) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Handle", ctx, userID, in)
+	ret := m.ctrl.Call(m, "Handle", ctx, u, in)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Handle indicates an expected call of Handle.
-func (mr *MocktrainingStatsMockRecorder) Handle(ctx, userID, in any) *gomock.Call {
+func (mr *MocktrainingStatsMockRecorder) Handle(ctx, u, in any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MocktrainingStats)(nil).Handle), ctx, userID, in)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MocktrainingStats)(nil).Handle), ctx, u, in)
 }
 
 // Mockprofile is a mock of profile interface.
@@ -441,17 +441,17 @@ func (m *MockscheduleList) EXPECT() *MockscheduleListMockRecorder {
 }
 
 // Handle mocks base method.
-func (m *MockscheduleList) Handle(ctx context.Context, userID int64, in dto.Input) error {
+func (m *MockscheduleList) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Handle", ctx, userID, in)
+	ret := m.ctrl.Call(m, "Handle", ctx, u, in)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Handle indicates an expected call of Handle.
-func (mr *MockscheduleListMockRecorder) Handle(ctx, userID, in any) *gomock.Call {
+func (mr *MockscheduleListMockRecorder) Handle(ctx, u, in any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockscheduleList)(nil).Handle), ctx, userID, in)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockscheduleList)(nil).Handle), ctx, u, in)
 }
 
 // MockscheduleInfo is a mock of scheduleInfo interface.
@@ -1405,4 +1405,42 @@ func (m *MockcatalogCityDraft) GetCityDraftByUserID(ctx context.Context, userID 
 func (mr *MockcatalogCityDraftMockRecorder) GetCityDraftByUserID(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCityDraftByUserID", reflect.TypeOf((*MockcatalogCityDraft)(nil).GetCityDraftByUserID), ctx, userID)
+}
+
+// MockreminderDisable is a mock of reminderDisable interface.
+type MockreminderDisable struct {
+	ctrl     *gomock.Controller
+	recorder *MockreminderDisableMockRecorder
+	isgomock struct{}
+}
+
+// MockreminderDisableMockRecorder is the mock recorder for MockreminderDisable.
+type MockreminderDisableMockRecorder struct {
+	mock *MockreminderDisable
+}
+
+// NewMockreminderDisable creates a new mock instance.
+func NewMockreminderDisable(ctrl *gomock.Controller) *MockreminderDisable {
+	mock := &MockreminderDisable{ctrl: ctrl}
+	mock.recorder = &MockreminderDisableMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockreminderDisable) EXPECT() *MockreminderDisableMockRecorder {
+	return m.recorder
+}
+
+// Handle mocks base method.
+func (m *MockreminderDisable) Handle(ctx context.Context, u *model.User, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, u, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MockreminderDisableMockRecorder) Handle(ctx, u, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockreminderDisable)(nil).Handle), ctx, u, in)
 }

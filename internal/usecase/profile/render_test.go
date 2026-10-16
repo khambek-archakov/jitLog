@@ -34,6 +34,75 @@ func TestProfileText(t *testing.T) {
 
 		assert.Contains(t, text, "Возраст: —")
 	})
+
+	t.Run("no timezone set — no timezone/reminders lines at all", func(t *testing.T) {
+		t.Parallel()
+
+		text := profileText(&model.User{Belt: model.BeltWhite})
+
+		assert.NotContains(t, text, "Часовой пояс")
+		assert.NotContains(t, text, "Напоминания")
+	})
+
+	t.Run("timezone set shows zone label and reminders status", func(t *testing.T) {
+		t.Parallel()
+
+		tz := "Asia/Yekaterinburg"
+
+		text := profileText(&model.User{Belt: model.BeltWhite, Timezone: &tz, RemindersEnabled: true})
+
+		assert.Contains(t, text, "Часовой пояс: Екатеринбург, Алматы +5")
+		assert.Contains(t, text, "Напоминания: вкл")
+	})
+
+	t.Run("timezone set but reminders off", func(t *testing.T) {
+		t.Parallel()
+
+		tz := "Europe/Moscow"
+
+		text := profileText(&model.User{Belt: model.BeltWhite, Timezone: &tz})
+
+		assert.Contains(t, text, "Напоминания: выкл")
+	})
+}
+
+func TestProfileKeyboard(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no timezone set — no change-zone button", func(t *testing.T) {
+		t.Parallel()
+
+		kb := profileKeyboard(&model.User{})
+
+		require.Len(t, kb, 2)
+		assert.Equal(t, "profile:edit", kb[0][0].Data)
+		assert.Equal(t, "menu:back", kb[1][0].Data)
+	})
+
+	t.Run("timezone set shows the change-zone button", func(t *testing.T) {
+		t.Parallel()
+
+		tz := "Europe/Moscow"
+
+		kb := profileKeyboard(&model.User{Timezone: &tz})
+
+		require.Len(t, kb, 3)
+		assert.Equal(t, "profile:edit", kb[0][0].Data)
+		assert.Equal(t, "profile:tz:edit", kb[1][0].Data)
+		assert.Equal(t, "menu:back", kb[2][0].Data)
+	})
+}
+
+func TestTZPickerKeyboard(t *testing.T) {
+	t.Parallel()
+
+	kb := tzPickerKeyboard()
+
+	require.Len(t, kb, 4)
+	assert.Equal(t, "profile:tz:set:msk", kb[0][0].Data)
+	assert.Equal(t, "profile:tz:set:sam", kb[1][0].Data)
+	assert.Equal(t, "profile:tz:set:yek", kb[2][0].Data)
+	assert.Equal(t, "profile:tz:cancel", kb[3][0].Data)
 }
 
 func TestBeltPickerKeyboard(t *testing.T) {

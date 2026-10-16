@@ -76,6 +76,8 @@ type Dependencies struct {
 	CatalogInfo      catalogInfo
 	CatalogAdd       catalogAdd
 	CatalogCityDraft catalogCityDraft
+
+	ReminderDisable reminderDisable
 }
 
 // Chain holds the scenario dependencies needed to assemble a chain of
@@ -111,6 +113,7 @@ func (c *Chain) defaultOrder() []Handler {
 		catalog.New(d.CatalogList, d.CatalogInfo, d.CatalogAdd),
 		&statsTrigger{stats: d.TrainingStats},
 		&profileTrigger{profile: d.Profile},
+		&reminderTrigger{reminder: d.ReminderDisable},
 		d.Onboarding,
 	}
 }
