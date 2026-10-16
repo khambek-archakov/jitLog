@@ -210,3 +210,9 @@ type catalogCityDraft interface {
 type reminderDisable interface {
 	Handle(ctx context.Context, u *model.User, in dto.Input) error
 }
+
+// winback owns the two buttons (winback:hi, winback:off) on the "haven't
+// seen you in a while" nudge itself.
+type winback interface {
+	Handle(ctx context.Context, u *model.User, in dto.Input) error
+}

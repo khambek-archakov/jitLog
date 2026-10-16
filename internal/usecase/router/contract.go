@@ -3,6 +3,7 @@ package router
 
 import (
 	"context"
+	"time"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
@@ -11,6 +12,9 @@ import (
 type user interface {
 	GetByTelegramID(ctx context.Context, telegramID int64) (*model.User, error)
 	Create(ctx context.Context, telegramID int64) (*model.User, error)
+	// TouchActivity records the user's own activity middleware write — see
+	// Router.touchActivity, the only caller.
+	TouchActivity(ctx context.Context, userID int64, now time.Time) error
 }
 
 // chain is what Router needs from the assembled chain of responsibility —

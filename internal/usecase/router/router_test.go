@@ -78,6 +78,7 @@ func TestRouter_Route(t *testing.T) {
 				user.EXPECT().
 					GetByTelegramID(gomock.Any(), telegramID).
 					Return(&model.User{ID: userID}, nil)
+				user.EXPECT().TouchActivity(gomock.Any(), userID, gomock.Any()).Return(nil)
 			},
 			chain: &fakeChain{err: errors.New("fail")},
 			expected: func(t assert.TestingT, c *fakeChain, err error) {
@@ -93,11 +94,30 @@ func TestRouter_Route(t *testing.T) {
 				user.EXPECT().
 					GetByTelegramID(gomock.Any(), telegramID).
 					Return(&model.User{ID: userID}, nil)
+				user.EXPECT().TouchActivity(gomock.Any(), userID, gomock.Any()).Return(nil)
 			},
 			chain: &fakeChain{err: nil},
 			expected: func(t assert.TestingT, c *fakeChain, err error) {
 				assert.NoError(t, err)
 				assert.True(t, c.called)
+			},
+		},
+
+		{
+			name: "failing to record activity stops before the chain ever runs",
+			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, IsStartCmd: true},
+			prepare: func(user *Mockuser) {
+				user.EXPECT().
+					GetByTelegramID(gomock.Any(), telegramID).
+					Return(&model.User{ID: userID}, nil)
+				user.EXPECT().
+					TouchActivity(gomock.Any(), userID, gomock.Any()).
+					Return(errors.New("fail"))
+			},
+			chain: &fakeChain{},
+			expected: func(t assert.TestingT, c *fakeChain, err error) {
+				assert.Error(t, err)
+				assert.False(t, c.called)
 			},
 		},
 	}

@@ -82,6 +82,38 @@ func (g *Gateway) EditMessageWithKeyboard(
 	return nil
 }
 
+// SendAnimationWithKeyboard sends an animation by its Telegram file ID,
+// with a caption and an inline keyboard attached.
+func (g *Gateway) SendAnimationWithKeyboard(
+	ctx context.Context, chatID int64, fileID, caption string, keyboard dto.Keyboard,
+) error {
+	anim := tgbotapi.NewAnimation(chatID, tgbotapi.FileID(fileID))
+	anim.Caption = caption
+	anim.ReplyMarkup = toInlineKeyboard(keyboard)
+
+	_, err := request(ctx, g.bot, anim)
+	if err != nil {
+		return fmt.Errorf("send animation: %w", classify(err))
+	}
+
+	return nil
+}
+
+// RemoveKeyboard strips an already-sent message's inline keyboard in
+// place, leaving its text/caption untouched — editMessageReplyMarkup works
+// the same whether messageID is a plain text message or a media message
+// with a caption, so this covers both.
+func (g *Gateway) RemoveKeyboard(ctx context.Context, chatID int64, messageID int) error {
+	edit := tgbotapi.NewEditMessageReplyMarkup(chatID, messageID, tgbotapi.NewInlineKeyboardMarkup())
+
+	_, err := request(ctx, g.bot, edit)
+	if err != nil {
+		return fmt.Errorf("remove keyboard: %w", classify(err))
+	}
+
+	return nil
+}
+
 // AnswerCallback closes a pending callback query (stops the tap spinner)
 // with no visible feedback. A blank callbackID is a no-op, so callers don't
 // need to special-case updates that weren't callbacks.

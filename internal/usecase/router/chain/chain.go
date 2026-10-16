@@ -78,6 +78,7 @@ type Dependencies struct {
 	CatalogCityDraft catalogCityDraft
 
 	ReminderDisable reminderDisable
+	Winback         winback
 }
 
 // Chain holds the scenario dependencies needed to assemble a chain of
@@ -114,6 +115,7 @@ func (c *Chain) defaultOrder() []Handler {
 		&statsTrigger{stats: d.TrainingStats},
 		&profileTrigger{profile: d.Profile},
 		&reminderTrigger{reminder: d.ReminderDisable},
+		&winbackTrigger{winback: d.Winback},
 		d.Onboarding,
 	}
 }

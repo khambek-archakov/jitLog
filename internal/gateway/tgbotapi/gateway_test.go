@@ -237,6 +237,153 @@ func TestGateway_EditMessageWithKeyboard(t *testing.T) {
 	}
 }
 
+func TestGateway_SendAnimationWithKeyboard(t *testing.T) {
+	t.Parallel()
+
+	keyboard := dto.Keyboard{
+		dto.Row(
+			dto.Button{Label: "Привет!", Data: "winback:hi"},
+			dto.Button{Label: "Вот давай без гифок", Data: "winback:off"},
+		),
+	}
+
+	tests := []struct {
+		name     string
+		prepare  func(transport *Mocktransport)
+		expected func(t assert.TestingT, err error)
+	}{
+		{
+			name: "success",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					DoAndReturn(func(c tgbotapi.Chattable) (*tgbotapi.APIResponse, error) {
+						anim, ok := c.(tgbotapi.AnimationConfig)
+						require.True(t, ok)
+						assert.Equal(t, chatID, anim.ChatID)
+						assert.Equal(t, "Привет!", anim.Caption)
+
+						markup, ok := anim.ReplyMarkup.(tgbotapi.InlineKeyboardMarkup)
+						require.True(t, ok)
+						require.Len(t, markup.InlineKeyboard, 1)
+						assert.Equal(t, "winback:hi", *markup.InlineKeyboard[0][0].CallbackData)
+						assert.Equal(t, "winback:off", *markup.InlineKeyboard[0][1].CallbackData)
+
+						return &tgbotapi.APIResponse{}, nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "telegram 403 is classified as model.ErrUserBlockedBot",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					Return(nil, &tgbotapi.Error{Code: 403, Message: "Forbidden"})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.ErrorIs(t, err, model.ErrUserBlockedBot)
+			},
+		},
+
+		{
+			name: "transport error",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					Return(nil, errors.New("fail"))
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.Error(t, err)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+
+			mockTransport := NewMocktransport(ctrl)
+
+			tc.prepare(mockTransport)
+
+			g := gateway.New(mockTransport)
+
+			err := g.SendAnimationWithKeyboard(context.Background(), chatID, "file-id-123", "Привет!", keyboard)
+
+			tc.expected(t, err)
+		})
+	}
+}
+
+func TestGateway_RemoveKeyboard(t *testing.T) {
+	t.Parallel()
+
+	const messageID = 555
+
+	tests := []struct {
+		name     string
+		prepare  func(transport *Mocktransport)
+		expected func(t assert.TestingT, err error)
+	}{
+		{
+			name: "success",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					DoAndReturn(func(c tgbotapi.Chattable) (*tgbotapi.APIResponse, error) {
+						edit, ok := c.(tgbotapi.EditMessageReplyMarkupConfig)
+						require.True(t, ok)
+						assert.Equal(t, chatID, edit.ChatID)
+						assert.Equal(t, messageID, edit.MessageID)
+						require.NotNil(t, edit.ReplyMarkup)
+						assert.Empty(t, edit.ReplyMarkup.InlineKeyboard)
+
+						return &tgbotapi.APIResponse{}, nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "transport error",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					Return(nil, errors.New("fail"))
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.Error(t, err)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+
+			mockTransport := NewMocktransport(ctrl)
+
+			tc.prepare(mockTransport)
+
+			g := gateway.New(mockTransport)
+
+			err := g.RemoveKeyboard(context.Background(), chatID, messageID)
+
+			tc.expected(t, err)
+		})
+	}
+}
+
 func TestGateway_AnswerCallback(t *testing.T) {
 	t.Parallel()
 

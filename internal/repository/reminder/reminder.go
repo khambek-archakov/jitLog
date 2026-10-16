@@ -39,6 +39,21 @@ func (r *Repository) HasSent(ctx context.Context, userID int64, weekStart time.T
 	return exists, nil
 }
 
+// HasSentWithin reports whether userID has any reminder_sent row at or
+// after since — internal/usecase/winback's own "don't pile a winback nudge
+// on top of a just-sent weekly reminder" check.
+func (r *Repository) HasSentWithin(ctx context.Context, userID int64, since time.Time) (bool, error) {
+	const query = `select exists(select 1 from reminder_sent where user_id = $1 and sent_at >= $2)`
+
+	var exists bool
+
+	if err := r.db.QueryRow(ctx, query, userID, since).Scan(&exists); err != nil {
+		return false, fmt.Errorf("check reminder sent within: %w", err)
+	}
+
+	return exists, nil
+}
+
 // MarkSent records that userID's reminder for weekStart has been sent. A
 // duplicate insert (two overlapping runs racing the same user/week) is not
 // an error — whichever one lands first wins, the other is a no-op.

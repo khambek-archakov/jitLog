@@ -22,6 +22,18 @@ type User struct {
 	// internal/usecase/reminder) — it only ever fires once Timezone is also
 	// set and at least one schedule slot exists.
 	RemindersEnabled bool
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	// LastActivityAt is updated on every incoming update (message,
+	// callback, command) — see internal/usecase/router's own activity
+	// middleware — throttled to at most once a minute, except it's always
+	// written the moment it would lift an active WinbackDeclinedAt.
+	// Existing rows got the migration's own timestamp, not the epoch, so
+	// nobody looks silent the instant this column was added.
+	LastActivityAt time.Time
+	// WinbackSentAt/WinbackDeclinedAt back the "haven't seen you in a
+	// while" nudge (see internal/usecase/winback) — both nullable, nothing
+	// sets them until a user goes quiet for 14+ days.
+	WinbackSentAt     *time.Time
+	WinbackDeclinedAt *time.Time
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }

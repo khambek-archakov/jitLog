@@ -1444,3 +1444,41 @@ func (mr *MockreminderDisableMockRecorder) Handle(ctx, u, in any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*MockreminderDisable)(nil).Handle), ctx, u, in)
 }
+
+// Mockwinback is a mock of winback interface.
+type Mockwinback struct {
+	ctrl     *gomock.Controller
+	recorder *MockwinbackMockRecorder
+	isgomock struct{}
+}
+
+// MockwinbackMockRecorder is the mock recorder for Mockwinback.
+type MockwinbackMockRecorder struct {
+	mock *Mockwinback
+}
+
+// NewMockwinback creates a new mock instance.
+func NewMockwinback(ctrl *gomock.Controller) *Mockwinback {
+	mock := &Mockwinback{ctrl: ctrl}
+	mock.recorder = &MockwinbackMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *Mockwinback) EXPECT() *MockwinbackMockRecorder {
+	return m.recorder
+}
+
+// Handle mocks base method.
+func (m *Mockwinback) Handle(ctx context.Context, u *model.User, in dto.Input) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Handle", ctx, u, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Handle indicates an expected call of Handle.
+func (mr *MockwinbackMockRecorder) Handle(ctx, u, in any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*Mockwinback)(nil).Handle), ctx, u, in)
+}

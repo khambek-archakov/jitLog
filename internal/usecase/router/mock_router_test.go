@@ -12,6 +12,7 @@ package router_test
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	model "github.com/khambek-archakov/jitLog/internal/model"
 	dto "github.com/khambek-archakov/jitLog/internal/usecase/dto"
@@ -70,6 +71,20 @@ func (m *Mockuser) GetByTelegramID(ctx context.Context, telegramID int64) (*mode
 func (mr *MockuserMockRecorder) GetByTelegramID(ctx, telegramID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByTelegramID", reflect.TypeOf((*Mockuser)(nil).GetByTelegramID), ctx, telegramID)
+}
+
+// TouchActivity mocks base method.
+func (m *Mockuser) TouchActivity(ctx context.Context, userID int64, now time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TouchActivity", ctx, userID, now)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// TouchActivity indicates an expected call of TouchActivity.
+func (mr *MockuserMockRecorder) TouchActivity(ctx, userID, now any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TouchActivity", reflect.TypeOf((*Mockuser)(nil).TouchActivity), ctx, userID, now)
 }
 
 // Mockchain is a mock of chain interface.

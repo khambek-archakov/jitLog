@@ -50,6 +50,7 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/training/info"
 	"github.com/khambek-archakov/jitLog/internal/usecase/training/stats"
 	"github.com/khambek-archakov/jitLog/internal/usecase/training/update"
+	"github.com/khambek-archakov/jitLog/internal/usecase/winback"
 )
 
 const (
@@ -57,11 +58,11 @@ const (
 	fail    = 1
 )
 
-// reminderInterval is how often the weekly training reminder's own ticker
-// checks every reminders_enabled user — see internal/usecase/reminder.
-// Deliberately in-process (no separate binary, no systemd unit): the job
-// is cheap and its own idempotency (reminder_sent) already tolerates being
-// checked this often.
+// reminderInterval is how often the weekly training reminder's and the
+// winback nudge's own shared ticker checks every user — see
+// internal/usecase/reminder and internal/usecase/winback. Deliberately
+// in-process (no separate binary, no systemd unit): both jobs are cheap
+// and their own idempotency already tolerates being checked this often.
 const reminderInterval = 15 * time.Minute
 
 func main() {
@@ -95,6 +96,10 @@ func run() int {
 		slog.Error("ADMIN_TELEGRAM_ID is not a valid integer", "error", err)
 		return fail
 	}
+
+	// winbackAnimationFileID is optional — left empty, internal/usecase/winback
+	// falls back to a plain text message (and logs that it did).
+	winbackAnimationFileID := os.Getenv("WINBACK_ANIMATION_FILE_ID")
 
 	// logger
 	logger := slog.New(
@@ -170,6 +175,7 @@ func run() int {
 	catalogInfoUseCase := cataloginfo.New(gateway, competitions)
 	catalogAddUseCase := catalogadd.New(gateway, competitions)
 	reminderUseCase := reminder.New(gateway, users, schedules, trainings, reminders, logger)
+	winbackUseCase := winback.New(gateway, users, reminders, logger, winbackAnimationFileID)
 
 	appChain := chain.New(chain.Dependencies{
 		Onboarding:        onboardingUseCase,
@@ -209,6 +215,7 @@ func run() int {
 		CatalogCityDraft: competitions,
 
 		ReminderDisable: reminderUseCase,
+		Winback:         winbackUseCase,
 	})
 	appRouter := router.New(appChain, users)
 
@@ -239,13 +246,22 @@ func run() int {
 		}
 	}()
 
-	// weekly training reminder — runs once immediately (so a restart
-	// mid-send-window doesn't have to wait out a full tick) and then every
-	// reminderInterval.
-	go func() {
+	// weekly training reminder + winback nudge — run once immediately (so
+	// a restart mid-send-window doesn't have to wait out a full tick) and
+	// then every reminderInterval, sharing one ticker per the winback
+	// feature's own spec.
+	runTickedJobs := func() {
 		if err := reminderUseCase.Run(ctx); err != nil {
 			logger.Error("reminder run failed", "error", err)
 		}
+
+		if err := winbackUseCase.Run(ctx); err != nil {
+			logger.Error("winback run failed", "error", err)
+		}
+	}
+
+	go func() {
+		runTickedJobs()
 
 		ticker := time.NewTicker(reminderInterval)
 		defer ticker.Stop()
@@ -255,9 +271,7 @@ func run() int {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				if err := reminderUseCase.Run(ctx); err != nil {
-					logger.Error("reminder run failed", "error", err)
-				}
+				runTickedJobs()
 			}
 		}
 	}()

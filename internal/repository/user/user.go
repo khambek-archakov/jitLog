@@ -29,7 +29,7 @@ func New(db *pgxpool.Pool) *Repository {
 func (r *Repository) GetByTelegramID(ctx context.Context, telegramID int64) (*model.User, error) {
 	const query = `
 		select id, telegram_id, name, age, belt, onboarding_step, timezone, city, reminders_enabled,
-			created_at, updated_at
+			last_activity_at, winback_sent_at, winback_declined_at, created_at, updated_at
 		from "user"
 		where telegram_id = $1
 	`
@@ -52,7 +52,7 @@ func (r *Repository) GetByTelegramID(ctx context.Context, telegramID int64) (*mo
 func (r *Repository) GetByID(ctx context.Context, id int64) (*model.User, error) {
 	const query = `
 		select id, telegram_id, name, age, belt, onboarding_step, timezone, city, reminders_enabled,
-			created_at, updated_at
+			last_activity_at, winback_sent_at, winback_declined_at, created_at, updated_at
 		from "user"
 		where id = $1
 	`
@@ -73,7 +73,7 @@ func (r *Repository) Create(ctx context.Context, telegramID int64) (*model.User,
 		insert into "user" (telegram_id)
 		values ($1)
 		returning id, telegram_id, name, age, belt, onboarding_step, timezone, city, reminders_enabled,
-			created_at, updated_at
+			last_activity_at, winback_sent_at, winback_declined_at, created_at, updated_at
 	`
 
 	u, err := scanUser(r.db.QueryRow(ctx, query, telegramID))
@@ -109,7 +109,7 @@ func (r *Repository) Update(ctx context.Context, u *model.User) error {
 func (r *Repository) ListRemindersEnabled(ctx context.Context) ([]*model.User, error) {
 	const query = `
 		select id, telegram_id, name, age, belt, onboarding_step, timezone, city, reminders_enabled,
-			created_at, updated_at
+			last_activity_at, winback_sent_at, winback_declined_at, created_at, updated_at
 		from "user"
 		where reminders_enabled = true
 	`
@@ -136,6 +136,87 @@ func (r *Repository) ListRemindersEnabled(ctx context.Context) ([]*model.User, e
 	}
 
 	return users, nil
+}
+
+// ListAll returns every user — internal/usecase/winback's own ticker walks
+// this list each tick, since (unlike reminders) almost any user is a
+// winback candidate and the actual gating (silence/resend/local-hours
+// windows) is date math better kept in Go, where it's unit-testable with a
+// fake clock, than folded into a WHERE clause.
+func (r *Repository) ListAll(ctx context.Context) ([]*model.User, error) {
+	const query = `
+		select id, telegram_id, name, age, belt, onboarding_step, timezone, city, reminders_enabled,
+			last_activity_at, winback_sent_at, winback_declined_at, created_at, updated_at
+		from "user"
+	`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("list all users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*model.User
+
+	for rows.Next() {
+		u, err := scanUser(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan user: %w", err)
+		}
+
+		users = append(users, u)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list all users: %w", err)
+	}
+
+	return users, nil
+}
+
+// TouchActivity records at as userID's last_activity_at — see
+// internal/usecase/router's own activity middleware, the only caller.
+// Deliberately its own narrow statement rather than routed through the
+// general-purpose Update, which writes a whole stale in-memory *model.User
+// back and would otherwise race/clobber whatever this (or SetWinbackSent/
+// SetWinbackDeclined) just wrote concurrently.
+func (r *Repository) TouchActivity(ctx context.Context, userID int64, at time.Time) error {
+	const query = `update "user" set last_activity_at = $2 where id = $1`
+
+	_, err := r.db.Exec(ctx, query, userID, at)
+	if err != nil {
+		return fmt.Errorf("touch user activity: %w", err)
+	}
+
+	return nil
+}
+
+// SetWinbackSent records at as userID's winback_sent_at — see
+// internal/usecase/winback. Same narrow-statement reasoning as
+// TouchActivity.
+func (r *Repository) SetWinbackSent(ctx context.Context, userID int64, at time.Time) error {
+	const query = `update "user" set winback_sent_at = $2 where id = $1`
+
+	_, err := r.db.Exec(ctx, query, userID, at)
+	if err != nil {
+		return fmt.Errorf("set winback sent: %w", err)
+	}
+
+	return nil
+}
+
+// SetWinbackDeclined records at as userID's winback_declined_at — see
+// internal/usecase/winback. Same narrow-statement reasoning as
+// TouchActivity.
+func (r *Repository) SetWinbackDeclined(ctx context.Context, userID int64, at time.Time) error {
+	const query = `update "user" set winback_declined_at = $2 where id = $1`
+
+	_, err := r.db.Exec(ctx, query, userID, at)
+	if err != nil {
+		return fmt.Errorf("set winback declined: %w", err)
+	}
+
+	return nil
 }
 
 // AddBeltPromotion records a belt as having started on promotedAt. Each
@@ -287,6 +368,9 @@ func scanUser(row pgx.Row) (*model.User, error) {
 		&u.Timezone,
 		&u.City,
 		&u.RemindersEnabled,
+		&u.LastActivityAt,
+		&u.WinbackSentAt,
+		&u.WinbackDeclinedAt,
 		&u.CreatedAt,
 		&u.UpdatedAt,
 	)

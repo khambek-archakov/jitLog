@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
@@ -18,12 +19,24 @@ import (
 type Router struct {
 	chain chain
 	user  user
+	now   func() time.Time
 }
 
 func New(c chain, user user) *Router {
-	return &Router{chain: c, user: user}
+	return NewWithClock(c, user, time.Now)
 }
 
+// NewWithClock lets tests substitute a fixed instant instead of the real
+// wall clock for the activity middleware (see activity.go) — same pattern
+// as internal/usecase/reminder.NewWithClock.
+func NewWithClock(c chain, user user, now func() time.Time) *Router {
+	return &Router{chain: c, user: user, now: now}
+}
+
+// Route resolves the current user, records their activity (see
+// touchActivity in activity.go — this is the one place every incoming
+// update passes through, so it's the one place that needs to), and hands
+// off to the chain.
 func (r *Router) Route(ctx context.Context, in dto.Input) error {
 	u, err := r.getOrCreateUser(ctx, in)
 	if err != nil {
@@ -31,6 +44,10 @@ func (r *Router) Route(ctx context.Context, in dto.Input) error {
 	}
 	if u == nil {
 		return nil
+	}
+
+	if err := r.touchActivity(ctx, u); err != nil {
+		return err
 	}
 
 	return r.chain.Handle(ctx, u, in)

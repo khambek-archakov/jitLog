@@ -57,6 +57,7 @@ type mocks struct {
 	catalogCities *MockcatalogCityDraft
 
 	reminder *MockreminderDisable
+	winback  *Mockwinback
 }
 
 // noActiveDrafts stubs every draft/continuation lookup to "none in
@@ -133,6 +134,7 @@ func run(t *testing.T, u *model.User, in dto.Input, prepare func(m mocks)) error
 		catalogCities: NewMockcatalogCityDraft(ctrl),
 
 		reminder: NewMockreminderDisable(ctrl),
+		winback:  NewMockwinback(ctrl),
 	}
 
 	prepare(m)
@@ -175,6 +177,7 @@ func run(t *testing.T, u *model.User, in dto.Input, prepare func(m mocks)) error
 		CatalogCityDraft: m.catalogCities,
 
 		ReminderDisable: m.reminder,
+		Winback:         m.winback,
 	})
 
 	return c.Handle(context.Background(), u, in)
