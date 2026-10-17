@@ -164,7 +164,8 @@ func (uc *UseCase) send(ctx context.Context, u *model.User) error {
 // Handle covers the two buttons on whatever winback message Run sent —
 // both strip that message's own keyboard (best-effort: safe to repeat
 // even on an already-bare or long-stale message) and then show the main
-// menu as a new message; winback:off additionally records the decline.
+// menu as a new message, with its own standard text; winback:off
+// additionally records the decline, with no extra wording of its own.
 func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	if !in.HasCallback {
 		return nil
@@ -182,15 +183,11 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 		uc.logger.Warn("winback: failed to remove keyboard", "error", err)
 	}
 
-	text := menu.Text
-
 	if in.CallbackData == callbackOff {
 		if err := uc.users.SetWinbackDeclined(ctx, u.ID, uc.now()); err != nil {
 			return fmt.Errorf("set winback declined: %w", err)
 		}
-
-		text = declinedText + "\n\n" + text
 	}
 
-	return uc.bot.SendWithKeyboard(ctx, in.ChatID, text, menu.Keyboard())
+	return uc.bot.SendWithKeyboard(ctx, in.ChatID, menu.Text, menu.Keyboard())
 }

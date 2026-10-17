@@ -15,8 +15,6 @@ const (
 // itself sends with an empty caption (see send).
 const greetingText = "Привет 👋"
 
-const declinedText = "Окей, без гифок."
-
 // winbackKeyboard is two rows, one button each — shared by both the
 // animation and its text fallback, so the two paths can never drift.
 func winbackKeyboard() dto.Keyboard {

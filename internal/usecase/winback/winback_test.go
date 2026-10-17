@@ -486,7 +486,7 @@ func TestHandle(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("winback:off removes the keyboard, declines, shows the prefixed menu", func(t *testing.T) {
+	t.Run("winback:off removes the keyboard, declines, shows the standard menu", func(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
@@ -495,15 +495,7 @@ func TestHandle(t *testing.T) {
 		m.bot.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 		m.bot.EXPECT().RemoveKeyboard(gomock.Any(), chatID, int(messageID)).Return(nil)
 		m.users.EXPECT().SetWinbackDeclined(gomock.Any(), userID, now).Return(nil)
-		m.bot.EXPECT().
-			SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ int64, text string, kb dto.Keyboard) error {
-				assert.Contains(t, text, "Окей, без гифок.")
-				assert.Contains(t, text, menu.Text)
-				assert.Equal(t, menu.Keyboard(), kb)
-
-				return nil
-			})
+		m.bot.EXPECT().SendWithKeyboard(gomock.Any(), chatID, menu.Text, menu.Keyboard()).Return(nil)
 
 		in := dto.Input{
 			ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1", CallbackData: "winback:off",
