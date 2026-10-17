@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
@@ -64,7 +65,7 @@ func newUseCaseNoAnimation(m mocks, clock time.Time) *winback.UseCase {
 // sent" mock expectations.
 func expectEligibleSend(m mocks) {
 	m.reminders.EXPECT().HasSentWithin(gomock.Any(), userID, now.Add(-24*time.Hour)).Return(false, nil)
-	m.bot.EXPECT().SendAnimationWithKeyboard(gomock.Any(), telegramID, fileID, "Привет!", gomock.Any()).Return(nil)
+	m.bot.EXPECT().SendAnimationWithKeyboard(gomock.Any(), telegramID, fileID, "", gomock.Any()).Return(nil)
 	m.users.EXPECT().SetWinbackSent(gomock.Any(), userID, now).Return(nil)
 }
 
@@ -136,7 +137,7 @@ func TestRun(t *testing.T) {
 			}
 			m.users.EXPECT().ListAll(gomock.Any()).Return([]*model.User{u}, nil)
 			m.reminders.EXPECT().HasSentWithin(gomock.Any(), userID, clock.Add(-24*time.Hour)).Return(false, nil)
-			m.bot.EXPECT().SendAnimationWithKeyboard(gomock.Any(), telegramID, fileID, "Привет!", gomock.Any()).Return(nil)
+			m.bot.EXPECT().SendAnimationWithKeyboard(gomock.Any(), telegramID, fileID, "", gomock.Any()).Return(nil)
 			m.users.EXPECT().SetWinbackSent(gomock.Any(), userID, clock).Return(nil)
 
 			err := newUseCase(m, clock).Run(context.Background())
@@ -177,7 +178,7 @@ func TestRun(t *testing.T) {
 			}
 			m.users.EXPECT().ListAll(gomock.Any()).Return([]*model.User{u}, nil)
 			m.reminders.EXPECT().HasSentWithin(gomock.Any(), userID, clock.Add(-24*time.Hour)).Return(false, nil)
-			m.bot.EXPECT().SendAnimationWithKeyboard(gomock.Any(), telegramID, fileID, "Привет!", gomock.Any()).Return(nil)
+			m.bot.EXPECT().SendAnimationWithKeyboard(gomock.Any(), telegramID, fileID, "", gomock.Any()).Return(nil)
 			m.users.EXPECT().SetWinbackSent(gomock.Any(), userID, clock).Return(nil)
 
 			err := newUseCase(m, clock).Run(context.Background())
@@ -315,7 +316,7 @@ func TestRun(t *testing.T) {
 		m.users.EXPECT().ListAll(gomock.Any()).Return([]*model.User{u}, nil)
 		m.reminders.EXPECT().HasSentWithin(gomock.Any(), userID, now.Add(-24*time.Hour)).Return(false, nil)
 		m.bot.EXPECT().
-			SendAnimationWithKeyboard(gomock.Any(), telegramID, fileID, "Привет!", gomock.Any()).
+			SendAnimationWithKeyboard(gomock.Any(), telegramID, fileID, "", gomock.Any()).
 			Return(model.ErrUserBlockedBot)
 		m.users.EXPECT().SetWinbackDeclined(gomock.Any(), userID, now).Return(nil)
 		// No text fallback, no SetWinbackSent.
@@ -402,7 +403,17 @@ func TestSend_AnimationFallback(t *testing.T) {
 		u := moscowUser(now.Add(-15 * 24 * time.Hour))
 		m.users.EXPECT().ListAll(gomock.Any()).Return([]*model.User{u}, nil)
 		m.reminders.EXPECT().HasSentWithin(gomock.Any(), userID, gomock.Any()).Return(false, nil)
-		m.bot.EXPECT().SendWithKeyboard(gomock.Any(), telegramID, "Привет!", gomock.Any()).Return(nil)
+		m.bot.EXPECT().
+			SendWithKeyboard(gomock.Any(), telegramID, "Привет 👋", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ int64, _ string, kb dto.Keyboard) error {
+				require.Len(t, kb, 2)
+				require.Len(t, kb[0], 1)
+				require.Len(t, kb[1], 1)
+				assert.Equal(t, "winback:hi", kb[0][0].Data)
+				assert.Equal(t, "winback:off", kb[1][0].Data)
+
+				return nil
+			})
 		m.users.EXPECT().SetWinbackSent(gomock.Any(), userID, now).Return(nil)
 		// No SendAnimationWithKeyboard call at all.
 
@@ -420,9 +431,9 @@ func TestSend_AnimationFallback(t *testing.T) {
 		m.users.EXPECT().ListAll(gomock.Any()).Return([]*model.User{u}, nil)
 		m.reminders.EXPECT().HasSentWithin(gomock.Any(), userID, gomock.Any()).Return(false, nil)
 		m.bot.EXPECT().
-			SendAnimationWithKeyboard(gomock.Any(), telegramID, fileID, "Привет!", gomock.Any()).
+			SendAnimationWithKeyboard(gomock.Any(), telegramID, fileID, "", gomock.Any()).
 			Return(errors.New("bad file id"))
-		m.bot.EXPECT().SendWithKeyboard(gomock.Any(), telegramID, "Привет!", gomock.Any()).Return(nil)
+		m.bot.EXPECT().SendWithKeyboard(gomock.Any(), telegramID, "Привет 👋", gomock.Any()).Return(nil)
 		m.users.EXPECT().SetWinbackSent(gomock.Any(), userID, now).Return(nil)
 
 		err := newUseCase(m, now).Run(context.Background())
@@ -439,7 +450,7 @@ func TestSend_AnimationFallback(t *testing.T) {
 		m.users.EXPECT().ListAll(gomock.Any()).Return([]*model.User{u}, nil)
 		m.reminders.EXPECT().HasSentWithin(gomock.Any(), userID, gomock.Any()).Return(false, nil)
 		m.bot.EXPECT().
-			SendAnimationWithKeyboard(gomock.Any(), telegramID, fileID, "Привет!", gomock.Any()).
+			SendAnimationWithKeyboard(gomock.Any(), telegramID, fileID, "", gomock.Any()).
 			Return(model.ErrUserBlockedBot)
 		m.users.EXPECT().SetWinbackDeclined(gomock.Any(), userID, now).Return(nil)
 		// No SendWithKeyboard fallback call.

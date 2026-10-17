@@ -137,7 +137,9 @@ func (uc *UseCase) processUser(ctx context.Context, u *model.User) error {
 // send tries the configured animation first, falling back to plain text
 // when no file ID is configured or the animation send itself fails for a
 // reason other than the user having blocked the bot (in which case a text
-// fallback would fail identically, so there's no point trying it).
+// fallback would fail identically, so there's no point trying it). The
+// animation itself carries no caption — only the text fallback shows
+// greetingText.
 func (uc *UseCase) send(ctx context.Context, u *model.User) error {
 	if uc.animationFileID == "" {
 		uc.logger.Info("winback: no animation file id configured, sending plain text", "user_id", u.ID)
@@ -145,7 +147,7 @@ func (uc *UseCase) send(ctx context.Context, u *model.User) error {
 		return uc.bot.SendWithKeyboard(ctx, u.TelegramID, greetingText, winbackKeyboard())
 	}
 
-	err := uc.bot.SendAnimationWithKeyboard(ctx, u.TelegramID, uc.animationFileID, greetingText, winbackKeyboard())
+	err := uc.bot.SendAnimationWithKeyboard(ctx, u.TelegramID, uc.animationFileID, "", winbackKeyboard())
 	if err == nil {
 		return nil
 	}
