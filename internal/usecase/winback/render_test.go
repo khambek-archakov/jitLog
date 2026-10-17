@@ -19,6 +19,6 @@ func TestWinbackKeyboard(t *testing.T) {
 	assert.Equal(t, "Привет 👋", kb[0][0].Label)
 	assert.Equal(t, callbackHi, kb[0][0].Data)
 
-	assert.Equal(t, "Давай только без гифок", kb[1][0].Label)
+	assert.Equal(t, "Вот давай без гифок", kb[1][0].Label)
 	assert.Equal(t, callbackOff, kb[1][0].Data)
 }

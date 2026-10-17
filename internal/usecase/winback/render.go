@@ -20,6 +20,6 @@ const greetingText = "Привет 👋"
 func winbackKeyboard() dto.Keyboard {
 	return dto.Keyboard{
 		dto.Row(dto.Button{Label: "Привет 👋", Data: callbackHi}),
-		dto.Row(dto.Button{Label: "Давай только без гифок", Data: callbackOff}),
+		dto.Row(dto.Button{Label: "Вот давай без гифок", Data: callbackOff}),
 	}
 }
