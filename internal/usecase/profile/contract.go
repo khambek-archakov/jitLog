@@ -19,10 +19,20 @@ type sender interface {
 
 type user interface {
 	Update(ctx context.Context, u *model.User) error
-	// AddBeltPromotion mirrors internal/usecase/onboarding/steps' own
-	// private contract — onboarding backfills the very first row,
-	// profile adds every one after.
-	AddBeltPromotion(ctx context.Context, userID int64, belt model.Belt, promotedAt time.Time) error
+	// ChangeBelt persists a belt change (and, when it's a genuine
+	// promotion, the belt_promotion row backing it) atomically — see
+	// internal/repository/user's own doc comment on it.
+	ChangeBelt(ctx context.Context, userID int64, newBelt model.Belt, promotedAt time.Time, recordPromotion bool) (bool, error)
+	// ListBeltPromotions finds the previous belt's own promoted_at, to
+	// bound the "trainings on that belt" window in the congratulation
+	// message.
+	ListBeltPromotions(ctx context.Context, userID int64) ([]*model.BeltPromotion, error)
+}
+
+// trainingRepo is just enough to total up the previous belt's own
+// trainings for the congratulation message's second line.
+type trainingRepo interface {
+	ListTrainingsBetween(ctx context.Context, userID int64, from, to time.Time) ([]*model.Training, error)
 }
 
 // profileEditDraft is the pending-age-edit draft — age is the only

@@ -111,7 +111,12 @@ func captureStderr(t *testing.T, fn func()) string {
 }
 
 func TestStaleFileWarning(t *testing.T) {
-	now := time.Date(2026, 10, 14, 12, 0, 0, 0, time.UTC)
+	// Relative to the real clock, not a fixed calendar date — Load's own
+	// staleness check (see filepageloader.go) compares the file's mtime
+	// against time.Now() for real, so pinning this fixture to a specific
+	// past date eventually drifts more than staleFileWarningAge away from
+	// "now" and makes the "fresh" case below wrongly look stale.
+	now := time.Now()
 
 	path := filepath.Join(t.TempDir(), "page.html")
 	require.NoError(t, os.WriteFile(path, []byte("<html></html>"), 0o600))

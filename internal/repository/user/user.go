@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
+	"github.com/khambek-archakov/jitLog/internal/repository/tx"
 )
 
 // pgUniqueViolation is Postgres's standard SQLSTATE code for a unique
@@ -217,6 +218,58 @@ func (r *Repository) SetWinbackDeclined(ctx context.Context, userID int64, at ti
 	}
 
 	return nil
+}
+
+// ChangeBelt updates userID's belt and, when recordPromotion is true,
+// records a fresh belt_promotion row for newBelt dated promotedAt — both
+// in one transaction, so a crash between the two can never leave the
+// user's belt pointing at a belt with no promotion row backing it (or
+// vice versa). recorded reports whether that row was actually newly
+// created: always false when recordPromotion is false (the caller's own
+// call — e.g. a downgrade or re-picking the current belt — decided this
+// isn't a promotion worth logging), and also false when the row already
+// existed (a repeat promotion to a belt once held before).
+// internal/usecase/profile's own belt-change flow is the only caller —
+// onboarding's first-ever belt still goes through the plain
+// Update+AddBeltPromotion pair, since there's nothing to protect there.
+func (r *Repository) ChangeBelt(
+	ctx context.Context, userID int64, newBelt model.Belt, promotedAt time.Time, recordPromotion bool,
+) (bool, error) {
+	var recorded bool
+
+	err := tx.WithTx(ctx, r.db, func(ctx context.Context) error {
+		q := tx.QuerierFromContext(ctx, r.db)
+
+		if _, err := q.Exec(ctx, `update "user" set belt = $2, updated_at = now() where id = $1`, userID, beltToDB(newBelt)); err != nil {
+			return fmt.Errorf("update user belt: %w", err)
+		}
+
+		if !recordPromotion {
+			return nil
+		}
+
+		_, err := q.Exec(
+			ctx, `insert into belt_promotion (user_id, belt, promoted_at) values ($1, $2, $3)`,
+			userID, beltToDB(newBelt), promotedAt,
+		)
+		if err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == pgUniqueViolation {
+				return nil
+			}
+
+			return fmt.Errorf("add belt promotion: %w", err)
+		}
+
+		recorded = true
+
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+
+	return recorded, nil
 }
 
 // AddBeltPromotion records a belt as having started on promotedAt. Each

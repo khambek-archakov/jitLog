@@ -87,17 +87,33 @@ func parseAge(text string) (int16, bool) {
 	return int16(age), true
 }
 
+// beltOrder is the belt progression, lowest first — both
+// beltPickerKeyboard and beltRank (the belt-change congratulation's own
+// "is this exactly one step up" check) share this one ordering.
+var beltOrder = []model.Belt{model.BeltWhite, model.BeltBlue, model.BeltPurple, model.BeltBrown, model.BeltBlack}
+
+// beltRank is belt's index in beltOrder, or -1 for an unrecognized belt
+// (including model.BeltNone) — never matches any real belt's rank, so a
+// transition away from "no belt yet" always counts as a promotion.
+func beltRank(b model.Belt) int {
+	for i, x := range beltOrder {
+		if x == b {
+			return i
+		}
+	}
+
+	return -1
+}
+
 const beltPickerText = "✏️ Выбери новый пояс:"
 
 // beltPickerKeyboard offers every belt except the one the user already
 // has — "changing" to your current belt makes no sense, and belt_promotion
 // only allows recording each belt once per user anyway.
 func beltPickerKeyboard(current model.Belt) dto.Keyboard {
-	all := []model.Belt{model.BeltWhite, model.BeltBlue, model.BeltPurple, model.BeltBrown, model.BeltBlack}
-
 	var buttons []dto.Button
 
-	for _, b := range all {
+	for _, b := range beltOrder {
 		if b == current {
 			continue
 		}
@@ -129,6 +145,62 @@ func beltLabel(b model.Belt) string {
 		return "⚫ Чёрный"
 	default:
 		return "—"
+	}
+}
+
+// beltInstrumental gives belt's instrumental-case form ("с {X} поясом"),
+// used by the belt-change congratulation's first line.
+func beltInstrumental(b model.Belt) string {
+	switch b {
+	case model.BeltWhite:
+		return "белым"
+	case model.BeltBlue:
+		return "синим"
+	case model.BeltPurple:
+		return "пурпурным"
+	case model.BeltBrown:
+		return "коричневым"
+	case model.BeltBlack:
+		return "чёрным"
+	default:
+		return string(b)
+	}
+}
+
+// beltPrepositional gives belt's prepositional-case form ("на {X} поясе"),
+// used by the congratulation's second line.
+func beltPrepositional(b model.Belt) string {
+	switch b {
+	case model.BeltWhite:
+		return "белом"
+	case model.BeltBlue:
+		return "синем"
+	case model.BeltPurple:
+		return "пурпурном"
+	case model.BeltBrown:
+		return "коричневом"
+	case model.BeltBlack:
+		return "чёрном"
+	default:
+		return string(b)
+	}
+}
+
+// trainingWord picks the right Russian plural form of "тренировка" for n
+// — same n%10/n%100 pattern as training/info's roundsWord and
+// training/stats's weeksWord.
+func trainingWord(n int) string {
+	if n%100 >= 11 && n%100 <= 14 {
+		return "тренировок"
+	}
+
+	switch n % 10 {
+	case 1:
+		return "тренировка"
+	case 2, 3, 4:
+		return "тренировки"
+	default:
+		return "тренировок"
 	}
 }
 

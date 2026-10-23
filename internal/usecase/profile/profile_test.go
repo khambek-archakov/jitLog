@@ -3,7 +3,10 @@ package profile_test
 import (
 	"context"
 	"errors"
+	"io"
+	"log/slog"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,6 +16,10 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 	"github.com/khambek-archakov/jitLog/internal/usecase/profile"
 )
+
+func discardLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
 
 func TestUseCase_Handle(t *testing.T) {
 	t.Parallel()
@@ -30,14 +37,14 @@ func TestUseCase_Handle(t *testing.T) {
 		name     string
 		u        *model.User
 		in       dto.Input
-		prepare  func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft)
+		prepare  func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo)
 		expected func(t assert.TestingT, u *model.User, err error)
 	}{
 		{
 			name:    "no callback — no-op",
 			u:       baseUser(),
 			in:      dto.Input{ChatID: chatID},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {},
 			expected: func(t assert.TestingT, u *model.User, err error) {
 				assert.NoError(t, err)
 			},
@@ -47,7 +54,7 @@ func TestUseCase_Handle(t *testing.T) {
 			name: "unknown callback is just acknowledged",
 			u:    baseUser(),
 			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "junk"},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 			},
 			expected: func(t assert.TestingT, u *model.User, err error) {
@@ -62,7 +69,7 @@ func TestUseCase_Handle(t *testing.T) {
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
 				CallbackData: "profile:show",
 			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
@@ -91,7 +98,7 @@ func TestUseCase_Handle(t *testing.T) {
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
 				CallbackData: "profile:edit",
 			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
@@ -118,7 +125,7 @@ func TestUseCase_Handle(t *testing.T) {
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
 				CallbackData: "profile:belt:edit",
 			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
@@ -146,20 +153,16 @@ func TestUseCase_Handle(t *testing.T) {
 		},
 
 		{
-			name: "picking a belt updates the user and records the promotion",
-			u:    baseUser(),
+			name: "a one-step promotion with trainings on the previous belt is recorded and congratulated",
+			u:    baseUser(), // blue
 			in: dto.Input{
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
 				CallbackData: "profile:belt:set:purple",
 			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				user.EXPECT().
-					Update(gomock.Any(), gomock.Any()).
-					Return(nil)
-
-				user.EXPECT().
-					AddBeltPromotion(gomock.Any(), int64(42), model.BeltPurple, gomock.Any()).
-					Return(nil)
+					ChangeBelt(gomock.Any(), int64(42), model.BeltPurple, gomock.Any(), true).
+					Return(true, nil)
 
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
@@ -167,6 +170,27 @@ func TestUseCase_Handle(t *testing.T) {
 					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, _ dto.Keyboard) error {
 						assert.Contains(t, text, "🟣 Пурпурный")
+
+						return nil
+					})
+
+				blue := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+				user.EXPECT().
+					ListBeltPromotions(gomock.Any(), int64(42)).
+					Return([]*model.BeltPromotion{{Belt: model.BeltBlue, PromotedAt: blue}}, nil)
+
+				trainings.EXPECT().
+					ListTrainingsBetween(gomock.Any(), int64(42), blue, gomock.Any()).
+					Return([]*model.Training{
+						{DurationMinutes: 60}, {DurationMinutes: 30},
+					}, nil)
+
+				sender.EXPECT().
+					Send(gomock.Any(), chatID, gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, text string) error {
+						assert.Contains(t, text, "🎉 Поздравляю с пурпурным поясом!")
+						assert.Contains(t, text, "На синем поясе в JitLog: 2 тренировки, 1 ч 30 мин.")
 
 						return nil
 					})
@@ -178,26 +202,222 @@ func TestUseCase_Handle(t *testing.T) {
 		},
 
 		{
-			name: "belt already recorded is not an error",
+			name: "a one-step promotion with no trainings on the previous belt shows only the first line",
 			u:    baseUser(),
 			in: dto.Input{
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
 				CallbackData: "profile:belt:set:purple",
 			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
-				user.EXPECT().
-					Update(gomock.Any(), gomock.Any()).
-					Return(nil)
-
-				user.EXPECT().
-					AddBeltPromotion(gomock.Any(), int64(42), model.BeltPurple, gomock.Any()).
-					Return(model.ErrDuplicateBeltPromotion)
-
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
+				user.EXPECT().ChangeBelt(gomock.Any(), int64(42), model.BeltPurple, gomock.Any(), true).Return(true, nil)
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).Return(nil)
+
+				blue := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+				user.EXPECT().
+					ListBeltPromotions(gomock.Any(), int64(42)).
+					Return([]*model.BeltPromotion{{Belt: model.BeltBlue, PromotedAt: blue}}, nil)
+				trainings.EXPECT().ListTrainingsBetween(gomock.Any(), int64(42), blue, gomock.Any()).Return(nil, nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					Send(gomock.Any(), chatID, gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, text string) error {
+						assert.Equal(t, "🎉 Поздравляю с пурпурным поясом!", text)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "the previous belt has no recorded promotion — defensively, only the first line",
+			u:    baseUser(),
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "profile:belt:set:purple",
+			},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
+				user.EXPECT().ChangeBelt(gomock.Any(), int64(42), model.BeltPurple, gomock.Any(), true).Return(true, nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).Return(nil)
+
+				user.EXPECT().ListBeltPromotions(gomock.Any(), int64(42)).Return(nil, nil)
+				// No ListTrainingsBetween call — there's no boundary to query with.
+
+				sender.EXPECT().
+					Send(gomock.Any(), chatID, "🎉 Поздравляю с пурпурным поясом!").
 					Return(nil)
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "a repeat promotion to an already-recorded belt sends no congratulation",
+			u:    baseUser(),
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "profile:belt:set:purple",
+			},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
+				user.EXPECT().ChangeBelt(gomock.Any(), int64(42), model.BeltPurple, gomock.Any(), true).Return(false, nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).Return(nil)
+				// recorded=false — no ListBeltPromotions/ListTrainingsBetween/Send at all.
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "a skip-step promotion (white -> black) is recorded but not congratulated",
+			u: func() *model.User {
+				u := baseUser()
+				u.Belt = model.BeltWhite
+
+				return u
+			}(),
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "profile:belt:set:black",
+			},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
+				user.EXPECT().ChangeBelt(gomock.Any(), int64(42), model.BeltBlack, gomock.Any(), true).Return(true, nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).Return(nil)
+				// 4-step jump, recorded=true, but no congratulation — no further calls.
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.NoError(t, err)
+				assert.Equal(t, model.BeltBlack, u.Belt)
+			},
+		},
+
+		{
+			name: "a downgrade never attempts to record a promotion, no congratulation",
+			u:    baseUser(), // blue
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "profile:belt:set:white",
+			},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
+				user.EXPECT().ChangeBelt(gomock.Any(), int64(42), model.BeltWhite, gomock.Any(), false).Return(false, nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).Return(nil)
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.NoError(t, err)
+				assert.Equal(t, model.BeltWhite, u.Belt)
+			},
+		},
+
+		{
+			name: "coming back to the same belt never attempts to record a promotion",
+			u:    baseUser(), // blue
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "profile:belt:set:blue",
+			},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
+				user.EXPECT().ChangeBelt(gomock.Any(), int64(42), model.BeltBlue, gomock.Any(), false).Return(false, nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).Return(nil)
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "a brown -> black promotion congratulates with the correct belt wording",
+			u: func() *model.User {
+				u := baseUser()
+				u.Belt = model.BeltBrown
+
+				return u
+			}(),
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "profile:belt:set:black",
+			},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
+				user.EXPECT().ChangeBelt(gomock.Any(), int64(42), model.BeltBlack, gomock.Any(), true).Return(true, nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).Return(nil)
+				user.EXPECT().ListBeltPromotions(gomock.Any(), int64(42)).Return(nil, nil)
+
+				sender.EXPECT().
+					Send(gomock.Any(), chatID, "🎉 Поздравляю с чёрным поясом!").
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "a congratulation send failure does not roll back the belt change",
+			u:    baseUser(),
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "profile:belt:set:purple",
+			},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
+				user.EXPECT().ChangeBelt(gomock.Any(), int64(42), model.BeltPurple, gomock.Any(), true).Return(true, nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).Return(nil)
+				user.EXPECT().ListBeltPromotions(gomock.Any(), int64(42)).Return(nil, nil)
+				sender.EXPECT().Send(gomock.Any(), chatID, gomock.Any()).Return(errors.New("telegram is down"))
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.NoError(t, err)
+				assert.Equal(t, model.BeltPurple, u.Belt)
+			},
+		},
+
+		{
+			name: "failing to list belt promotions for the congratulation is logged, not propagated",
+			u:    baseUser(),
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "profile:belt:set:purple",
+			},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
+				user.EXPECT().ChangeBelt(gomock.Any(), int64(42), model.BeltPurple, gomock.Any(), true).Return(true, nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).Return(nil)
+				user.EXPECT().ListBeltPromotions(gomock.Any(), int64(42)).Return(nil, errors.New("fail"))
+				// No Send at all — the text could never be built.
+			},
+			expected: func(t assert.TestingT, u *model.User, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "failing to list the previous belt's trainings for the congratulation is logged, not propagated",
+			u:    baseUser(),
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "profile:belt:set:purple",
+			},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
+				user.EXPECT().ChangeBelt(gomock.Any(), int64(42), model.BeltPurple, gomock.Any(), true).Return(true, nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).Return(nil)
+
+				blue := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+				user.EXPECT().
+					ListBeltPromotions(gomock.Any(), int64(42)).
+					Return([]*model.BeltPromotion{{Belt: model.BeltBlue, PromotedAt: blue}}, nil)
+				trainings.EXPECT().
+					ListTrainingsBetween(gomock.Any(), int64(42), blue, gomock.Any()).
+					Return(nil, errors.New("fail"))
 			},
 			expected: func(t assert.TestingT, u *model.User, err error) {
 				assert.NoError(t, err)
@@ -210,7 +430,7 @@ func TestUseCase_Handle(t *testing.T) {
 			in: dto.Input{
 				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "profile:belt:set:bogus",
 			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 			},
 			expected: func(t assert.TestingT, u *model.User, err error) {
@@ -219,35 +439,15 @@ func TestUseCase_Handle(t *testing.T) {
 		},
 
 		{
-			name: "failed to persist belt",
+			name: "failed to change belt",
 			u:    baseUser(),
 			in: dto.Input{
 				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "profile:belt:set:purple",
 			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				user.EXPECT().
-					Update(gomock.Any(), gomock.Any()).
-					Return(errors.New("fail"))
-			},
-			expected: func(t assert.TestingT, u *model.User, err error) {
-				assert.Error(t, err)
-			},
-		},
-
-		{
-			name: "failed to add belt promotion",
-			u:    baseUser(),
-			in: dto.Input{
-				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "profile:belt:set:purple",
-			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
-				user.EXPECT().
-					Update(gomock.Any(), gomock.Any()).
-					Return(nil)
-
-				user.EXPECT().
-					AddBeltPromotion(gomock.Any(), int64(42), model.BeltPurple, gomock.Any()).
-					Return(errors.New("fail"))
+					ChangeBelt(gomock.Any(), int64(42), model.BeltPurple, gomock.Any(), true).
+					Return(false, errors.New("fail"))
 			},
 			expected: func(t assert.TestingT, u *model.User, err error) {
 				assert.Error(t, err)
@@ -261,7 +461,7 @@ func TestUseCase_Handle(t *testing.T) {
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
 				CallbackData: "profile:tz:edit",
 			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
@@ -285,7 +485,7 @@ func TestUseCase_Handle(t *testing.T) {
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
 				CallbackData: "profile:tz:set:sam",
 			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				user.EXPECT().
 					Update(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, u *model.User) error {
@@ -317,7 +517,7 @@ func TestUseCase_Handle(t *testing.T) {
 			in: dto.Input{
 				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "profile:tz:set:utc",
 			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 			},
 			expected: func(t assert.TestingT, u *model.User, err error) {
@@ -338,7 +538,7 @@ func TestUseCase_Handle(t *testing.T) {
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
 				CallbackData: "profile:tz:set:sam",
 			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				user.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 				sender.EXPECT().
@@ -356,7 +556,7 @@ func TestUseCase_Handle(t *testing.T) {
 			in: dto.Input{
 				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "profile:age:edit",
 			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				drafts.EXPECT().
 					SetEditDraft(gomock.Any(), int64(42)).
 					Return(nil)
@@ -383,7 +583,7 @@ func TestUseCase_Handle(t *testing.T) {
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
 				CallbackData: "profile:age:cancel",
 			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				drafts.EXPECT().DeleteEditDraft(gomock.Any(), int64(42)).Return(nil)
 
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
@@ -403,7 +603,7 @@ func TestUseCase_Handle(t *testing.T) {
 			in: dto.Input{
 				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "profile:age:cancel",
 			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				drafts.EXPECT().DeleteEditDraft(gomock.Any(), int64(42)).Return(errors.New("fail"))
 			},
 			expected: func(t assert.TestingT, u *model.User, err error) {
@@ -417,7 +617,7 @@ func TestUseCase_Handle(t *testing.T) {
 			in: dto.Input{
 				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "profile:age:edit",
 			},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				drafts.EXPECT().
 					SetEditDraft(gomock.Any(), int64(42)).
 					Return(errors.New("fail"))
@@ -437,10 +637,11 @@ func TestUseCase_Handle(t *testing.T) {
 			mockSender := NewMocksender(ctrl)
 			mockUser := NewMockuser(ctrl)
 			mockDrafts := NewMockprofileEditDraft(ctrl)
+			mockTrainings := NewMocktrainingRepo(ctrl)
 
-			tc.prepare(mockSender, mockUser, mockDrafts)
+			tc.prepare(mockSender, mockUser, mockDrafts, mockTrainings)
 
-			uc := profile.New(mockSender, mockUser, mockDrafts)
+			uc := profile.New(mockSender, mockUser, mockDrafts, mockTrainings, discardLogger())
 
 			err := uc.Handle(context.Background(), tc.u, tc.in)
 
@@ -466,13 +667,13 @@ func TestUseCase_Continue(t *testing.T) {
 	tests := []struct {
 		name     string
 		in       dto.Input
-		prepare  func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft)
+		prepare  func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo)
 		expected func(t assert.TestingT, u *model.User, err error)
 	}{
 		{
 			name:    "no message — no-op",
 			in:      dto.Input{ChatID: chatID},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {},
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {},
 			expected: func(t assert.TestingT, u *model.User, err error) {
 				assert.NoError(t, err)
 			},
@@ -481,7 +682,7 @@ func TestUseCase_Continue(t *testing.T) {
 		{
 			name: "unparsable age is re-asked, draft kept",
 			in:   dto.Input{ChatID: chatID, HasMessage: true, Text: "twenty five"},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				sender.EXPECT().
 					Send(gomock.Any(), chatID, gomock.Any()).
 					Return(nil)
@@ -495,7 +696,7 @@ func TestUseCase_Continue(t *testing.T) {
 		{
 			name: "out-of-range age is re-asked, draft kept",
 			in:   dto.Input{ChatID: chatID, HasMessage: true, Text: "999"},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				sender.EXPECT().
 					Send(gomock.Any(), chatID, gomock.Any()).
 					Return(nil)
@@ -509,7 +710,7 @@ func TestUseCase_Continue(t *testing.T) {
 		{
 			name: "valid age is stored and the draft cleared",
 			in:   dto.Input{ChatID: chatID, HasMessage: true, Text: "31"},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				user.EXPECT().
 					Update(gomock.Any(), gomock.Any()).
 					Return(nil)
@@ -535,7 +736,7 @@ func TestUseCase_Continue(t *testing.T) {
 		{
 			name: "failed to persist age",
 			in:   dto.Input{ChatID: chatID, HasMessage: true, Text: "31"},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				user.EXPECT().
 					Update(gomock.Any(), gomock.Any()).
 					Return(errors.New("fail"))
@@ -548,7 +749,7 @@ func TestUseCase_Continue(t *testing.T) {
 		{
 			name: "failed to delete draft",
 			in:   dto.Input{ChatID: chatID, HasMessage: true, Text: "31"},
-			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft) {
+			prepare: func(sender *Mocksender, user *Mockuser, drafts *MockprofileEditDraft, trainings *MocktrainingRepo) {
 				user.EXPECT().
 					Update(gomock.Any(), gomock.Any()).
 					Return(nil)
@@ -572,10 +773,11 @@ func TestUseCase_Continue(t *testing.T) {
 			mockSender := NewMocksender(ctrl)
 			mockUser := NewMockuser(ctrl)
 			mockDrafts := NewMockprofileEditDraft(ctrl)
+			mockTrainings := NewMocktrainingRepo(ctrl)
 
-			tc.prepare(mockSender, mockUser, mockDrafts)
+			tc.prepare(mockSender, mockUser, mockDrafts, mockTrainings)
 
-			uc := profile.New(mockSender, mockUser, mockDrafts)
+			uc := profile.New(mockSender, mockUser, mockDrafts, mockTrainings, discardLogger())
 
 			u := baseUser()
 			err := uc.Continue(context.Background(), u, draft, tc.in)

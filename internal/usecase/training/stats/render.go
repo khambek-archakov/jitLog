@@ -49,7 +49,7 @@ func beltsText(c beltCounts, promotions []*model.BeltPromotion, streakWeeks int)
 	var b strings.Builder
 
 	fmt.Fprintf(
-		&b, "%s\n\n🥋 Тренировок: %d\n⏱ Время на мате: %s\n\nПо поясам\n", header, c.Total, formatDuration(c.TotalMinutes),
+		&b, "%s\n\n🥋 Тренировок: %d\n⏱ Время на мате: %s\n\nПо поясам\n", header, c.Total, FormatDuration(c.TotalMinutes),
 	)
 
 	held := heldBelts(promotions)
@@ -117,7 +117,7 @@ func statsText(p period, now time.Time, c counts, streakWeeks int) string {
 
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "%s\n\n🥋 Тренировок: %d\n⏱ Время на мате: %s\n", header, c.Total, formatDuration(c.TotalMinutes))
+	fmt.Fprintf(&b, "%s\n\n🥋 Тренировок: %d\n⏱ Время на мате: %s\n", header, c.Total, FormatDuration(c.TotalMinutes))
 
 	if c.TotalRounds > 0 {
 		fmt.Fprintf(&b, "🔄 Схваток: %d\n", c.TotalRounds)
@@ -136,9 +136,11 @@ func statsText(p period, now time.Time, c counts, streakWeeks int) string {
 	return b.String()
 }
 
-// formatDuration renders total minutes as "3 ч" when they divide evenly
-// into hours, "45 мин" under an hour, or "2 ч 45 мин" otherwise.
-func formatDuration(totalMinutes int32) string {
+// FormatDuration renders total minutes as "3 ч" when they divide evenly
+// into hours, "45 мин" under an hour, or "2 ч 45 мин" otherwise — shared
+// with internal/usecase/profile's own belt-promotion congratulation, which
+// is why this one's exported.
+func FormatDuration(totalMinutes int32) string {
 	hours := totalMinutes / 60
 	minutes := totalMinutes % 60
 

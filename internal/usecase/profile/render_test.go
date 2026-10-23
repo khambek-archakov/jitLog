@@ -112,6 +112,57 @@ func TestBeltPickerKeyboard(t *testing.T) {
 	assert.Equal(t, "profile:edit", kb[4][0].Data)
 }
 
+func TestBeltRank(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, 0, beltRank(model.BeltWhite))
+	assert.Equal(t, 1, beltRank(model.BeltBlue))
+	assert.Equal(t, 2, beltRank(model.BeltPurple))
+	assert.Equal(t, 3, beltRank(model.BeltBrown))
+	assert.Equal(t, 4, beltRank(model.BeltBlack))
+	assert.Equal(t, -1, beltRank(model.BeltNone))
+}
+
+func TestBeltInstrumental(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "белым", beltInstrumental(model.BeltWhite))
+	assert.Equal(t, "синим", beltInstrumental(model.BeltBlue))
+	assert.Equal(t, "пурпурным", beltInstrumental(model.BeltPurple))
+	assert.Equal(t, "коричневым", beltInstrumental(model.BeltBrown))
+	assert.Equal(t, "чёрным", beltInstrumental(model.BeltBlack))
+}
+
+func TestBeltPrepositional(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "белом", beltPrepositional(model.BeltWhite))
+	assert.Equal(t, "синем", beltPrepositional(model.BeltBlue))
+	assert.Equal(t, "пурпурном", beltPrepositional(model.BeltPurple))
+	assert.Equal(t, "коричневом", beltPrepositional(model.BeltBrown))
+	assert.Equal(t, "чёрном", beltPrepositional(model.BeltBlack))
+}
+
+func TestTrainingWord(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		n    int
+		want string
+	}{
+		{n: 1, want: "тренировка"},
+		{n: 2, want: "тренировки"},
+		{n: 4, want: "тренировки"},
+		{n: 5, want: "тренировок"},
+		{n: 11, want: "тренировок"},
+		{n: 21, want: "тренировка"},
+	}
+
+	for _, tc := range tests {
+		assert.Equal(t, tc.want, trainingWord(tc.n))
+	}
+}
+
 func TestBeltTokenRoundTrip(t *testing.T) {
 	t.Parallel()
 

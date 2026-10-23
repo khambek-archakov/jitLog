@@ -196,6 +196,41 @@ func (r *Repository) ListAllTrainings(ctx context.Context, userID int64) ([]*mod
 	return trainings, nil
 }
 
+// ListTrainingsBetween returns every training for userID with a date in
+// [from, to) — internal/usecase/profile's own belt-promotion
+// congratulation, which needs the actual rows (count + total duration)
+// for the previous belt's own date range, not just whether any exist.
+func (r *Repository) ListTrainingsBetween(ctx context.Context, userID int64, from, to time.Time) ([]*model.Training, error) {
+	const query = `
+		select id, user_id, training_date, training_type, duration_minutes, rounds, notes, created_at
+		from training
+		where user_id = $1 and training_date >= $2 and training_date < $3
+	`
+
+	rows, err := r.db.Query(ctx, query, userID, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("list trainings between: %w", err)
+	}
+	defer rows.Close()
+
+	var trainings []*model.Training
+
+	for rows.Next() {
+		t, err := scanTraining(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan training: %w", err)
+		}
+
+		trainings = append(trainings, t)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list trainings between: %w", err)
+	}
+
+	return trainings, nil
+}
+
 // HasTrainingBetween reports whether userID has any training logged with a
 // date in [from, to] inclusive — the reminder job's own "already trained
 // this week" check.

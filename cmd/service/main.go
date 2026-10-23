@@ -157,7 +157,7 @@ func run() int {
 	trainingUpdateUseCase := update.New(gateway, trainings)
 	trainingDeleteUseCase := trainingdelete.New(gateway, trainings)
 	trainingStatsUseCase := stats.New(gateway, trainings, users)
-	profileUseCase := profile.New(gateway, users, users)
+	profileUseCase := profile.New(gateway, users, users, trainings, logger)
 	scheduleCreateUseCase := schedulecreate.New(gateway, schedules)
 	scheduleListUseCase := schedulelist.New(gateway, schedules, users)
 	scheduleInfoUseCase := scheduleinfo.New(gateway, schedules)

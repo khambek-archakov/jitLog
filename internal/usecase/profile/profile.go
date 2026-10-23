@@ -6,14 +6,16 @@ package profile
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 	"github.com/khambek-archakov/jitLog/internal/usecase/internal/timezone"
+	"github.com/khambek-archakov/jitLog/internal/usecase/internal/usertime"
+	"github.com/khambek-archakov/jitLog/internal/usecase/training/stats"
 )
 
 const (
@@ -28,13 +30,15 @@ const (
 )
 
 type UseCase struct {
-	bot    sender
-	user   user
-	drafts profileEditDraft
+	bot       sender
+	user      user
+	drafts    profileEditDraft
+	trainings trainingRepo
+	logger    *slog.Logger
 }
 
-func New(bot sender, user user, drafts profileEditDraft) *UseCase {
-	return &UseCase{bot: bot, user: user, drafts: drafts}
+func New(bot sender, user user, drafts profileEditDraft, trainings trainingRepo, logger *slog.Logger) *UseCase {
+	return &UseCase{bot: bot, user: user, drafts: drafts, trainings: trainings, logger: logger}
 }
 
 func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) error {
@@ -184,26 +188,108 @@ func cancelAgeKeyboard() dto.Keyboard {
 	return dto.Keyboard{dto.Row(dto.Button{Label: "❌ Отмена", Data: callbackProfileAgeCancel})}
 }
 
+// setBelt saves a belt change (user.belt and, only for a genuine step-up
+// promotion, a belt_promotion row — see ChangeBelt) atomically, redraws
+// the profile card, then — only once that's done — tries to send a
+// congratulation as its own new message when the change is exactly one
+// step up and the promotion row was actually fresh. A failure sending
+// that congratulation is logged, never rolls back the belt change and
+// never retries; see sendCongratulation.
 func (uc *UseCase) setBelt(ctx context.Context, u *model.User, in dto.Input) error {
-	belt, ok := beltFromToken(strings.TrimPrefix(in.CallbackData, callbackProfileBeltSetPrefix))
+	newBelt, ok := beltFromToken(strings.TrimPrefix(in.CallbackData, callbackProfileBeltSetPrefix))
 	if !ok {
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
-	u.Belt = belt
+	oldBelt := u.Belt
+	promotedAt := usertime.Today(u)
+	recordPromotion := beltRank(newBelt) > beltRank(oldBelt)
 
-	if err := uc.user.Update(ctx, u); err != nil {
-		return fmt.Errorf("update user belt: %w", err)
+	recorded, err := uc.user.ChangeBelt(ctx, u.ID, newBelt, promotedAt, recordPromotion)
+	if err != nil {
+		return fmt.Errorf("change belt: %w", err)
 	}
 
-	err := uc.user.AddBeltPromotion(ctx, u.ID, belt, time.Now())
-	if err != nil && !errors.Is(err, model.ErrDuplicateBeltPromotion) {
-		return fmt.Errorf("add belt promotion: %w", err)
-	}
+	u.Belt = newBelt
 
 	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, profileText(u), profileKeyboard())
+	if err := uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, profileText(u), profileKeyboard()); err != nil {
+		return err
+	}
+
+	if recorded && beltRank(newBelt) == beltRank(oldBelt)+1 {
+		uc.sendCongratulation(ctx, u, oldBelt, newBelt, promotedAt, in.ChatID)
+	}
+
+	return nil
+}
+
+// sendCongratulation never returns an error — a failure anywhere in here
+// (fetching the previous belt's own promoted_at, totaling its trainings,
+// or the send itself) is logged and dropped, exactly as if the belt
+// change had already fully succeeded without a congratulation, which it
+// has: setBelt already committed and redrew the profile before this runs.
+func (uc *UseCase) sendCongratulation(
+	ctx context.Context, u *model.User, oldBelt, newBelt model.Belt, newPromotedAt time.Time, chatID int64,
+) {
+	text, err := uc.congratulationText(ctx, u, oldBelt, newBelt, newPromotedAt)
+	if err != nil {
+		uc.logger.Error("profile: failed to build belt congratulation", "user_id", u.ID, "error", err)
+
+		return
+	}
+
+	if err := uc.bot.Send(ctx, chatID, text); err != nil {
+		uc.logger.Error("profile: failed to send belt congratulation", "user_id", u.ID, "error", err)
+	}
+}
+
+func (uc *UseCase) congratulationText(
+	ctx context.Context, u *model.User, oldBelt, newBelt model.Belt, newPromotedAt time.Time,
+) (string, error) {
+	text := "🎉 Поздравляю с " + beltInstrumental(newBelt) + " поясом!"
+
+	promotions, err := uc.user.ListBeltPromotions(ctx, u.ID)
+	if err != nil {
+		return "", fmt.Errorf("list belt promotions: %w", err)
+	}
+
+	oldPromotedAt, ok := promotedAtFor(promotions, oldBelt)
+	if !ok {
+		return text, nil
+	}
+
+	trainings, err := uc.trainings.ListTrainingsBetween(ctx, u.ID, oldPromotedAt, newPromotedAt)
+	if err != nil {
+		return "", fmt.Errorf("list trainings between: %w", err)
+	}
+
+	if len(trainings) == 0 {
+		return text, nil
+	}
+
+	var totalMinutes int32
+	for _, t := range trainings {
+		totalMinutes += t.DurationMinutes
+	}
+
+	n := len(trainings)
+
+	return text + fmt.Sprintf(
+		"\nНа %s поясе в JitLog: %d %s, %s.",
+		beltPrepositional(oldBelt), n, trainingWord(n), stats.FormatDuration(totalMinutes),
+	), nil
+}
+
+func promotedAtFor(promotions []*model.BeltPromotion, belt model.Belt) (time.Time, bool) {
+	for _, p := range promotions {
+		if p.Belt == belt {
+			return p.PromotedAt, true
+		}
+	}
+
+	return time.Time{}, false
 }

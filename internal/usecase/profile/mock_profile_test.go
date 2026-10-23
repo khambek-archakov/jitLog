@@ -137,18 +137,34 @@ func (m *Mockuser) EXPECT() *MockuserMockRecorder {
 	return m.recorder
 }
 
-// AddBeltPromotion mocks base method.
-func (m *Mockuser) AddBeltPromotion(ctx context.Context, userID int64, belt model.Belt, promotedAt time.Time) error {
+// ChangeBelt mocks base method.
+func (m *Mockuser) ChangeBelt(ctx context.Context, userID int64, newBelt model.Belt, promotedAt time.Time, recordPromotion bool) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddBeltPromotion", ctx, userID, belt, promotedAt)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "ChangeBelt", ctx, userID, newBelt, promotedAt, recordPromotion)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// AddBeltPromotion indicates an expected call of AddBeltPromotion.
-func (mr *MockuserMockRecorder) AddBeltPromotion(ctx, userID, belt, promotedAt any) *gomock.Call {
+// ChangeBelt indicates an expected call of ChangeBelt.
+func (mr *MockuserMockRecorder) ChangeBelt(ctx, userID, newBelt, promotedAt, recordPromotion any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBeltPromotion", reflect.TypeOf((*Mockuser)(nil).AddBeltPromotion), ctx, userID, belt, promotedAt)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeBelt", reflect.TypeOf((*Mockuser)(nil).ChangeBelt), ctx, userID, newBelt, promotedAt, recordPromotion)
+}
+
+// ListBeltPromotions mocks base method.
+func (m *Mockuser) ListBeltPromotions(ctx context.Context, userID int64) ([]*model.BeltPromotion, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBeltPromotions", ctx, userID)
+	ret0, _ := ret[0].([]*model.BeltPromotion)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBeltPromotions indicates an expected call of ListBeltPromotions.
+func (mr *MockuserMockRecorder) ListBeltPromotions(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBeltPromotions", reflect.TypeOf((*Mockuser)(nil).ListBeltPromotions), ctx, userID)
 }
 
 // Update mocks base method.
@@ -163,6 +179,45 @@ func (m *Mockuser) Update(ctx context.Context, u *model.User) error {
 func (mr *MockuserMockRecorder) Update(ctx, u any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*Mockuser)(nil).Update), ctx, u)
+}
+
+// MocktrainingRepo is a mock of trainingRepo interface.
+type MocktrainingRepo struct {
+	ctrl     *gomock.Controller
+	recorder *MocktrainingRepoMockRecorder
+	isgomock struct{}
+}
+
+// MocktrainingRepoMockRecorder is the mock recorder for MocktrainingRepo.
+type MocktrainingRepoMockRecorder struct {
+	mock *MocktrainingRepo
+}
+
+// NewMocktrainingRepo creates a new mock instance.
+func NewMocktrainingRepo(ctrl *gomock.Controller) *MocktrainingRepo {
+	mock := &MocktrainingRepo{ctrl: ctrl}
+	mock.recorder = &MocktrainingRepoMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MocktrainingRepo) EXPECT() *MocktrainingRepoMockRecorder {
+	return m.recorder
+}
+
+// ListTrainingsBetween mocks base method.
+func (m *MocktrainingRepo) ListTrainingsBetween(ctx context.Context, userID int64, from, to time.Time) ([]*model.Training, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListTrainingsBetween", ctx, userID, from, to)
+	ret0, _ := ret[0].([]*model.Training)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListTrainingsBetween indicates an expected call of ListTrainingsBetween.
+func (mr *MocktrainingRepoMockRecorder) ListTrainingsBetween(ctx, userID, from, to any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrainingsBetween", reflect.TypeOf((*MocktrainingRepo)(nil).ListTrainingsBetween), ctx, userID, from, to)
 }
 
 // MockprofileEditDraft is a mock of profileEditDraft interface.

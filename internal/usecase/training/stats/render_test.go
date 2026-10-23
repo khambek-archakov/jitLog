@@ -43,7 +43,7 @@ func TestFormatDuration(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		assert.Equal(t, tc.want, formatDuration(tc.minutes))
+		assert.Equal(t, tc.want, FormatDuration(tc.minutes))
 	}
 }
 
