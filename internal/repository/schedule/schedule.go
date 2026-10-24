@@ -86,7 +86,7 @@ func (r *Repository) CreateSlot(
 	const query = `
 		insert into schedule_slot (user_id, day_of_week, time_minutes, training_type)
 		values ($1, $2, $3, $4)
-		returning id, user_id, day_of_week, time_minutes, training_type, created_at
+		returning id, user_id, day_of_week, time_minutes, training_type, duration_min, created_at
 	`
 
 	s, err := scanSlot(r.db.QueryRow(ctx, query, userID, dayOfWeek, timeMinutes, trainingTypeToDB(trainingType)))
@@ -101,7 +101,7 @@ func (r *Repository) CreateSlot(
 // Monday first, earliest time first within a day.
 func (r *Repository) ListSlots(ctx context.Context, userID int64) ([]*model.ScheduleSlot, error) {
 	const query = `
-		select id, user_id, day_of_week, time_minutes, training_type, created_at
+		select id, user_id, day_of_week, time_minutes, training_type, duration_min, created_at
 		from schedule_slot
 		where user_id = $1
 		order by day_of_week asc, time_minutes asc
@@ -133,7 +133,7 @@ func (r *Repository) ListSlots(ctx context.Context, userID int64) ([]*model.Sche
 
 func (r *Repository) GetSlot(ctx context.Context, id int64) (*model.ScheduleSlot, error) {
 	const query = `
-		select id, user_id, day_of_week, time_minutes, training_type, created_at
+		select id, user_id, day_of_week, time_minutes, training_type, duration_min, created_at
 		from schedule_slot
 		where id = $1
 	`
@@ -150,16 +150,18 @@ func (r *Repository) GetSlot(ctx context.Context, id int64) (*model.ScheduleSlot
 }
 
 func (r *Repository) UpdateSlot(
-	ctx context.Context, id int64, dayOfWeek, timeMinutes int16, trainingType model.TrainingType,
+	ctx context.Context, id int64, dayOfWeek, timeMinutes int16, trainingType model.TrainingType, durationMinutes int16,
 ) (*model.ScheduleSlot, error) {
 	const query = `
 		update schedule_slot
-		set day_of_week = $2, time_minutes = $3, training_type = $4
+		set day_of_week = $2, time_minutes = $3, training_type = $4, duration_min = $5
 		where id = $1
-		returning id, user_id, day_of_week, time_minutes, training_type, created_at
+		returning id, user_id, day_of_week, time_minutes, training_type, duration_min, created_at
 	`
 
-	s, err := scanSlot(r.db.QueryRow(ctx, query, id, dayOfWeek, timeMinutes, trainingTypeToDB(trainingType)))
+	s, err := scanSlot(
+		r.db.QueryRow(ctx, query, id, dayOfWeek, timeMinutes, trainingTypeToDB(trainingType), durationMinutes),
+	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, model.ErrNotFound
 	}
@@ -183,7 +185,7 @@ func (r *Repository) DeleteSlot(ctx context.Context, id int64) error {
 
 func (r *Repository) GetEditDraftByUserID(ctx context.Context, userID int64) (*model.ScheduleEditDraft, error) {
 	const query = `
-		select user_id, slot_id, created_at
+		select user_id, slot_id, field, created_at
 		from schedule_edit_draft
 		where user_id = $1
 	`
@@ -199,14 +201,14 @@ func (r *Repository) GetEditDraftByUserID(ctx context.Context, userID int64) (*m
 	return d, nil
 }
 
-func (r *Repository) SetEditDraft(ctx context.Context, userID, slotID int64) error {
+func (r *Repository) SetEditDraft(ctx context.Context, userID, slotID int64, field model.ScheduleEditField) error {
 	const query = `
-		insert into schedule_edit_draft (user_id, slot_id)
-		values ($1, $2)
-		on conflict (user_id) do update set slot_id = $2, created_at = now()
+		insert into schedule_edit_draft (user_id, slot_id, field)
+		values ($1, $2, $3)
+		on conflict (user_id) do update set slot_id = $2, field = $3, created_at = now()
 	`
 
-	_, err := r.db.Exec(ctx, query, userID, slotID)
+	_, err := r.db.Exec(ctx, query, userID, slotID, editFieldToDB(field))
 	if err != nil {
 		return fmt.Errorf("set schedule edit draft: %w", err)
 	}
@@ -226,12 +228,17 @@ func (r *Repository) DeleteEditDraft(ctx context.Context, userID int64) error {
 }
 
 func scanEditDraft(row pgx.Row) (*model.ScheduleEditDraft, error) {
-	var d model.ScheduleEditDraft
+	var (
+		d     model.ScheduleEditDraft
+		field int16
+	)
 
-	err := row.Scan(&d.UserID, &d.SlotID, &d.CreatedAt)
+	err := row.Scan(&d.UserID, &d.SlotID, &field, &d.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
+
+	d.Field = editFieldFromDB(field)
 
 	return &d, nil
 }
@@ -260,7 +267,7 @@ func scanSlot(row pgx.Row) (*model.ScheduleSlot, error) {
 		trainingType int16
 	)
 
-	err := row.Scan(&s.ID, &s.UserID, &s.DayOfWeek, &s.TimeMinutes, &trainingType, &s.CreatedAt)
+	err := row.Scan(&s.ID, &s.UserID, &s.DayOfWeek, &s.TimeMinutes, &trainingType, &s.DurationMinutes, &s.CreatedAt)
 	if err != nil {
 		return nil, err
 	}

@@ -172,6 +172,73 @@ func TestGateway_SendWithKeyboard(t *testing.T) {
 	}
 }
 
+func TestGateway_SendWithKeyboardReturningID(t *testing.T) {
+	t.Parallel()
+
+	keyboard := dto.Keyboard{dto.Row(dto.Button{Label: "✅", Data: "ok"})}
+
+	tests := []struct {
+		name     string
+		prepare  func(transport *Mocktransport)
+		expected func(t assert.TestingT, id int, err error)
+	}{
+		{
+			name: "returns the sent message's own id",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					Return(&tgbotapi.APIResponse{Result: []byte(`{"message_id": 4242, "date": 0, "chat": {"id": 777}}`)}, nil)
+			},
+			expected: func(t assert.TestingT, id int, err error) {
+				assert.NoError(t, err)
+				assert.Equal(t, 4242, id)
+			},
+		},
+
+		{
+			name: "telegram 403 is classified as model.ErrUserBlockedBot",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					Return(nil, &tgbotapi.Error{Code: 403, Message: "Forbidden"})
+			},
+			expected: func(t assert.TestingT, id int, err error) {
+				assert.ErrorIs(t, err, model.ErrUserBlockedBot)
+			},
+		},
+
+		{
+			name: "transport error",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					Return(nil, errors.New("fail"))
+			},
+			expected: func(t assert.TestingT, id int, err error) {
+				assert.Error(t, err)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+
+			mockTransport := NewMocktransport(ctrl)
+
+			tc.prepare(mockTransport)
+
+			g := gateway.New(mockTransport)
+
+			id, err := g.SendWithKeyboardReturningID(context.Background(), chatID, "pick one", keyboard)
+
+			tc.expected(t, id, err)
+		})
+	}
+}
+
 func TestGateway_EditMessageWithKeyboard(t *testing.T) {
 	t.Parallel()
 

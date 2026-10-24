@@ -12,18 +12,39 @@ import (
 func TestBody(t *testing.T) {
 	t.Parallel()
 
-	text := Body(&model.ScheduleSlot{DayOfWeek: 3, TimeMinutes: 19 * 60, TrainingType: model.TrainingTypeNoGi})
+	text := Body(&model.ScheduleSlot{DayOfWeek: 3, TimeMinutes: 19 * 60, TrainingType: model.TrainingTypeNoGi, DurationMinutes: 90})
 
-	assert.Equal(t, "Ср — 19:00, 🥷 No-Gi", text)
+	assert.Equal(t, "Ср — 19:00 · 90 минут · 🥷 No-Gi", text)
 }
 
 func TestCard(t *testing.T) {
 	t.Parallel()
 
-	text := Card(&model.ScheduleSlot{DayOfWeek: 1, TimeMinutes: 11 * 60, TrainingType: model.TrainingTypeGi})
+	text := Card(&model.ScheduleSlot{DayOfWeek: 1, TimeMinutes: 11 * 60, TrainingType: model.TrainingTypeGi, DurationMinutes: 60})
 
 	assert.Contains(t, text, "Слот расписания")
-	assert.Contains(t, text, "Пн — 11:00, 🥋 Gi")
+	assert.Contains(t, text, "Пн — 11:00 · 60 минут · 🥋 Gi")
+}
+
+func TestFormatDuration(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		minutes int16
+		want    string
+	}{
+		{minutes: 1, want: "1 минута"},
+		{minutes: 2, want: "2 минуты"},
+		{minutes: 4, want: "4 минуты"},
+		{minutes: 5, want: "5 минут"},
+		{minutes: 11, want: "11 минут"},
+		{minutes: 21, want: "21 минута"},
+		{minutes: 90, want: "90 минут"},
+	}
+
+	for _, tc := range tests {
+		assert.Equal(t, tc.want, FormatDuration(tc.minutes))
+	}
 }
 
 func TestKeyboard(t *testing.T) {

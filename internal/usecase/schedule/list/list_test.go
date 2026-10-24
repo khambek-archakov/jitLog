@@ -84,7 +84,7 @@ func TestUseCase_Handle(t *testing.T) {
 							for _, b := range row {
 								if b.Data == "schedule:reminders:toggle" {
 									found = true
-									assert.Equal(t, "🔔 Напоминание: выкл", b.Label)
+									assert.Equal(t, "🔔 Напоминания: выкл", b.Label)
 								}
 							}
 						}

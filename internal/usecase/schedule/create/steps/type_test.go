@@ -79,6 +79,7 @@ func TestTypeStep_Handle(t *testing.T) {
 					CreateSlot(gomock.Any(), userID, day, minutes, model.TrainingTypeGi).
 					Return(&model.ScheduleSlot{
 						ID: 5, UserID: userID, DayOfWeek: day, TimeMinutes: minutes, TrainingType: model.TrainingTypeGi,
+						DurationMinutes: 90,
 					}, nil)
 
 				repo.EXPECT().
@@ -90,7 +91,7 @@ func TestTypeStep_Handle(t *testing.T) {
 					Return(nil)
 
 				sender.EXPECT().
-					SendWithKeyboard(gomock.Any(), chatID, "✅ Добавлено: Ср — 19:00, 🥋 Gi", gomock.Any()).
+					SendWithKeyboard(gomock.Any(), chatID, "✅ Добавлено: Ср — 19:00 · 90 минут · 🥋 Gi", gomock.Any()).
 					Return(nil)
 			},
 			expected: func(t *testing.T, err error) {

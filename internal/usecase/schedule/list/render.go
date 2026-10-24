@@ -60,10 +60,10 @@ func listKeyboard(slots []*model.ScheduleSlot, u *model.User) dto.Keyboard {
 
 func reminderToggleLabel(u *model.User) string {
 	if u.RemindersEnabled {
-		return "🔔 Напоминание: вкл"
+		return "🔔 Напоминания: вкл"
 	}
 
-	return "🔔 Напоминание: выкл"
+	return "🔔 Напоминания: выкл"
 }
 
 const tzPickerText = "Чтобы напоминание приходило вовремя, выбери свой часовой пояс:"

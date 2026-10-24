@@ -20,7 +20,8 @@ type slotRepo interface {
 	GetSlot(ctx context.Context, id int64) (*model.ScheduleSlot, error)
 	UpdateSlot(
 		ctx context.Context, id int64, dayOfWeek, timeMinutes int16, trainingType model.TrainingType,
+		durationMinutes int16,
 	) (*model.ScheduleSlot, error)
-	SetEditDraft(ctx context.Context, userID, slotID int64) error
+	SetEditDraft(ctx context.Context, userID, slotID int64, field model.ScheduleEditField) error
 	DeleteEditDraft(ctx context.Context, userID int64) error
 }

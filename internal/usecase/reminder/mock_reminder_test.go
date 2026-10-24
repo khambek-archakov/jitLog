@@ -57,6 +57,20 @@ func (mr *MocksenderMockRecorder) AnswerCallback(ctx, callbackID any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AnswerCallback", reflect.TypeOf((*Mocksender)(nil).AnswerCallback), ctx, callbackID)
 }
 
+// AnswerCallbackWithText mocks base method.
+func (m *Mocksender) AnswerCallbackWithText(ctx context.Context, callbackID, text string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AnswerCallbackWithText", ctx, callbackID, text)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AnswerCallbackWithText indicates an expected call of AnswerCallbackWithText.
+func (mr *MocksenderMockRecorder) AnswerCallbackWithText(ctx, callbackID, text any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AnswerCallbackWithText", reflect.TypeOf((*Mocksender)(nil).AnswerCallbackWithText), ctx, callbackID, text)
+}
+
 // EditMessageWithKeyboard mocks base method.
 func (m *Mocksender) EditMessageWithKeyboard(ctx context.Context, chatID int64, messageID int, text string, keyboard dto.Keyboard) error {
 	m.ctrl.T.Helper()
@@ -71,6 +85,20 @@ func (mr *MocksenderMockRecorder) EditMessageWithKeyboard(ctx, chatID, messageID
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EditMessageWithKeyboard", reflect.TypeOf((*Mocksender)(nil).EditMessageWithKeyboard), ctx, chatID, messageID, text, keyboard)
 }
 
+// RemoveKeyboard mocks base method.
+func (m *Mocksender) RemoveKeyboard(ctx context.Context, chatID int64, messageID int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveKeyboard", ctx, chatID, messageID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveKeyboard indicates an expected call of RemoveKeyboard.
+func (mr *MocksenderMockRecorder) RemoveKeyboard(ctx, chatID, messageID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveKeyboard", reflect.TypeOf((*Mocksender)(nil).RemoveKeyboard), ctx, chatID, messageID)
+}
+
 // SendWithKeyboard mocks base method.
 func (m *Mocksender) SendWithKeyboard(ctx context.Context, chatID int64, text string, keyboard dto.Keyboard) error {
 	m.ctrl.T.Helper()
@@ -83,6 +111,21 @@ func (m *Mocksender) SendWithKeyboard(ctx context.Context, chatID int64, text st
 func (mr *MocksenderMockRecorder) SendWithKeyboard(ctx, chatID, text, keyboard any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendWithKeyboard", reflect.TypeOf((*Mocksender)(nil).SendWithKeyboard), ctx, chatID, text, keyboard)
+}
+
+// SendWithKeyboardReturningID mocks base method.
+func (m *Mocksender) SendWithKeyboardReturningID(ctx context.Context, chatID int64, text string, keyboard dto.Keyboard) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendWithKeyboardReturningID", ctx, chatID, text, keyboard)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SendWithKeyboardReturningID indicates an expected call of SendWithKeyboardReturningID.
+func (mr *MocksenderMockRecorder) SendWithKeyboardReturningID(ctx, chatID, text, keyboard any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendWithKeyboardReturningID", reflect.TypeOf((*Mocksender)(nil).SendWithKeyboardReturningID), ctx, chatID, text, keyboard)
 }
 
 // MockuserRepo is a mock of userRepo interface.
@@ -162,6 +205,21 @@ func (m *MockslotRepo) EXPECT() *MockslotRepoMockRecorder {
 	return m.recorder
 }
 
+// GetSlot mocks base method.
+func (m *MockslotRepo) GetSlot(ctx context.Context, id int64) (*model.ScheduleSlot, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSlot", ctx, id)
+	ret0, _ := ret[0].(*model.ScheduleSlot)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSlot indicates an expected call of GetSlot.
+func (mr *MockslotRepoMockRecorder) GetSlot(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSlot", reflect.TypeOf((*MockslotRepo)(nil).GetSlot), ctx, id)
+}
+
 // ListSlots mocks base method.
 func (m *MockslotRepo) ListSlots(ctx context.Context, userID int64) ([]*model.ScheduleSlot, error) {
 	m.ctrl.T.Helper()
@@ -201,6 +259,36 @@ func (m *MocktrainingRepo) EXPECT() *MocktrainingRepoMockRecorder {
 	return m.recorder
 }
 
+// CountTrainingsOnDate mocks base method.
+func (m *MocktrainingRepo) CountTrainingsOnDate(ctx context.Context, userID int64, date time.Time) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountTrainingsOnDate", ctx, userID, date)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountTrainingsOnDate indicates an expected call of CountTrainingsOnDate.
+func (mr *MocktrainingRepoMockRecorder) CountTrainingsOnDate(ctx, userID, date any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountTrainingsOnDate", reflect.TypeOf((*MocktrainingRepo)(nil).CountTrainingsOnDate), ctx, userID, date)
+}
+
+// CreateTraining mocks base method.
+func (m *MocktrainingRepo) CreateTraining(ctx context.Context, userID int64, date time.Time, trainingType model.TrainingType, durationMinutes int32, notes *string) (*model.Training, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTraining", ctx, userID, date, trainingType, durationMinutes, notes)
+	ret0, _ := ret[0].(*model.Training)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateTraining indicates an expected call of CreateTraining.
+func (mr *MocktrainingRepoMockRecorder) CreateTraining(ctx, userID, date, trainingType, durationMinutes, notes any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTraining", reflect.TypeOf((*MocktrainingRepo)(nil).CreateTraining), ctx, userID, date, trainingType, durationMinutes, notes)
+}
+
 // HasTrainingBetween mocks base method.
 func (m *MocktrainingRepo) HasTrainingBetween(ctx context.Context, userID int64, from, to time.Time) (bool, error) {
 	m.ctrl.T.Helper()
@@ -214,6 +302,21 @@ func (m *MocktrainingRepo) HasTrainingBetween(ctx context.Context, userID int64,
 func (mr *MocktrainingRepoMockRecorder) HasTrainingBetween(ctx, userID, from, to any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasTrainingBetween", reflect.TypeOf((*MocktrainingRepo)(nil).HasTrainingBetween), ctx, userID, from, to)
+}
+
+// LatestTrainingOnDate mocks base method.
+func (m *MocktrainingRepo) LatestTrainingOnDate(ctx context.Context, userID int64, date time.Time) (*model.Training, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LatestTrainingOnDate", ctx, userID, date)
+	ret0, _ := ret[0].(*model.Training)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LatestTrainingOnDate indicates an expected call of LatestTrainingOnDate.
+func (mr *MocktrainingRepoMockRecorder) LatestTrainingOnDate(ctx, userID, date any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LatestTrainingOnDate", reflect.TypeOf((*MocktrainingRepo)(nil).LatestTrainingOnDate), ctx, userID, date)
 }
 
 // MocksentRepo is a mock of sentRepo interface.
@@ -240,31 +343,62 @@ func (m *MocksentRepo) EXPECT() *MocksentRepoMockRecorder {
 	return m.recorder
 }
 
-// HasSent mocks base method.
-func (m *MocksentRepo) HasSent(ctx context.Context, userID int64, weekStart time.Time) (bool, error) {
+// CountSentBetween mocks base method.
+func (m *MocksentRepo) CountSentBetween(ctx context.Context, userID int64, from, to time.Time) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasSent", ctx, userID, weekStart)
+	ret := m.ctrl.Call(m, "CountSentBetween", ctx, userID, from, to)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountSentBetween indicates an expected call of CountSentBetween.
+func (mr *MocksentRepoMockRecorder) CountSentBetween(ctx, userID, from, to any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountSentBetween", reflect.TypeOf((*MocksentRepo)(nil).CountSentBetween), ctx, userID, from, to)
+}
+
+// HasSent mocks base method.
+func (m *MocksentRepo) HasSent(ctx context.Context, userID int64, kind model.ReminderKind, refDate time.Time, slotID int64) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasSent", ctx, userID, kind, refDate, slotID)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // HasSent indicates an expected call of HasSent.
-func (mr *MocksentRepoMockRecorder) HasSent(ctx, userID, weekStart any) *gomock.Call {
+func (mr *MocksentRepoMockRecorder) HasSent(ctx, userID, kind, refDate, slotID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasSent", reflect.TypeOf((*MocksentRepo)(nil).HasSent), ctx, userID, weekStart)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasSent", reflect.TypeOf((*MocksentRepo)(nil).HasSent), ctx, userID, kind, refDate, slotID)
+}
+
+// LastMessageID mocks base method.
+func (m *MocksentRepo) LastMessageID(ctx context.Context, userID int64) (int64, bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LastMessageID", ctx, userID)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(bool)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// LastMessageID indicates an expected call of LastMessageID.
+func (mr *MocksentRepoMockRecorder) LastMessageID(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LastMessageID", reflect.TypeOf((*MocksentRepo)(nil).LastMessageID), ctx, userID)
 }
 
 // MarkSent mocks base method.
-func (m *MocksentRepo) MarkSent(ctx context.Context, userID int64, weekStart time.Time) error {
+func (m *MocksentRepo) MarkSent(ctx context.Context, userID int64, kind model.ReminderKind, refDate time.Time, slotID, messageID int64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarkSent", ctx, userID, weekStart)
+	ret := m.ctrl.Call(m, "MarkSent", ctx, userID, kind, refDate, slotID, messageID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // MarkSent indicates an expected call of MarkSent.
-func (mr *MocksentRepoMockRecorder) MarkSent(ctx, userID, weekStart any) *gomock.Call {
+func (mr *MocksentRepoMockRecorder) MarkSent(ctx, userID, kind, refDate, slotID, messageID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkSent", reflect.TypeOf((*MocksentRepo)(nil).MarkSent), ctx, userID, weekStart)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkSent", reflect.TypeOf((*MocksentRepo)(nil).MarkSent), ctx, userID, kind, refDate, slotID, messageID)
 }

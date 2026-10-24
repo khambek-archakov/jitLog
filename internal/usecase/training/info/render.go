@@ -51,6 +51,37 @@ func Keyboard(trainingID int64) dto.Keyboard {
 	}
 }
 
+// ConfirmationText/ConfirmationSummary are a compact, single-line summary
+// — deliberately not Card, which is the full multi-line view shown
+// everywhere else (history, view, edit). Right after creating a training
+// (manually, or via the post-session reminder's own "✅ Записать" button)
+// there's nothing to editorialize yet, so a dense one-liner plus
+// ConfirmationKeyboard's quick-action buttons says more with less.
+func ConfirmationText(t *model.Training) string {
+	return "✅ Тренировка сохранена!\n" + ConfirmationSummary(t)
+}
+
+func ConfirmationSummary(t *model.Training) string {
+	return fmt.Sprintf("📅 %s · %s · ⏱ %s", FormatDateShort(t.Date), TrainingTypeLabel(t.TrainingType), FormatDuration(t.DurationMinutes))
+}
+
+// ConfirmationKeyboard is the confirmation screen's own quick-action
+// buttons.
+func ConfirmationKeyboard(trainingID int64) dto.Keyboard {
+	editPrefix := fmt.Sprintf("%s%d:", callbackTrainingEditPrefix, trainingID)
+
+	return dto.Keyboard{
+		dto.Row(
+			dto.Button{Label: "➕ Схватки", Data: editPrefix + "rounds"},
+			dto.Button{Label: "📝 Заметка", Data: editPrefix + "notes"},
+		),
+		dto.Row(
+			dto.Button{Label: "✏️ Изменить", Data: fmt.Sprintf("%s%d", callbackTrainingEditPrefix, trainingID)},
+			dto.Button{Label: "🗑 Удалить", Data: fmt.Sprintf("%s%d", callbackTrainingDeletePrefix, trainingID)},
+		),
+	}
+}
+
 func TrainingTypeLabel(t model.TrainingType) string {
 	switch t {
 	case model.TrainingTypeGi:

@@ -7,6 +7,7 @@ package tgbotapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -65,6 +66,30 @@ func (g *Gateway) SendWithKeyboard(ctx context.Context, chatID int64, text strin
 	}
 
 	return nil
+}
+
+// SendWithKeyboardReturningID sends a text message with an inline
+// keyboard attached, like SendWithKeyboard, but also returns the sent
+// message's own ID — internal/usecase/reminder's post-session nudge needs
+// it to strip that message's keyboard later, once a newer reminder
+// supersedes it.
+func (g *Gateway) SendWithKeyboardReturningID(
+	ctx context.Context, chatID int64, text string, keyboard dto.Keyboard,
+) (int, error) {
+	msg := tgbotapi.NewMessage(chatID, text)
+	msg.ReplyMarkup = toInlineKeyboard(keyboard)
+
+	resp, err := request(ctx, g.bot, msg)
+	if err != nil {
+		return 0, fmt.Errorf("send message: %w", classify(err))
+	}
+
+	var sent tgbotapi.Message
+	if err := json.Unmarshal(resp.Result, &sent); err != nil {
+		return 0, fmt.Errorf("parse sent message: %w", err)
+	}
+
+	return sent.MessageID, nil
 }
 
 // EditMessageWithKeyboard rewrites an already-sent message's text and

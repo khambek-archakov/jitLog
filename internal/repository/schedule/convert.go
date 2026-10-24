@@ -49,3 +49,23 @@ func draftStepFromDB(v int16) model.ScheduleDraftStep {
 		return model.ScheduleDraftStepAwaitingDay
 	}
 }
+
+func editFieldToDB(f model.ScheduleEditField) int16 {
+	switch f {
+	case model.ScheduleEditFieldTime:
+		return 1
+	case model.ScheduleEditFieldDuration:
+		return 2
+	default:
+		return 0
+	}
+}
+
+func editFieldFromDB(v int16) model.ScheduleEditField {
+	switch v {
+	case 2:
+		return model.ScheduleEditFieldDuration
+	default:
+		return model.ScheduleEditFieldTime
+	}
+}

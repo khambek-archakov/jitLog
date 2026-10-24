@@ -115,6 +115,7 @@ func (c *Chain) defaultOrder() []Handler {
 		&statsTrigger{stats: d.TrainingStats},
 		&profileTrigger{profile: d.Profile},
 		&reminderTrigger{reminder: d.ReminderDisable},
+		&recTrigger{reminder: d.ReminderDisable},
 		&winbackTrigger{winback: d.Winback},
 		d.Onboarding,
 	}

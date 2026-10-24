@@ -12,5 +12,10 @@ type ScheduleSlot struct {
 	DayOfWeek    int16
 	TimeMinutes  int16
 	TrainingType TrainingType
-	CreatedAt    time.Time
+	// DurationMinutes defaults to 90 at creation (see schedule_slot's own
+	// migration) and is only ever changed from the slot's own card — the
+	// post-session reminder (internal/usecase/reminder) uses it to know
+	// when the session actually ends.
+	DurationMinutes int16
+	CreatedAt       time.Time
 }

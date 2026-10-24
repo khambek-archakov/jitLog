@@ -61,7 +61,7 @@ func TestListKeyboard(t *testing.T) {
 		assert.Contains(t, kb[1][0].Label, "Сб")
 		assert.Equal(t, "schedule:add", kb[2][0].Data)
 		assert.Equal(t, "schedule:reminders:toggle", kb[3][0].Data)
-		assert.Equal(t, "🔔 Напоминание: выкл", kb[3][0].Label)
+		assert.Equal(t, "🔔 Напоминания: выкл", kb[3][0].Label)
 		assert.Equal(t, "menu:back", kb[4][0].Data)
 	})
 
@@ -72,7 +72,7 @@ func TestListKeyboard(t *testing.T) {
 			{ID: 5, DayOfWeek: 1, TimeMinutes: 19 * 60, TrainingType: model.TrainingTypeGi},
 		}, &model.User{RemindersEnabled: true})
 
-		assert.Equal(t, "🔔 Напоминание: вкл", kb[2][0].Label)
+		assert.Equal(t, "🔔 Напоминания: вкл", kb[2][0].Label)
 	})
 
 	t.Run("empty state keyboard is just Add and Back, no toggle", func(t *testing.T) {

@@ -250,6 +250,47 @@ func (r *Repository) HasTrainingBetween(ctx context.Context, userID int64, from,
 	return exists, nil
 }
 
+// CountTrainingsOnDate counts userID's trainings logged with date exactly
+// equal to date — the post-session reminder's own "fewer trainings logged
+// today than scheduled slots so far" check (see
+// internal/usecase/reminder), and the rec: callback's own repeat-tap
+// guard, which runs the identical comparison.
+func (r *Repository) CountTrainingsOnDate(ctx context.Context, userID int64, date time.Time) (int, error) {
+	const query = `select count(*) from training where user_id = $1 and training_date = $2`
+
+	var n int
+
+	if err := r.db.QueryRow(ctx, query, userID, date).Scan(&n); err != nil {
+		return 0, fmt.Errorf("count trainings on date: %w", err)
+	}
+
+	return n, nil
+}
+
+// LatestTrainingOnDate returns the most recently created training for
+// userID with date exactly equal to date, if any — the post-session
+// reminder's rec: callback uses this to show "already recorded" on a
+// repeat tap instead of creating a duplicate.
+func (r *Repository) LatestTrainingOnDate(ctx context.Context, userID int64, date time.Time) (*model.Training, error) {
+	const query = `
+		select id, user_id, training_date, training_type, duration_minutes, rounds, notes, created_at
+		from training
+		where user_id = $1 and training_date = $2
+		order by id desc
+		limit 1
+	`
+
+	t, err := scanTraining(r.db.QueryRow(ctx, query, userID, date))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, model.ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get latest training on date: %w", err)
+	}
+
+	return t, nil
+}
+
 func (r *Repository) UpdateTraining(
 	ctx context.Context,
 	id int64,

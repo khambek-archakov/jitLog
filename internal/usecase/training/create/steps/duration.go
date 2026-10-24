@@ -24,15 +24,6 @@ const (
 	callbackDurationOther = "training:duration:other"
 )
 
-// callbackTrainingEditPrefix and callbackTrainingDeletePrefix mirror
-// internal/usecase/training/update's and .../delete's own private
-// constants — by the time either is tapped the draft (and thus this
-// scenario's involvement) is long gone, Router sends them there directly.
-const (
-	callbackTrainingEditPrefix   = "training:edit:"
-	callbackTrainingDeletePrefix = "training:delete:"
-)
-
 type DurationStep struct {
 	bot  sender
 	repo draftRepo
@@ -101,7 +92,7 @@ func (s *DurationStep) finish(ctx context.Context, d *model.TrainingDraft, in dt
 		}
 	}
 
-	if err := s.bot.SendWithKeyboard(ctx, in.ChatID, confirmationText(t), confirmationKeyboard(t.ID)); err != nil {
+	if err := s.bot.SendWithKeyboard(ctx, in.ChatID, info.ConfirmationText(t), info.ConfirmationKeyboard(t.ID)); err != nil {
 		return err
 	}
 
@@ -146,36 +137,5 @@ func durationFromCallback(data string) (int, bool) {
 		return 120, true
 	default:
 		return 0, false
-	}
-}
-
-// confirmationText/confirmationSummary are a compact, single-line summary
-// — deliberately not info.Body, which is the full multi-line card shown
-// everywhere else (history, view, edit). Right after saving there's
-// nothing to editorialize yet (no rounds, no notes), so a dense one-liner
-// plus the quick-action buttons below it says more with less.
-func confirmationText(t *model.Training) string {
-	return "✅ Тренировка сохранена!\n" + confirmationSummary(t)
-}
-
-func confirmationSummary(t *model.Training) string {
-	return fmt.Sprintf(
-		"📅 %s · %s · ⏱ %s",
-		info.FormatDateShort(t.Date), info.TrainingTypeLabel(t.TrainingType), info.FormatDuration(t.DurationMinutes),
-	)
-}
-
-func confirmationKeyboard(trainingID int64) dto.Keyboard {
-	editPrefix := fmt.Sprintf("%s%d:", callbackTrainingEditPrefix, trainingID)
-
-	return dto.Keyboard{
-		dto.Row(
-			dto.Button{Label: "➕ Схватки", Data: editPrefix + "rounds"},
-			dto.Button{Label: "📝 Заметка", Data: editPrefix + "notes"},
-		),
-		dto.Row(
-			dto.Button{Label: "✏️ Изменить", Data: fmt.Sprintf("%s%d", callbackTrainingEditPrefix, trainingID)},
-			dto.Button{Label: "🗑 Удалить", Data: fmt.Sprintf("%s%d", callbackTrainingDeletePrefix, trainingID)},
-		),
 	}
 }

@@ -1,9 +1,10 @@
 // Package update owns editing a single field of an existing schedule
 // slot: the schedule:edit:{id} entry point (menu + per-field pickers, all
 // driven by callback data alone) and Continue, which only exists for
-// time's "Другое" fallback — the one field whose new value can't ride a
-// callback button — and needs the pending model.ScheduleEditDraft Router
-// resolved for the current user.
+// time's and duration's own "Другое" fallbacks — the two fields whose new
+// value can't ride a callback button — and needs the pending
+// model.ScheduleEditDraft Router resolved for the current user to know
+// which of the two it's for (see model.ScheduleEditField).
 package update
 
 import (
@@ -22,14 +23,20 @@ const notFoundText = "Слот не найден."
 
 const timeNotParsed = "Не смог разобрать время, напиши в формате ЧЧ:ММ, например: 18:30."
 
+const durationNotParsed = "Не смог разобрать число, напиши длительность в минутах цифрами (от 15 до 300), например: 75."
+
 // callbackEditPrefix is followed by "{id}", "{id}:day", "{id}:day:{n}",
-// "{id}:time", "{id}:time:preset:{token}", "{id}:time:other", "{id}:type",
-// "{id}:type:{value}" or "{id}:cancel".
+// "{id}:time", "{id}:time:preset:{token}", "{id}:time:other",
+// "{id}:duration", "{id}:duration:preset:{n}", "{id}:duration:other",
+// "{id}:type", "{id}:type:{value}" or "{id}:cancel".
 const callbackEditPrefix = "schedule:edit:"
 
 // presetTimes mirrors create/steps' own quick picks, in minutes since
 // midnight.
 var presetTimes = [...]int16{11 * 60, 12 * 60, 19 * 60, 19*60 + 30, 21 * 60}
+
+// presetDurations mirrors create/steps' own quick duration picks.
+var presetDurations = [...]int16{60, 90, 120}
 
 type UseCase struct {
 	bot  sender
@@ -78,6 +85,9 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 	case action == "time" || strings.HasPrefix(action, "time:"):
 		return uc.handleTime(ctx, in, s, strings.TrimPrefix(action, "time"))
 
+	case action == "duration" || strings.HasPrefix(action, "duration:"):
+		return uc.handleDuration(ctx, in, s, strings.TrimPrefix(action, "duration"))
+
 	case action == "type" || strings.HasPrefix(action, "type:"):
 		return uc.handleType(ctx, in, s, strings.TrimPrefix(action, "type"))
 
@@ -90,7 +100,8 @@ func (uc *UseCase) Handle(ctx context.Context, userID int64, in dto.Input) error
 }
 
 // Continue applies a free-text reply against the pending edit draft — the
-// only path where the new time didn't come from a callback button.
+// only path where the new value didn't come from a callback button.
+// d.Field says which of the two free-text-capable fields it's for.
 func (uc *UseCase) Continue(ctx context.Context, d *model.ScheduleEditDraft, in dto.Input) error {
 	if !in.HasMessage {
 		return nil
@@ -104,12 +115,21 @@ func (uc *UseCase) Continue(ctx context.Context, d *model.ScheduleEditDraft, in 
 		return fmt.Errorf("get schedule slot: %w", err)
 	}
 
+	if d.Field == model.ScheduleEditFieldDuration {
+		minutes, ok := parseDurationText(in.Text)
+		if !ok {
+			return uc.bot.Send(ctx, in.ChatID, durationNotParsed)
+		}
+
+		return uc.finishEdit(ctx, in, d, s.DayOfWeek, s.TimeMinutes, s.TrainingType, minutes)
+	}
+
 	minutes, ok := parseTimeText(strings.TrimSpace(in.Text))
 	if !ok {
 		return uc.bot.Send(ctx, in.ChatID, timeNotParsed)
 	}
 
-	return uc.finishEdit(ctx, in, d, s.DayOfWeek, minutes, s.TrainingType)
+	return uc.finishEdit(ctx, in, d, s.DayOfWeek, minutes, s.TrainingType, s.DurationMinutes)
 }
 
 func (uc *UseCase) showMenu(ctx context.Context, in dto.Input, id int64) error {
@@ -134,7 +154,7 @@ func (uc *UseCase) handleDay(ctx context.Context, in dto.Input, s *model.Schedul
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
-	return uc.applyUpdate(ctx, in, s, day, s.TimeMinutes, s.TrainingType)
+	return uc.applyUpdate(ctx, in, s, day, s.TimeMinutes, s.TrainingType, s.DurationMinutes)
 }
 
 func (uc *UseCase) handleTime(ctx context.Context, in dto.Input, s *model.ScheduleSlot, sub string) error {
@@ -147,7 +167,7 @@ func (uc *UseCase) handleTime(ctx context.Context, in dto.Input, s *model.Schedu
 		return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, "🕐 Во сколько?", timeKeyboard(s.ID))
 
 	case sub == ":other":
-		if err := uc.repo.SetEditDraft(ctx, s.UserID, s.ID); err != nil {
+		if err := uc.repo.SetEditDraft(ctx, s.UserID, s.ID, model.ScheduleEditFieldTime); err != nil {
 			return fmt.Errorf("set schedule edit draft: %w", err)
 		}
 
@@ -163,7 +183,44 @@ func (uc *UseCase) handleTime(ctx context.Context, in dto.Input, s *model.Schedu
 			return uc.bot.AnswerCallback(ctx, in.CallbackID)
 		}
 
-		return uc.applyUpdate(ctx, in, s, s.DayOfWeek, minutes, s.TrainingType)
+		return uc.applyUpdate(ctx, in, s, s.DayOfWeek, minutes, s.TrainingType, s.DurationMinutes)
+
+	default:
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
+	}
+}
+
+func (uc *UseCase) handleDuration(ctx context.Context, in dto.Input, s *model.ScheduleSlot, sub string) error {
+	switch {
+	case sub == "":
+		if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
+			return err
+		}
+
+		return uc.bot.EditMessageWithKeyboard(
+			ctx, in.ChatID, in.MessageID, "⌛ Сколько длится тренировка?", durationKeyboard(s.ID),
+		)
+
+	case sub == ":other":
+		if err := uc.repo.SetEditDraft(ctx, s.UserID, s.ID, model.ScheduleEditFieldDuration); err != nil {
+			return fmt.Errorf("set schedule edit draft: %w", err)
+		}
+
+		if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
+			return err
+		}
+
+		return uc.bot.SendWithKeyboard(
+			ctx, in.ChatID, "Напиши длительность в минутах (от 15 до 300), например: 75", cancelKeyboard(s.ID),
+		)
+
+	case strings.HasPrefix(sub, ":preset:"):
+		minutes, ok := parseDurationText(strings.TrimPrefix(sub, ":preset:"))
+		if !ok {
+			return uc.bot.AnswerCallback(ctx, in.CallbackID)
+		}
+
+		return uc.applyUpdate(ctx, in, s, s.DayOfWeek, s.TimeMinutes, s.TrainingType, minutes)
 
 	default:
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
@@ -184,11 +241,12 @@ func (uc *UseCase) handleType(ctx context.Context, in dto.Input, s *model.Schedu
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
-	return uc.applyUpdate(ctx, in, s, s.DayOfWeek, s.TimeMinutes, newType)
+	return uc.applyUpdate(ctx, in, s, s.DayOfWeek, s.TimeMinutes, newType, s.DurationMinutes)
 }
 
-// cancelEdit backs out of the free-text time prompt without requiring any
-// text at all, re-showing the slot's card right in place of the prompt.
+// cancelEdit backs out of the free-text time/duration prompt without
+// requiring any text at all, re-showing the slot's card right in place
+// of the prompt.
 func (uc *UseCase) cancelEdit(ctx context.Context, in dto.Input, s *model.ScheduleSlot) error {
 	if err := uc.repo.DeleteEditDraft(ctx, s.UserID); err != nil {
 		return fmt.Errorf("delete schedule edit draft: %w", err)
@@ -207,8 +265,9 @@ func cancelKeyboard(id int64) dto.Keyboard {
 
 func (uc *UseCase) applyUpdate(
 	ctx context.Context, in dto.Input, s *model.ScheduleSlot, day, minutes int16, trainingType model.TrainingType,
+	durationMinutes int16,
 ) error {
-	updated, err := uc.repo.UpdateSlot(ctx, s.ID, day, minutes, trainingType)
+	updated, err := uc.repo.UpdateSlot(ctx, s.ID, day, minutes, trainingType, durationMinutes)
 	if err != nil {
 		return fmt.Errorf("update schedule slot: %w", err)
 	}
@@ -222,8 +281,9 @@ func (uc *UseCase) applyUpdate(
 
 func (uc *UseCase) finishEdit(
 	ctx context.Context, in dto.Input, d *model.ScheduleEditDraft, day, minutes int16, trainingType model.TrainingType,
+	durationMinutes int16,
 ) error {
-	updated, err := uc.repo.UpdateSlot(ctx, d.SlotID, day, minutes, trainingType)
+	updated, err := uc.repo.UpdateSlot(ctx, d.SlotID, day, minutes, trainingType, durationMinutes)
 	if err != nil {
 		return fmt.Errorf("update schedule slot: %w", err)
 	}
@@ -241,6 +301,7 @@ func editMenuKeyboard(id int64) dto.Keyboard {
 	return dto.Keyboard{
 		dto.Row(dto.Button{Label: "📅 День недели", Data: prefix + "day"}),
 		dto.Row(dto.Button{Label: "🕐 Время", Data: prefix + "time"}),
+		dto.Row(dto.Button{Label: "⌛ Длительность", Data: prefix + "duration"}),
 		dto.Row(dto.Button{Label: "🥋 Тип тренировки", Data: prefix + "type"}),
 		dto.Row(dto.Button{Label: "← Назад", Data: fmt.Sprintf("schedule:view:%d", id)}),
 	}
@@ -273,6 +334,24 @@ func timeKeyboard(id int64) dto.Keyboard {
 
 func presetButton(prefix string, minutes int16) dto.Button {
 	return dto.Button{Label: info.FormatTime(minutes), Data: prefix + "preset:" + formatTimeToken(minutes)}
+}
+
+func durationKeyboard(id int64) dto.Keyboard {
+	prefix := fmt.Sprintf("%s%d:duration:", callbackEditPrefix, id)
+
+	return dto.Keyboard{
+		dto.Row(
+			durationPresetButton(prefix, presetDurations[0]),
+			durationPresetButton(prefix, presetDurations[1]),
+			durationPresetButton(prefix, presetDurations[2]),
+		),
+		dto.Row(dto.Button{Label: "Другое", Data: prefix + "other"}),
+		dto.Row(dto.Button{Label: "← Назад", Data: fmt.Sprintf("%s%d", callbackEditPrefix, id)}),
+	}
+}
+
+func durationPresetButton(prefix string, minutes int16) dto.Button {
+	return dto.Button{Label: info.FormatDuration(minutes), Data: prefix + "preset:" + strconv.Itoa(int(minutes))}
 }
 
 func typeKeyboard(id int64) dto.Keyboard {
@@ -341,4 +420,13 @@ func parseTimeText(s string) (int16, bool) {
 	}
 
 	return int16(h*60 + m), true
+}
+
+func parseDurationText(s string) (int16, bool) {
+	n, err := strconv.Atoi(strings.TrimSpace(s))
+	if err != nil || n < 15 || n > 300 {
+		return 0, false
+	}
+
+	return int16(n), true
 }

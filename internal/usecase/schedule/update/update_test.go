@@ -19,7 +19,7 @@ func TestUseCase_Handle(t *testing.T) {
 
 	const chatID, userID, messageID int64 = 777, 42, 555
 
-	slot := &model.ScheduleSlot{ID: 7, UserID: userID, DayOfWeek: 1, TimeMinutes: 19 * 60, TrainingType: model.TrainingTypeGi}
+	slot := &model.ScheduleSlot{ID: 7, UserID: userID, DayOfWeek: 1, TimeMinutes: 19 * 60, TrainingType: model.TrainingTypeGi, DurationMinutes: 90}
 
 	tests := []struct {
 		name     string
@@ -97,11 +97,12 @@ func TestUseCase_Handle(t *testing.T) {
 				sender.EXPECT().
 					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "✏️ Что изменить?", gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
-						require.Len(t, kb, 4)
+						require.Len(t, kb, 5)
 						assert.Equal(t, "schedule:edit:7:day", kb[0][0].Data)
 						assert.Equal(t, "schedule:edit:7:time", kb[1][0].Data)
-						assert.Equal(t, "schedule:edit:7:type", kb[2][0].Data)
-						assert.Equal(t, "schedule:view:7", kb[3][0].Data)
+						assert.Equal(t, "schedule:edit:7:duration", kb[2][0].Data)
+						assert.Equal(t, "schedule:edit:7:type", kb[3][0].Data)
+						assert.Equal(t, "schedule:view:7", kb[4][0].Data)
 
 						return nil
 					})
@@ -144,7 +145,7 @@ func TestUseCase_Handle(t *testing.T) {
 			prepare: func(sender *Mocksender, repo *MockslotRepo) {
 				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
 				repo.EXPECT().
-					UpdateSlot(gomock.Any(), int64(7), int16(3), int16(19*60), model.TrainingTypeGi).
+					UpdateSlot(gomock.Any(), int64(7), int16(3), int16(19*60), model.TrainingTypeGi, int16(90)).
 					Return(&model.ScheduleSlot{ID: 7, UserID: userID, DayOfWeek: 3, TimeMinutes: 19 * 60, TrainingType: model.TrainingTypeGi}, nil)
 
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
@@ -180,7 +181,7 @@ func TestUseCase_Handle(t *testing.T) {
 			prepare: func(sender *Mocksender, repo *MockslotRepo) {
 				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
 				repo.EXPECT().
-					UpdateSlot(gomock.Any(), int64(7), int16(3), int16(19*60), model.TrainingTypeGi).
+					UpdateSlot(gomock.Any(), int64(7), int16(3), int16(19*60), model.TrainingTypeGi, int16(90)).
 					Return(nil, errors.New("fail"))
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -222,7 +223,7 @@ func TestUseCase_Handle(t *testing.T) {
 			prepare: func(sender *Mocksender, repo *MockslotRepo) {
 				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
 				repo.EXPECT().
-					UpdateSlot(gomock.Any(), int64(7), int16(1), int16(21*60), model.TrainingTypeGi).
+					UpdateSlot(gomock.Any(), int64(7), int16(1), int16(21*60), model.TrainingTypeGi, int16(90)).
 					Return(&model.ScheduleSlot{ID: 7, UserID: userID, DayOfWeek: 1, TimeMinutes: 21 * 60, TrainingType: model.TrainingTypeGi}, nil)
 
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
@@ -257,7 +258,7 @@ func TestUseCase_Handle(t *testing.T) {
 			},
 			prepare: func(sender *Mocksender, repo *MockslotRepo) {
 				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
-				repo.EXPECT().SetEditDraft(gomock.Any(), userID, int64(7)).Return(nil)
+				repo.EXPECT().SetEditDraft(gomock.Any(), userID, int64(7), model.ScheduleEditFieldTime).Return(nil)
 
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
@@ -302,7 +303,7 @@ func TestUseCase_Handle(t *testing.T) {
 			},
 			prepare: func(sender *Mocksender, repo *MockslotRepo) {
 				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
-				repo.EXPECT().SetEditDraft(gomock.Any(), userID, int64(7)).Return(errors.New("fail"))
+				repo.EXPECT().SetEditDraft(gomock.Any(), userID, int64(7), model.ScheduleEditFieldTime).Return(errors.New("fail"))
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.Error(t, err)
@@ -313,6 +314,120 @@ func TestUseCase_Handle(t *testing.T) {
 			name: "unknown time sub-callback is just acknowledged",
 			in: dto.Input{
 				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "schedule:edit:7:time:junk",
+			},
+			prepare: func(sender *Mocksender, repo *MockslotRepo) {
+				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "duration submenu shows presets and Другое",
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1", CallbackData: "schedule:edit:7:duration",
+			},
+			prepare: func(sender *Mocksender, repo *MockslotRepo) {
+				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), "⌛ Сколько длится тренировка?", gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
+						require.Len(t, kb, 3)
+						assert.Equal(t, "schedule:edit:7:duration:preset:60", kb[0][0].Data)
+						assert.Equal(t, "schedule:edit:7:duration:preset:90", kb[0][1].Data)
+						assert.Equal(t, "schedule:edit:7:duration:preset:120", kb[0][2].Data)
+						assert.Equal(t, "Другое", kb[1][0].Label)
+						assert.Equal(t, "schedule:edit:7:duration:other", kb[1][0].Data)
+						assert.Equal(t, "schedule:edit:7", kb[2][0].Data)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "duration preset applies the update",
+			in: dto.Input{
+				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "schedule:edit:7:duration:preset:120",
+			},
+			prepare: func(sender *Mocksender, repo *MockslotRepo) {
+				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
+				repo.EXPECT().
+					UpdateSlot(gomock.Any(), int64(7), int16(1), int16(19*60), model.TrainingTypeGi, int16(120)).
+					Return(&model.ScheduleSlot{ID: 7, UserID: userID, DayOfWeek: 1, TimeMinutes: 19 * 60, TrainingType: model.TrainingTypeGi, DurationMinutes: 120}, nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().EditMessageWithKeyboard(gomock.Any(), chatID, 0, gomock.Any(), gomock.Any()).Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "malformed duration preset token is just acknowledged",
+			in: dto.Input{
+				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "schedule:edit:7:duration:preset:bogus",
+			},
+			prepare: func(sender *Mocksender, repo *MockslotRepo) {
+				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "duration out of the 15-300 range is rejected like a malformed token",
+			in: dto.Input{
+				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "schedule:edit:7:duration:preset:500",
+			},
+			prepare: func(sender *Mocksender, repo *MockslotRepo) {
+				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "duration other sets an edit draft and prompts for free text",
+			in: dto.Input{
+				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "schedule:edit:7:duration:other",
+			},
+			prepare: func(sender *Mocksender, repo *MockslotRepo) {
+				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
+				repo.EXPECT().SetEditDraft(gomock.Any(), userID, int64(7), model.ScheduleEditFieldDuration).Return(nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+				sender.EXPECT().
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ string, kb dto.Keyboard) error {
+						assert.Equal(t, "schedule:edit:7:cancel", kb[0][0].Data)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "unknown duration sub-callback is just acknowledged",
+			in: dto.Input{
+				ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "schedule:edit:7:duration:junk",
 			},
 			prepare: func(sender *Mocksender, repo *MockslotRepo) {
 				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
@@ -356,7 +471,7 @@ func TestUseCase_Handle(t *testing.T) {
 			prepare: func(sender *Mocksender, repo *MockslotRepo) {
 				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
 				repo.EXPECT().
-					UpdateSlot(gomock.Any(), int64(7), int16(1), int16(19*60), model.TrainingTypeNoGi).
+					UpdateSlot(gomock.Any(), int64(7), int16(1), int16(19*60), model.TrainingTypeNoGi, int16(90)).
 					Return(&model.ScheduleSlot{ID: 7, UserID: userID, DayOfWeek: 1, TimeMinutes: 19 * 60, TrainingType: model.TrainingTypeNoGi}, nil)
 
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
@@ -422,7 +537,7 @@ func TestUseCase_Continue(t *testing.T) {
 	const chatID, userID int64 = 777, 42
 
 	draft := &model.ScheduleEditDraft{UserID: userID, SlotID: 7}
-	slot := &model.ScheduleSlot{ID: 7, UserID: userID, DayOfWeek: 1, TimeMinutes: 19 * 60, TrainingType: model.TrainingTypeGi}
+	slot := &model.ScheduleSlot{ID: 7, UserID: userID, DayOfWeek: 1, TimeMinutes: 19 * 60, TrainingType: model.TrainingTypeGi, DurationMinutes: 90}
 
 	tests := []struct {
 		name     string
@@ -468,7 +583,7 @@ func TestUseCase_Continue(t *testing.T) {
 			prepare: func(sender *Mocksender, repo *MockslotRepo) {
 				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
 				repo.EXPECT().
-					UpdateSlot(gomock.Any(), int64(7), int16(1), int16(18*60+30), model.TrainingTypeGi).
+					UpdateSlot(gomock.Any(), int64(7), int16(1), int16(18*60+30), model.TrainingTypeGi, int16(90)).
 					Return(&model.ScheduleSlot{ID: 7, UserID: userID, DayOfWeek: 1, TimeMinutes: 18*60 + 30, TrainingType: model.TrainingTypeGi}, nil)
 				repo.EXPECT().DeleteEditDraft(gomock.Any(), userID).Return(nil)
 
@@ -497,7 +612,7 @@ func TestUseCase_Continue(t *testing.T) {
 			prepare: func(sender *Mocksender, repo *MockslotRepo) {
 				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
 				repo.EXPECT().
-					UpdateSlot(gomock.Any(), int64(7), int16(1), int16(18*60+30), model.TrainingTypeGi).
+					UpdateSlot(gomock.Any(), int64(7), int16(1), int16(18*60+30), model.TrainingTypeGi, int16(90)).
 					Return(nil, errors.New("fail"))
 			},
 			expected: func(t assert.TestingT, err error) {
@@ -511,12 +626,94 @@ func TestUseCase_Continue(t *testing.T) {
 			prepare: func(sender *Mocksender, repo *MockslotRepo) {
 				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
 				repo.EXPECT().
-					UpdateSlot(gomock.Any(), int64(7), int16(1), int16(18*60+30), model.TrainingTypeGi).
+					UpdateSlot(gomock.Any(), int64(7), int16(1), int16(18*60+30), model.TrainingTypeGi, int16(90)).
 					Return(&model.ScheduleSlot{ID: 7, UserID: userID, DayOfWeek: 1, TimeMinutes: 18*60 + 30, TrainingType: model.TrainingTypeGi}, nil)
 				repo.EXPECT().DeleteEditDraft(gomock.Any(), userID).Return(errors.New("fail"))
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.Error(t, err)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+
+			mockSender := NewMocksender(ctrl)
+			mockRepo := NewMockslotRepo(ctrl)
+
+			tc.prepare(mockSender, mockRepo)
+
+			uc := update.New(mockSender, mockRepo)
+
+			err := uc.Continue(context.Background(), draft, tc.in)
+
+			tc.expected(t, err)
+		})
+	}
+}
+
+func TestUseCase_Continue_DurationField(t *testing.T) {
+	t.Parallel()
+
+	const chatID, userID int64 = 777, 42
+
+	draft := &model.ScheduleEditDraft{UserID: userID, SlotID: 7, Field: model.ScheduleEditFieldDuration}
+	slot := &model.ScheduleSlot{ID: 7, UserID: userID, DayOfWeek: 1, TimeMinutes: 19 * 60, TrainingType: model.TrainingTypeGi, DurationMinutes: 90}
+
+	tests := []struct {
+		name     string
+		in       dto.Input
+		prepare  func(sender *Mocksender, repo *MockslotRepo)
+		expected func(t assert.TestingT, err error)
+	}{
+		{
+			name: "valid free-text duration applies the update and clears the draft",
+			in:   dto.Input{ChatID: chatID, HasMessage: true, Text: "75"},
+			prepare: func(sender *Mocksender, repo *MockslotRepo) {
+				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
+				repo.EXPECT().
+					UpdateSlot(gomock.Any(), int64(7), int16(1), int16(19*60), model.TrainingTypeGi, int16(75)).
+					Return(&model.ScheduleSlot{ID: 7, UserID: userID, DayOfWeek: 1, TimeMinutes: 19 * 60, TrainingType: model.TrainingTypeGi, DurationMinutes: 75}, nil)
+				repo.EXPECT().DeleteEditDraft(gomock.Any(), userID).Return(nil)
+
+				sender.EXPECT().SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "non-numeric free text is rejected with a retry prompt",
+			in:   dto.Input{ChatID: chatID, HasMessage: true, Text: "not a number"},
+			prepare: func(sender *Mocksender, repo *MockslotRepo) {
+				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
+				sender.EXPECT().
+					Send(gomock.Any(), chatID, gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, text string) error {
+						assert.Contains(t, text, "от 15 до 300")
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "out-of-range duration is rejected with a retry prompt",
+			in:   dto.Input{ChatID: chatID, HasMessage: true, Text: "500"},
+			prepare: func(sender *Mocksender, repo *MockslotRepo) {
+				repo.EXPECT().GetSlot(gomock.Any(), int64(7)).Return(slot, nil)
+				sender.EXPECT().Send(gomock.Any(), chatID, gomock.Any()).Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
 			},
 		},
 	}

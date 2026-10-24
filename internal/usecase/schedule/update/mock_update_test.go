@@ -166,30 +166,30 @@ func (mr *MockslotRepoMockRecorder) GetSlot(ctx, id any) *gomock.Call {
 }
 
 // SetEditDraft mocks base method.
-func (m *MockslotRepo) SetEditDraft(ctx context.Context, userID, slotID int64) error {
+func (m *MockslotRepo) SetEditDraft(ctx context.Context, userID, slotID int64, field model.ScheduleEditField) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetEditDraft", ctx, userID, slotID)
+	ret := m.ctrl.Call(m, "SetEditDraft", ctx, userID, slotID, field)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetEditDraft indicates an expected call of SetEditDraft.
-func (mr *MockslotRepoMockRecorder) SetEditDraft(ctx, userID, slotID any) *gomock.Call {
+func (mr *MockslotRepoMockRecorder) SetEditDraft(ctx, userID, slotID, field any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEditDraft", reflect.TypeOf((*MockslotRepo)(nil).SetEditDraft), ctx, userID, slotID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEditDraft", reflect.TypeOf((*MockslotRepo)(nil).SetEditDraft), ctx, userID, slotID, field)
 }
 
 // UpdateSlot mocks base method.
-func (m *MockslotRepo) UpdateSlot(ctx context.Context, id int64, dayOfWeek, timeMinutes int16, trainingType model.TrainingType) (*model.ScheduleSlot, error) {
+func (m *MockslotRepo) UpdateSlot(ctx context.Context, id int64, dayOfWeek, timeMinutes int16, trainingType model.TrainingType, durationMinutes int16) (*model.ScheduleSlot, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateSlot", ctx, id, dayOfWeek, timeMinutes, trainingType)
+	ret := m.ctrl.Call(m, "UpdateSlot", ctx, id, dayOfWeek, timeMinutes, trainingType, durationMinutes)
 	ret0, _ := ret[0].(*model.ScheduleSlot)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateSlot indicates an expected call of UpdateSlot.
-func (mr *MockslotRepoMockRecorder) UpdateSlot(ctx, id, dayOfWeek, timeMinutes, trainingType any) *gomock.Call {
+func (mr *MockslotRepoMockRecorder) UpdateSlot(ctx, id, dayOfWeek, timeMinutes, trainingType, durationMinutes any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSlot", reflect.TypeOf((*MockslotRepo)(nil).UpdateSlot), ctx, id, dayOfWeek, timeMinutes, trainingType)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSlot", reflect.TypeOf((*MockslotRepo)(nil).UpdateSlot), ctx, id, dayOfWeek, timeMinutes, trainingType, durationMinutes)
 }
