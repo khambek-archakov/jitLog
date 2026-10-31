@@ -101,9 +101,8 @@ func TestRun_Weekly(t *testing.T) {
 			SendWithKeyboardReturningID(gomock.Any(), telegramID, gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, _ int64, text string, kb dto.Keyboard) (int, error) {
 				assert.Contains(t, text, "19:00")
-				require.Len(t, kb, 2)
-				assert.Equal(t, "reminder:menu", kb[0][0].Data)
-				assert.Equal(t, "reminder:disable", kb[1][0].Data)
+				require.Len(t, kb, 1)
+				assert.Equal(t, "reminder:disable", kb[0][0].Data)
 
 				return 555, nil
 			})

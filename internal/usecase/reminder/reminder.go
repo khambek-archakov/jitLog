@@ -325,9 +325,9 @@ func (uc *UseCase) handleSendError(ctx context.Context, u *model.User, err error
 	return fmt.Errorf("send reminder: %w", err)
 }
 
-// Handle covers the "🔕 Отключить напоминания" and "☰ Меню" buttons
-// (shared by both reminder kinds) and the post-session message's own "✅
-// Записать" button.
+// Handle covers the "🔕 Отключить напоминания" button (shared by both
+// reminder kinds), the post-session message's own "Меню" and "✅ Записать"
+// buttons.
 func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	if !in.HasCallback {
 		return nil
@@ -362,12 +362,13 @@ func (uc *UseCase) handleDisable(ctx context.Context, u *model.User, in dto.Inpu
 	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, disabledText, nil)
 }
 
-// handleMenu covers "☰ Меню" on either reminder message — strips that
-// message's own keyboard (best-effort, same reasoning as the
+// handleMenu covers "Меню" on the post-session reminder message — strips
+// that message's own keyboard (best-effort, same reasoning as the
 // post-session job's own RemoveKeyboard call: a stale/already-gone
 // message must not block showing the menu) and sends the main menu as a
-// new message. The tap itself already counts as activity via Router's
-// own middleware, same as every other callback.
+// new message. Writes nothing to the database, so a repeat tap is safe.
+// The tap itself already counts as activity via Router's own middleware,
+// same as every other callback.
 func (uc *UseCase) handleMenu(ctx context.Context, in dto.Input) error {
 	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err

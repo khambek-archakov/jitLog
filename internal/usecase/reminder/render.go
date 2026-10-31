@@ -27,10 +27,7 @@ func reminderText(slot *model.ScheduleSlot) string {
 }
 
 func reminderKeyboard() dto.Keyboard {
-	return dto.Keyboard{
-		dto.Row(dto.Button{Label: "☰ Меню", Data: callbackMenu}),
-		dto.Row(dto.Button{Label: "🔕 Отключить напоминания", Data: callbackDisable}),
-	}
+	return dto.Keyboard{dto.Row(dto.Button{Label: "🔕 Отключить напоминания", Data: callbackDisable})}
 }
 
 const callbackRecPrefix = "rec:"
@@ -60,7 +57,7 @@ func postSessionKeyboard(slot *model.ScheduleSlot, d time.Time) dto.Keyboard {
 			Label: fmt.Sprintf("✅ Записать (%d мин)", slot.DurationMinutes),
 			Data:  fmt.Sprintf("%s%d:%s", callbackRecPrefix, slot.ID, d.Format(recDateLayout)),
 		}),
-		dto.Row(dto.Button{Label: "☰ Меню", Data: callbackMenu}),
+		dto.Row(dto.Button{Label: "Меню", Data: callbackMenu}),
 		dto.Row(dto.Button{Label: "🔕 Отключить напоминания", Data: callbackDisable}),
 	}
 }
