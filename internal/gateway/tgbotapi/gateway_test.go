@@ -388,6 +388,66 @@ func TestGateway_SendAnimationWithKeyboard(t *testing.T) {
 	}
 }
 
+func TestGateway_SetMyCommands(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		prepare  func(transport *Mocktransport)
+		expected func(t assert.TestingT, err error)
+	}{
+		{
+			name: "translates each command",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					DoAndReturn(func(c tgbotapi.Chattable) (*tgbotapi.APIResponse, error) {
+						cfg, ok := c.(tgbotapi.SetMyCommandsConfig)
+						require.True(t, ok)
+						require.Len(t, cfg.Commands, 1)
+						assert.Equal(t, "menu", cfg.Commands[0].Command)
+						assert.Equal(t, "Главное меню", cfg.Commands[0].Description)
+
+						return &tgbotapi.APIResponse{}, nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "transport error",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					Return(nil, errors.New("fail"))
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.Error(t, err)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+
+			mockTransport := NewMocktransport(ctrl)
+
+			tc.prepare(mockTransport)
+
+			g := gateway.New(mockTransport)
+
+			err := g.SetMyCommands(context.Background(), []dto.Command{{Name: "menu", Description: "Главное меню"}})
+
+			tc.expected(t, err)
+		})
+	}
+}
+
 func TestGateway_RemoveKeyboard(t *testing.T) {
 	t.Parallel()
 

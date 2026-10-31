@@ -14,6 +14,7 @@ import (
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/internal/menu"
 	"github.com/khambek-archakov/jitLog/internal/usecase/reminder"
 )
 
@@ -100,8 +101,9 @@ func TestRun_Weekly(t *testing.T) {
 			SendWithKeyboardReturningID(gomock.Any(), telegramID, gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, _ int64, text string, kb dto.Keyboard) (int, error) {
 				assert.Contains(t, text, "19:00")
-				require.Len(t, kb, 1)
-				assert.Equal(t, "reminder:disable", kb[0][0].Data)
+				require.Len(t, kb, 2)
+				assert.Equal(t, "reminder:menu", kb[0][0].Data)
+				assert.Equal(t, "reminder:disable", kb[1][0].Data)
 
 				return 555, nil
 			})
@@ -334,10 +336,11 @@ func TestRun_PostSession(t *testing.T) {
 			DoAndReturn(func(_ context.Context, _ int64, text string, kb dto.Keyboard) (int, error) {
 				assert.Contains(t, text, "Записать тренировку?")
 				assert.NotContains(t, text, "Вчера")
-				require.Len(t, kb, 2)
+				require.Len(t, kb, 3)
 				assert.Equal(t, "rec:60:20261016", kb[0][0].Data)
 				assert.Equal(t, "✅ Записать (60 мин)", kb[0][0].Label)
-				assert.Equal(t, "reminder:disable", kb[1][0].Data)
+				assert.Equal(t, "reminder:menu", kb[1][0].Data)
+				assert.Equal(t, "reminder:disable", kb[2][0].Data)
 
 				return 777, nil
 			})
@@ -670,6 +673,7 @@ func TestHandle_Rec(t *testing.T) {
 
 				return nil
 			})
+		m.bot.EXPECT().SendWithKeyboard(gomock.Any(), chatID, menu.Text, menu.Keyboard()).Return(nil)
 
 		in := dto.Input{
 			ChatID: chatID, MessageID: messageID, HasCallback: true, CallbackID: "cb-1", CallbackData: "rec:60:20261016",

@@ -139,6 +139,23 @@ func (g *Gateway) RemoveKeyboard(ctx context.Context, chatID int64, messageID in
 	return nil
 }
 
+// SetMyCommands registers commands with Telegram's own "/" picker, for
+// every chat scope (no BotCommandScope set — Telegram's default) — called
+// once at startup (see cmd/service/main.go).
+func (g *Gateway) SetMyCommands(ctx context.Context, commands []dto.Command) error {
+	cmds := make([]tgbotapi.BotCommand, 0, len(commands))
+	for _, c := range commands {
+		cmds = append(cmds, tgbotapi.BotCommand{Command: c.Name, Description: c.Description})
+	}
+
+	_, err := request(ctx, g.bot, tgbotapi.NewSetMyCommands(cmds...))
+	if err != nil {
+		return fmt.Errorf("set my commands: %w", classify(err))
+	}
+
+	return nil
+}
+
 // AnswerCallback closes a pending callback query (stops the tap spinner)
 // with no visible feedback. A blank callbackID is a no-op, so callers don't
 // need to special-case updates that weren't callbacks.

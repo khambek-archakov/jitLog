@@ -34,6 +34,7 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/competition/moderate"
 	"github.com/khambek-archakov/jitLog/internal/usecase/competition/submit"
 	competitionupdate "github.com/khambek-archakov/jitLog/internal/usecase/competition/update"
+	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 	"github.com/khambek-archakov/jitLog/internal/usecase/onboarding"
 	"github.com/khambek-archakov/jitLog/internal/usecase/profile"
 	"github.com/khambek-archakov/jitLog/internal/usecase/reminder"
@@ -149,6 +150,13 @@ func run() int {
 	competitions := competitionrepo.New(DB)
 	reminders := reminderrepo.New(DB)
 	gateway := tgbotapigateway.New(bot)
+
+	// Registered once at startup — not fatal if it fails, the bot still
+	// works fine without appearing in Telegram's own "/" picker.
+	menuCommand := []dto.Command{{Name: "menu", Description: "Главное меню"}}
+	if err := gateway.SetMyCommands(ctx, menuCommand); err != nil {
+		logger.Error("failed to set bot commands", "error", err)
+	}
 
 	onboardingUseCase := onboarding.New(gateway, users)
 	trainingCreateUseCase := create.New(gateway, trainings)

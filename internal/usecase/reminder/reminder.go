@@ -21,6 +21,7 @@ import (
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
+	"github.com/khambek-archakov/jitLog/internal/usecase/internal/menu"
 	"github.com/khambek-archakov/jitLog/internal/usecase/internal/usertime"
 	traininginfo "github.com/khambek-archakov/jitLog/internal/usecase/training/info"
 )
@@ -324,8 +325,9 @@ func (uc *UseCase) handleSendError(ctx context.Context, u *model.User, err error
 	return fmt.Errorf("send reminder: %w", err)
 }
 
-// Handle covers the "🔕 Отключить напоминания" button (shared by both
-// reminder kinds) and the post-session message's own "✅ Записать" button.
+// Handle covers the "🔕 Отключить напоминания" and "☰ Меню" buttons
+// (shared by both reminder kinds) and the post-session message's own "✅
+// Записать" button.
 func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) error {
 	if !in.HasCallback {
 		return nil
@@ -334,6 +336,9 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 	switch {
 	case in.CallbackData == callbackDisable:
 		return uc.handleDisable(ctx, u, in)
+
+	case in.CallbackData == callbackMenu:
+		return uc.handleMenu(ctx, in)
 
 	case strings.HasPrefix(in.CallbackData, callbackRecPrefix):
 		return uc.handleRec(ctx, u, in)
@@ -355,6 +360,24 @@ func (uc *UseCase) handleDisable(ctx context.Context, u *model.User, in dto.Inpu
 	}
 
 	return uc.bot.EditMessageWithKeyboard(ctx, in.ChatID, in.MessageID, disabledText, nil)
+}
+
+// handleMenu covers "☰ Меню" on either reminder message — strips that
+// message's own keyboard (best-effort, same reasoning as the
+// post-session job's own RemoveKeyboard call: a stale/already-gone
+// message must not block showing the menu) and sends the main menu as a
+// new message. The tap itself already counts as activity via Router's
+// own middleware, same as every other callback.
+func (uc *UseCase) handleMenu(ctx context.Context, in dto.Input) error {
+	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
+		return err
+	}
+
+	if err := uc.bot.RemoveKeyboard(ctx, in.ChatID, in.MessageID); err != nil {
+		uc.logger.Warn("reminder: failed to remove keyboard", "error", err)
+	}
+
+	return uc.bot.SendWithKeyboard(ctx, in.ChatID, menu.Text, menu.Keyboard())
 }
 
 // handleRec covers rec:{slot_id}:{yyyymmdd} — "✅ Записать" on a
@@ -405,9 +428,17 @@ func (uc *UseCase) handleRec(ctx context.Context, u *model.User, in dto.Input) e
 		return fmt.Errorf("create training: %w", err)
 	}
 
-	return uc.bot.EditMessageWithKeyboard(
+	if err := uc.bot.EditMessageWithKeyboard(
 		ctx, in.ChatID, in.MessageID, traininginfo.ConfirmationText(t), traininginfo.ConfirmationKeyboard(t.ID),
-	)
+	); err != nil {
+		return err
+	}
+
+	// A nudge towards what's next, same reasoning as the manual
+	// create flow's own identical step (training/create/steps.
+	// DurationStep.finish) — without this the user has nothing left
+	// on screen to get back to the menu with.
+	return uc.bot.SendWithKeyboard(ctx, in.ChatID, menu.Text, menu.Keyboard())
 }
 
 // parseRecCallback validates the callback down to the spec's own list:
