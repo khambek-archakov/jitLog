@@ -70,6 +70,20 @@ func periodStart(p period, now time.Time) time.Time {
 	}
 }
 
+// today is now's own calendar day, at UTC midnight — same
+// UTC-normalization reasoning as periodStart, and the inclusive upper
+// bound every period (and a custom range) is filtered against.
+func today(now time.Time) time.Time {
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+}
+
+// periodRange is p's own [from, to] bounds, both inclusive, anchored at
+// now — periodAll's from is the zero time, which filterByRange treats as
+// "no lower bound" since every real date is after it.
+func periodRange(p period, now time.Time) (time.Time, time.Time) {
+	return periodStart(p, now), today(now)
+}
+
 // mondayOf returns the Monday (00:00 UTC) of d's calendar week, using d's
 // own (local) year/month/day — same UTC-normalization reasoning as
 // periodStart.

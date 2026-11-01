@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 )
@@ -50,6 +51,85 @@ func TestFilterByPeriod(t *testing.T) {
 
 			assert.Len(t, got, tc.want)
 		})
+	}
+}
+
+func TestFilterByRange(t *testing.T) {
+	t.Parallel()
+
+	trainings := []*model.Training{
+		trainingOn("2026-03-01", model.TrainingTypeGi, 60),
+		trainingOn("2026-03-10", model.TrainingTypeGi, 60),
+		trainingOn("2026-03-18", model.TrainingTypeNoGi, 90),
+		trainingOn("2026-03-25", model.TrainingTypeGi, 60),
+	}
+
+	t.Run("both bounds inclusive", func(t *testing.T) {
+		t.Parallel()
+
+		got := filterByRange(trainings, calDate("2026-03-10"), calDate("2026-03-18"))
+
+		require.Len(t, got, 2)
+		assert.True(t, got[0].Date.Equal(calDate("2026-03-10")))
+		assert.True(t, got[1].Date.Equal(calDate("2026-03-18")))
+	})
+
+	t.Run("from equals to — a single day", func(t *testing.T) {
+		t.Parallel()
+
+		day := calDate("2026-03-18")
+
+		got := filterByRange(trainings, day, day)
+
+		require.Len(t, got, 1)
+	})
+
+	t.Run("zero from excludes nothing on the lower end", func(t *testing.T) {
+		t.Parallel()
+
+		got := filterByRange(trainings, time.Time{}, calDate("2026-03-10"))
+
+		require.Len(t, got, 2)
+	})
+
+	t.Run("no trainings fall in range", func(t *testing.T) {
+		t.Parallel()
+
+		got := filterByRange(trainings, calDate("2026-04-01"), calDate("2026-04-30"))
+
+		assert.Empty(t, got)
+	})
+
+	t.Run("a training's own Date carries a nonzero time-of-day and still counts as 'on' the upper bound", func(t *testing.T) {
+		t.Parallel()
+
+		withTime := &model.Training{Date: time.Date(2026, 3, 18, 21, 45, 0, 0, time.UTC)}
+
+		got := filterByRange([]*model.Training{withTime}, calDate("2026-03-18"), calDate("2026-03-18"))
+
+		require.Len(t, got, 1)
+	})
+}
+
+// TestFilterByPeriod_MatchesFilterByRange_SameBounds guards the spec's own
+// equivalence requirement: a custom range with the same bounds as an
+// existing period must produce identical results.
+func TestFilterByPeriod_MatchesFilterByRange_SameBounds(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC)
+
+	trainings := []*model.Training{
+		trainingOn("2026-01-05", model.TrainingTypeGi, 60),
+		trainingOn("2026-03-01", model.TrainingTypeGi, 60),
+		trainingOn("2026-03-16", model.TrainingTypeGi, 60),
+		trainingOn("2026-03-18", model.TrainingTypeNoGi, 90),
+	}
+
+	for _, p := range []period{periodWeek, periodMonth, periodYear, periodAll} {
+		from, to := periodRange(p, now)
+
+		assert.Equal(t, filterByPeriod(trainings, p, now), filterByRange(trainings, from, to), "period %s", p)
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
+	traininginfo "github.com/khambek-archakov/jitLog/internal/usecase/training/info"
 )
 
 // callbackMenuAddTraining and callbackMenuBack mirror
@@ -199,16 +200,11 @@ func weeksWord(n int) string {
 
 // statsKeyboard builds the "За период" screen's keyboard. showModeSwitch
 // is true once the user has ≥2 recorded belts — otherwise "По поясам"
-// would always be a 100%-one-belt no-op, so it just isn't offered.
-func statsKeyboard(selected period, showModeSwitch bool) dto.Keyboard {
-	kb := dto.Keyboard{
-		dto.Row(
-			periodButton("Неделя", periodWeek, selected),
-			periodButton("Месяц", periodMonth, selected),
-			periodButton("Год", periodYear, selected),
-			periodButton("Всё время", periodAll, selected),
-		),
-	}
+// would always be a 100%-one-belt no-op, so it just isn't offered. now is
+// only needed to seed "📅 Другие даты" — it always opens the calendar on
+// the current month.
+func statsKeyboard(selected period, showModeSwitch bool, now time.Time) dto.Keyboard {
+	kb := dto.Keyboard{periodRow(selected), otherDatesRow(now)}
 
 	if showModeSwitch {
 		kb = append(kb, modeSwitchRow(false))
@@ -253,4 +249,61 @@ func periodButton(label string, p, selected period) dto.Button {
 	}
 
 	return dto.Button{Label: label, Data: callbackStatsPeriodPrefix + string(p)}
+}
+
+// periodRow is the four period tabs, shared by statsKeyboard and
+// rangeKeyboard — passing a selected value that's none of the four
+// (rangeKeyboard's own case, since a custom range is never literally "one
+// of the tabs") just renders them all unmarked.
+func periodRow(selected period) []dto.Button {
+	return dto.Row(
+		periodButton("Неделя", periodWeek, selected),
+		periodButton("Месяц", periodMonth, selected),
+		periodButton("Год", periodYear, selected),
+		periodButton("Всё время", periodAll, selected),
+	)
+}
+
+// otherDatesRow opens the calendar's "От" step at now's own month.
+func otherDatesRow(now time.Time) []dto.Button {
+	return dto.Row(dto.Button{Label: "📅 Другие даты", Data: calFromMonthCallback(startOfMonth(now))})
+}
+
+// rangeText is the applied custom-range screen's own header — distinct
+// from calConfirmText, which only shows the lighter "Период: …" preview
+// before "Применить" is tapped. No streak line here (see the feature's
+// own spec: a custom range doesn't carry the weekly-streak concept).
+func rangeText(from, to time.Time, c counts) string {
+	header := "📊 Статистика · " + traininginfo.FormatDate(from) + " – " + traininginfo.FormatDate(to)
+
+	if c.Total == 0 {
+		return header + "\n\nВ этом периоде нет тренировок."
+	}
+
+	var b strings.Builder
+
+	fmt.Fprintf(&b, "%s\n\n🥋 Тренировок: %d\n⏱ Время на мате: %s\n", header, c.Total, FormatDuration(c.TotalMinutes))
+
+	if c.TotalRounds > 0 {
+		fmt.Fprintf(&b, "🔄 Схваток: %d\n", c.TotalRounds)
+	}
+
+	b.WriteString("\nПо типу\n")
+	b.WriteString(typeLine("🥋 Gi", c.GiCount, c))
+	b.WriteString(typeLine("🥷 No-Gi", c.NoGiCount, c))
+	b.WriteString(typeLine("🤼 Open Mat", c.OpenMatCount, c))
+
+	return b.String()
+}
+
+// rangeKeyboard is the applied custom-range screen's own keyboard — the
+// same period tabs (none marked selected) and "📅 Другие даты" row as
+// statsKeyboard, but no mode switch (belts-by-range isn't offered, see
+// the spec) and no "selected" period.
+func rangeKeyboard(now time.Time) dto.Keyboard {
+	return dto.Keyboard{
+		periodRow(""),
+		otherDatesRow(now),
+		dto.Row(dto.Button{Label: "← Главное меню", Data: callbackMenuBack}),
+	}
 }

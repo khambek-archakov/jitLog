@@ -128,12 +128,14 @@ func TestStatsText(t *testing.T) {
 func TestStatsKeyboard(t *testing.T) {
 	t.Parallel()
 
+	now := time.Date(2026, 10, 15, 12, 0, 0, 0, time.UTC)
+
 	t.Run("without the mode switch", func(t *testing.T) {
 		t.Parallel()
 
-		kb := statsKeyboard(periodMonth, false)
+		kb := statsKeyboard(periodMonth, false, now)
 
-		require.Len(t, kb, 2)
+		require.Len(t, kb, 3)
 		require.Len(t, kb[0], 4)
 
 		assert.Equal(t, "Неделя", kb[0][0].Label)
@@ -145,22 +147,26 @@ func TestStatsKeyboard(t *testing.T) {
 		assert.Equal(t, "Год", kb[0][2].Label)
 		assert.Equal(t, "Всё время", kb[0][3].Label)
 
-		assert.Equal(t, "← Главное меню", kb[1][0].Label)
-		assert.Equal(t, "menu:back", kb[1][0].Data)
+		assert.Equal(t, "📅 Другие даты", kb[1][0].Label)
+
+		assert.Equal(t, "← Главное меню", kb[2][0].Label)
+		assert.Equal(t, "menu:back", kb[2][0].Data)
 	})
 
 	t.Run("with the mode switch", func(t *testing.T) {
 		t.Parallel()
 
-		kb := statsKeyboard(periodWeek, true)
+		kb := statsKeyboard(periodWeek, true, now)
 
-		require.Len(t, kb, 3)
-		assert.Equal(t, "• За период •", kb[1][0].Label)
-		assert.Equal(t, "stats:period:week", kb[1][0].Data)
-		assert.Equal(t, "По поясам", kb[1][1].Label)
-		assert.Equal(t, "stats:belts", kb[1][1].Data)
+		require.Len(t, kb, 4)
+		assert.Equal(t, "📅 Другие даты", kb[1][0].Label)
 
-		assert.Equal(t, "← Главное меню", kb[2][0].Label)
+		assert.Equal(t, "• За период •", kb[2][0].Label)
+		assert.Equal(t, "stats:period:week", kb[2][0].Data)
+		assert.Equal(t, "По поясам", kb[2][1].Label)
+		assert.Equal(t, "stats:belts", kb[2][1].Data)
+
+		assert.Equal(t, "← Главное меню", kb[3][0].Label)
 	})
 }
 

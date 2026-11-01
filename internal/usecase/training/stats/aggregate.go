@@ -16,22 +16,34 @@ type counts struct {
 	OpenMatCount int
 }
 
-// filterByPeriod returns the subset of trainings (already sorted by date)
-// that falls on or after p's start, relative to now. periodAll returns
-// everything.
+// filterByPeriod returns the subset of trainings that falls within p's
+// own [from, to] bounds, relative to now.
 func filterByPeriod(trainings []*model.Training, p period, now time.Time) []*model.Training {
-	if p == periodAll {
-		return trainings
-	}
+	from, to := periodRange(p, now)
 
-	start := periodStart(p, now)
+	return filterByRange(trainings, from, to)
+}
+
+// filterByRange returns the subset of trainings whose Date falls within
+// [from, to], both inclusive calendar days — the custom-range screen's
+// own filter, and what filterByPeriod itself is built on. A zero from
+// (periodAll's own lower bound) excludes nothing, since every real date
+// is after it. The upper bound is checked against the start of the day
+// after to, rather than to itself, so a Date carrying a nonzero
+// time-of-day (as every *model.Training the repository returns legitimately
+// might, despite the column itself being just a date) still counts as
+// "on" to, not after it.
+func filterByRange(trainings []*model.Training, from, to time.Time) []*model.Training {
+	exclusiveEnd := to.AddDate(0, 0, 1)
 
 	var out []*model.Training
 
 	for _, t := range trainings {
-		if !t.Date.Before(start) {
-			out = append(out, t)
+		if t.Date.Before(from) || !t.Date.Before(exclusiveEnd) {
+			continue
 		}
+
+		out = append(out, t)
 	}
 
 	return out

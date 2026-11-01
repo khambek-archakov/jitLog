@@ -99,6 +99,20 @@ func TestPeriodStart_IgnoresNowsLocation(t *testing.T) {
 	}
 }
 
+func TestPeriodRange(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC)
+
+	from, to := periodRange(periodWeek, now)
+	assert.Equal(t, "2026-03-16", from.Format("2006-01-02"))
+	assert.Equal(t, "2026-03-18", to.Format("2006-01-02"))
+
+	from, to = periodRange(periodAll, now)
+	assert.True(t, from.IsZero())
+	assert.Equal(t, "2026-03-18", to.Format("2006-01-02"))
+}
+
 func TestPeriodRangeText(t *testing.T) {
 	t.Parallel()
 
