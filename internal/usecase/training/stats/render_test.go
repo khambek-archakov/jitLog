@@ -148,6 +148,7 @@ func TestStatsKeyboard(t *testing.T) {
 		assert.Equal(t, "Всё время", kb[0][3].Label)
 
 		assert.Equal(t, "📅 Другие даты", kb[1][0].Label)
+		assert.Equal(t, "cal:f:202610", kb[1][0].Data, "opens the calendar on now's own month")
 
 		assert.Equal(t, "← Главное меню", kb[2][0].Label)
 		assert.Equal(t, "menu:back", kb[2][0].Data)

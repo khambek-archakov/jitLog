@@ -304,6 +304,72 @@ func TestGateway_EditMessageWithKeyboard(t *testing.T) {
 	}
 }
 
+func TestGateway_EditMessageWithKeyboardMarkdown(t *testing.T) {
+	t.Parallel()
+
+	const messageID = 555
+
+	keyboard := dto.Keyboard{
+		dto.Row(dto.Button{Label: "Отмена", Data: "cancel"}),
+	}
+
+	tests := []struct {
+		name     string
+		prepare  func(transport *Mocktransport)
+		expected func(t assert.TestingT, err error)
+	}{
+		{
+			name: "success, sets the MarkdownV2 parse mode",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					DoAndReturn(func(c tgbotapi.Chattable) (*tgbotapi.APIResponse, error) {
+						edit, ok := c.(tgbotapi.EditMessageTextConfig)
+						require.True(t, ok)
+						assert.Equal(t, chatID, edit.ChatID)
+						assert.Equal(t, messageID, edit.MessageID)
+						assert.Equal(t, tgbotapi.ModeMarkdownV2, edit.ParseMode)
+
+						return &tgbotapi.APIResponse{}, nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "transport error",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					Return(nil, errors.New("fail"))
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.Error(t, err)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+
+			mockTransport := NewMocktransport(ctrl)
+
+			tc.prepare(mockTransport)
+
+			g := gateway.New(mockTransport)
+
+			err := g.EditMessageWithKeyboardMarkdown(context.Background(), chatID, messageID, "*bold*", keyboard)
+
+			tc.expected(t, err)
+		})
+	}
+}
+
 func TestGateway_SendAnimationWithKeyboard(t *testing.T) {
 	t.Parallel()
 

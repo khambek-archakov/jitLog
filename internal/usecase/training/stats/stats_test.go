@@ -3,7 +3,6 @@ package stats_test
 import (
 	"context"
 	"errors"
-	"strconv"
 	"testing"
 	"time"
 
@@ -335,18 +334,16 @@ func TestUseCase_Handle(t *testing.T) {
 }
 
 // TestUseCase_Handle_Calendar covers the "📅 Другие даты" custom-range
-// picker (cal:*) — a fixed clock throughout, since the calendar's own
-// bounds (today, first available month) need to be deterministic.
+// picker (cal:*). Every date is pickable now (see calendar.go's own
+// doc) — there's no "unavailable day" response left to test here, only
+// the ordinary step transitions, the От/До swap, and the bold-month
+// MarkdownV2 screens.
 func TestUseCase_Handle_Calendar(t *testing.T) {
 	t.Parallel()
 
 	const chatID, userID, messageID int64 = 777, 42, 555
 
-	// A Tuesday — no edge-of-week/month surprises.
-	now := time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)
-	nowFn := func() time.Time { return now }
-
-	u := &model.User{ID: userID, CreatedAt: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)}
+	u := &model.User{ID: userID}
 
 	tests := []struct {
 		name     string
@@ -366,17 +363,6 @@ func TestUseCase_Handle_Calendar(t *testing.T) {
 		},
 
 		{
-			name: "cal:x answers with the unavailable toast, screen untouched",
-			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: "cal:x"},
-			prepare: func(sender *Mocksender, _ *MocktrainingRepo, _ *MockbeltRepo) {
-				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Эта дата недоступна").Return(nil)
-			},
-			expected: func(t assert.TestingT, err error) {
-				assert.NoError(t, err)
-			},
-		},
-
-		{
 			name: "cal:c cancels back to the default week view",
 			in: dto.Input{
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1", CallbackData: "cal:c",
@@ -384,7 +370,7 @@ func TestUseCase_Handle_Calendar(t *testing.T) {
 			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
 				repo.EXPECT().
 					ListAllTrainings(gomock.Any(), userID).
-					Return([]*model.Training{{Date: now, DurationMinutes: 60}}, nil)
+					Return([]*model.Training{{Date: time.Now(), DurationMinutes: 60}}, nil)
 
 				belts.EXPECT().
 					ListBeltPromotions(gomock.Any(), userID).
@@ -406,20 +392,20 @@ func TestUseCase_Handle_Calendar(t *testing.T) {
 		},
 
 		{
-			name: "cal:f opens the От step at the given month",
+			name: "cal:f opens the От step at the given month, bolded in MarkdownV2",
 			in: dto.Input{
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
 				CallbackData: "cal:f:202610",
 			},
-			prepare: func(sender *Mocksender, repo *MocktrainingRepo, _ *MockbeltRepo) {
-				repo.EXPECT().ListAllTrainings(gomock.Any(), userID).Return(nil, nil)
-
+			prepare: func(sender *Mocksender, _ *MocktrainingRepo, _ *MockbeltRepo) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					EditMessageWithKeyboardMarkdown(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
-						assert.Equal(t, "Выбери начало периода", text)
+						assert.Equal(t, "Выбери начало периода\n*Октябрь 2026*", text)
+
+						require.Len(t, kb[0], 4) // «, ‹, ›, » — no label button.
 						assert.Equal(t, "Отмена", kb[len(kb)-1][0].Label)
 
 						return nil
@@ -431,20 +417,18 @@ func TestUseCase_Handle_Calendar(t *testing.T) {
 		},
 
 		{
-			name: "cal:d picks a valid От day, moves to the До step",
+			name: "cal:d picks any От day — a far-future date included — and moves to the До step",
 			in: dto.Input{
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
-				CallbackData: "cal:d:20261015",
+				CallbackData: "cal:d:20991015",
 			},
-			prepare: func(sender *Mocksender, repo *MocktrainingRepo, _ *MockbeltRepo) {
-				repo.EXPECT().ListAllTrainings(gomock.Any(), userID).Return(nil, nil)
-
+			prepare: func(sender *Mocksender, _ *MocktrainingRepo, _ *MockbeltRepo) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					EditMessageWithKeyboardMarkdown(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, _ dto.Keyboard) error {
-						assert.Equal(t, "Выбери конец периода\nНачало: 15 октября 2026", text)
+						assert.Equal(t, "Выбери конец периода\nНачало: 15 октября 2099\n*Октябрь 2099*", text)
 
 						return nil
 					})
@@ -455,15 +439,21 @@ func TestUseCase_Handle_Calendar(t *testing.T) {
 		},
 
 		{
-			name: "cal:d for a stale/now-future day answers the unavailable toast instead",
+			name: "cal:d picking a day from an adjacent month opens До on that day's own month",
 			in: dto.Input{
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
-				CallbackData: "cal:d:20261025",
+				CallbackData: "cal:d:20260831", // tapped while viewing September's grid.
 			},
-			prepare: func(sender *Mocksender, repo *MocktrainingRepo, _ *MockbeltRepo) {
-				repo.EXPECT().ListAllTrainings(gomock.Any(), userID).Return(nil, nil)
+			prepare: func(sender *Mocksender, _ *MocktrainingRepo, _ *MockbeltRepo) {
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
-				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Эта дата недоступна").Return(nil)
+				sender.EXPECT().
+					EditMessageWithKeyboardMarkdown(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, _ dto.Keyboard) error {
+						assert.Equal(t, "Выбери конец периода\nНачало: 31 августа 2026\n*Август 2026*", text)
+
+						return nil
+					})
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
@@ -476,15 +466,13 @@ func TestUseCase_Handle_Calendar(t *testing.T) {
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
 				CallbackData: "cal:t:20261001:202609",
 			},
-			prepare: func(sender *Mocksender, repo *MocktrainingRepo, _ *MockbeltRepo) {
-				repo.EXPECT().ListAllTrainings(gomock.Any(), userID).Return(nil, nil)
-
+			prepare: func(sender *Mocksender, _ *MocktrainingRepo, _ *MockbeltRepo) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
-					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					EditMessageWithKeyboardMarkdown(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, _ dto.Keyboard) error {
-						assert.Equal(t, "Выбери конец периода\nНачало: 1 октября 2026", text)
+						assert.Equal(t, "Выбери конец периода\nНачало: 1 октября 2026\n*Сентябрь 2026*", text)
 
 						return nil
 					})
@@ -495,14 +483,12 @@ func TestUseCase_Handle_Calendar(t *testing.T) {
 		},
 
 		{
-			name: "cal:e picks a valid До day, shows the confirm screen",
+			name: "cal:e with До after От shows the confirm screen",
 			in: dto.Input{
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
 				CallbackData: "cal:e:20261001:20261015",
 			},
-			prepare: func(sender *Mocksender, repo *MocktrainingRepo, _ *MockbeltRepo) {
-				repo.EXPECT().ListAllTrainings(gomock.Any(), userID).Return(nil, nil)
-
+			prepare: func(sender *Mocksender, _ *MocktrainingRepo, _ *MockbeltRepo) {
 				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
 				sender.EXPECT().
@@ -510,6 +496,7 @@ func TestUseCase_Handle_Calendar(t *testing.T) {
 					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
 						assert.Equal(t, "Период: 1 октября 2026 – 15 октября 2026", text)
 						assert.Equal(t, "✅ Применить", kb[0][0].Label)
+						assert.Equal(t, "cal:a:20261001:20261015", kb[0][0].Data)
 
 						return nil
 					})
@@ -520,15 +507,44 @@ func TestUseCase_Handle_Calendar(t *testing.T) {
 		},
 
 		{
-			name: "cal:e with До before От (stale tap) answers the unavailable toast",
+			name: "cal:e with До before От is swapped instead of rejected",
 			in: dto.Input{
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
 				CallbackData: "cal:e:20261015:20261001",
 			},
-			prepare: func(sender *Mocksender, repo *MocktrainingRepo, _ *MockbeltRepo) {
-				repo.EXPECT().ListAllTrainings(gomock.Any(), userID).Return(nil, nil)
+			prepare: func(sender *Mocksender, _ *MocktrainingRepo, _ *MockbeltRepo) {
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
 
-				sender.EXPECT().AnswerCallbackWithText(gomock.Any(), "cb-1", "Эта дата недоступна").Return(nil)
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, kb dto.Keyboard) error {
+						assert.Equal(t, "Период: 1 октября 2026 – 15 октября 2026", text)
+						assert.Equal(t, "cal:a:20261001:20261015", kb[0][0].Data)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "cal:e with equal От and До is a valid single-day period",
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "cal:e:20261001:20261001",
+			},
+			prepare: func(sender *Mocksender, _ *MocktrainingRepo, _ *MockbeltRepo) {
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, text string, _ dto.Keyboard) error {
+						assert.Equal(t, "Период: 1 октября 2026 – 1 октября 2026", text)
+
+						return nil
+					})
 			},
 			expected: func(t assert.TestingT, err error) {
 				assert.NoError(t, err)
@@ -603,93 +619,11 @@ func TestUseCase_Handle_Calendar(t *testing.T) {
 
 			tc.prepare(mockSender, mockRepo, mockBelts)
 
-			uc := stats.NewWithClock(mockSender, mockRepo, mockBelts, nowFn)
+			uc := stats.New(mockSender, mockRepo, mockBelts)
 
 			err := uc.Handle(context.Background(), u, tc.in)
 
 			tc.expected(t, err)
-		})
-	}
-}
-
-// TestUseCase_Handle_Calendar_Timezones guards the spec's own requirement:
-// the calendar's "today" bound follows each user's own timezone, not the
-// server's. Europe/Kaliningrad (UTC+2) and Asia/Yekaterinburg (UTC+5) are
-// 3 hours apart — at this instant that's enough for their calendar days to
-// actually differ.
-func TestUseCase_Handle_Calendar_Timezones(t *testing.T) {
-	t.Parallel()
-
-	const chatID, userID, messageID int64 = 777, 42, 555
-
-	now := time.Date(2026, 10, 20, 21, 30, 0, 0, time.UTC)
-	nowFn := func() time.Time { return now }
-
-	kaliningrad := "Europe/Kaliningrad"
-	yekaterinburg := "Asia/Yekaterinburg"
-
-	tests := []struct {
-		name        string
-		tz          *string
-		lastDayOf   string // the last pickable day of October, per that user's own "today".
-		firstBeyond string // the first day after it — must be unavailable.
-	}{
-		{name: "Kaliningrad is still on the 20th", tz: &kaliningrad, lastDayOf: "20", firstBeyond: "21"},
-		{name: "Yekaterinburg has already rolled over to the 21st", tz: &yekaterinburg, lastDayOf: "21", firstBeyond: "22"},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			u := &model.User{
-				ID: userID, Timezone: tc.tz, CreatedAt: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-			}
-
-			ctrl := gomock.NewController(t)
-
-			mockSender := NewMocksender(ctrl)
-			mockRepo := NewMocktrainingRepo(ctrl)
-			mockBelts := NewMockbeltRepo(ctrl)
-
-			mockRepo.EXPECT().ListAllTrainings(gomock.Any(), userID).Return(nil, nil)
-			mockSender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
-
-			mockSender.EXPECT().
-				EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
-				DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
-					// October 2026 starts on a Thursday — 2 nav/header rows,
-					// then 3 leading blanks before day 1 (see
-					// TestCalDayRows_October2026).
-					dayCell := func(day int) dto.Button {
-						const leading = 3
-
-						idx := leading + day - 1
-
-						return kb[2+idx/7][idx%7]
-					}
-
-					last, _ := strconv.Atoi(tc.lastDayOf)
-					beyond, _ := strconv.Atoi(tc.firstBeyond)
-
-					assert.Equal(t, tc.lastDayOf, dayCell(last).Label, "day %d should be pickable", last)
-					assert.NotEqual(t, "cal:x", dayCell(last).Data)
-
-					assert.Equal(t, "·", dayCell(beyond).Label, "day %d should be unavailable", beyond)
-					assert.Equal(t, "cal:x", dayCell(beyond).Data)
-
-					return nil
-				})
-
-			uc := stats.NewWithClock(mockSender, mockRepo, mockBelts, nowFn)
-
-			in := dto.Input{
-				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
-				CallbackData: "cal:f:202610",
-			}
-
-			err := uc.Handle(context.Background(), u, in)
-			require.NoError(t, err)
 		})
 	}
 }

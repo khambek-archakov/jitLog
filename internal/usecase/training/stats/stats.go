@@ -126,31 +126,30 @@ func (uc *UseCase) handleBelts(ctx context.Context, u *model.User, in dto.Input)
 
 // handleCalendar covers every cal:* callback — the "📅 Другие даты"
 // custom-range picker (see calendar.go). Nothing here is stored: each tap
-// re-derives everything from the callback data itself plus a fresh
-// calendarBounds call, so an old message (even from before a restart)
-// keeps working, and a stale/repeat tap is always safe to re-render.
+// re-derives everything from the callback data itself, so an old message
+// (even from before a restart) keeps working, and a stale/repeat tap is
+// always safe to re-render. Every date within [calAbsoluteMin,
+// calAbsoluteMax] is pickable — there's no "unavailable day" case left to
+// dispatch on.
 func (uc *UseCase) handleCalendar(ctx context.Context, u *model.User, in dto.Input) error {
 	switch {
 	case in.CallbackData == callbackCalNoop:
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 
-	case in.CallbackData == callbackCalUnavailable:
-		return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, calUnavailableToast)
-
 	case in.CallbackData == callbackCalCancel:
 		return uc.handlePeriod(ctx, u, in, periodWeek)
 
 	case strings.HasPrefix(in.CallbackData, callbackCalFromMonthPrefix):
-		return uc.handleCalFromMonth(ctx, u, in)
+		return uc.handleCalFromMonth(ctx, in)
 
 	case strings.HasPrefix(in.CallbackData, callbackCalFromDayPrefix):
-		return uc.handleCalFromDay(ctx, u, in)
+		return uc.handleCalFromDay(ctx, in)
 
 	case strings.HasPrefix(in.CallbackData, callbackCalToMonthPrefix):
-		return uc.handleCalToMonth(ctx, u, in)
+		return uc.handleCalToMonth(ctx, in)
 
 	case strings.HasPrefix(in.CallbackData, callbackCalToDayPrefix):
-		return uc.handleCalToDay(ctx, u, in)
+		return uc.handleCalToDay(ctx, in)
 
 	case strings.HasPrefix(in.CallbackData, callbackCalApplyPrefix):
 		return uc.handleCalApply(ctx, u, in)
@@ -160,83 +159,62 @@ func (uc *UseCase) handleCalendar(ctx context.Context, u *model.User, in dto.Inp
 	}
 }
 
-func (uc *UseCase) handleCalFromMonth(ctx context.Context, u *model.User, in dto.Input) error {
+func (uc *UseCase) handleCalFromMonth(ctx context.Context, in dto.Input) error {
 	month, ok := parseCalFromMonth(in.CallbackData)
 	if !ok {
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
-	minDate, maxDate, err := uc.calendarBounds(ctx, u)
-	if err != nil {
-		return err
-	}
-
 	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(
-		ctx, in.ChatID, in.MessageID, calFromText(), calFromKeyboard(month, minDate, maxDate),
+	return uc.bot.EditMessageWithKeyboardMarkdown(
+		ctx, in.ChatID, in.MessageID, calFromText(month), calFromKeyboard(month),
 	)
 }
 
-func (uc *UseCase) handleCalFromDay(ctx context.Context, u *model.User, in dto.Input) error {
+func (uc *UseCase) handleCalFromDay(ctx context.Context, in dto.Input) error {
 	day, ok := parseCalFromDay(in.CallbackData)
 	if !ok {
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
-	minDate, maxDate, err := uc.calendarBounds(ctx, u)
-	if err != nil {
-		return err
-	}
-
-	if day.Before(minDate) || day.After(maxDate) {
-		return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, calUnavailableToast)
-	}
-
 	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(
-		ctx, in.ChatID, in.MessageID, calToText(day), calToKeyboard(day, day, minDate, maxDate),
+	return uc.bot.EditMessageWithKeyboardMarkdown(
+		ctx, in.ChatID, in.MessageID, calToText(day, day), calToKeyboard(day, day),
 	)
 }
 
-func (uc *UseCase) handleCalToMonth(ctx context.Context, u *model.User, in dto.Input) error {
+func (uc *UseCase) handleCalToMonth(ctx context.Context, in dto.Input) error {
 	from, month, ok := parseCalToMonth(in.CallbackData)
 	if !ok {
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
-	minDate, maxDate, err := uc.calendarBounds(ctx, u)
-	if err != nil {
-		return err
-	}
-
 	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
 
-	return uc.bot.EditMessageWithKeyboard(
-		ctx, in.ChatID, in.MessageID, calToText(from), calToKeyboard(from, month, minDate, maxDate),
+	return uc.bot.EditMessageWithKeyboardMarkdown(
+		ctx, in.ChatID, in.MessageID, calToText(from, month), calToKeyboard(from, month),
 	)
 }
 
-func (uc *UseCase) handleCalToDay(ctx context.Context, u *model.User, in dto.Input) error {
+// handleCalToDay picks the "До" day, landing on the confirm screen. A
+// "До" earlier than "От" is no longer rejected — it's swapped, per the
+// spec, so the pair always continues as if picked in the right order.
+func (uc *UseCase) handleCalToDay(ctx context.Context, in dto.Input) error {
 	from, to, ok := parseCalToDay(in.CallbackData)
 	if !ok {
 		return uc.bot.AnswerCallback(ctx, in.CallbackID)
 	}
 
-	minDate, maxDate, err := uc.calendarBounds(ctx, u)
-	if err != nil {
-		return err
-	}
-
-	if to.Before(from) || to.Before(minDate) || to.After(maxDate) {
-		return uc.bot.AnswerCallbackWithText(ctx, in.CallbackID, calUnavailableToast)
+	if to.Before(from) {
+		from, to = to, from
 	}
 
 	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
@@ -268,34 +246,4 @@ func (uc *UseCase) handleCalApply(ctx context.Context, u *model.User, in dto.Inp
 	return uc.bot.EditMessageWithKeyboard(
 		ctx, in.ChatID, in.MessageID, rangeText(from, to, c), rangeKeyboard(uc.now().In(usertime.Location(u))),
 	)
-}
-
-// calendarBounds is the calendar's overall selectable range: never before
-// the user's first training (or, with none yet, their own signup date —
-// see minAvailableDate), never after today in the user's own timezone.
-func (uc *UseCase) calendarBounds(ctx context.Context, u *model.User) (time.Time, time.Time, error) {
-	all, err := uc.repo.ListAllTrainings(ctx, u.ID)
-	if err != nil {
-		return time.Time{}, time.Time{}, fmt.Errorf("list all trainings: %w", err)
-	}
-
-	now := uc.now().In(usertime.Location(u))
-
-	return minAvailableDate(u, all), today(now), nil
-}
-
-// minAvailableDate walks all rather than trusting it's sorted oldest-first
-// (ListAllTrainings' own doc comment promises that, but this doesn't need
-// to depend on it to stay correct).
-func minAvailableDate(u *model.User, all []*model.Training) time.Time {
-	createdAt := u.CreatedAt.UTC()
-	floor := time.Date(createdAt.Year(), createdAt.Month(), createdAt.Day(), 0, 0, 0, 0, time.UTC)
-
-	for _, t := range all {
-		if t.Date.Before(floor) {
-			floor = t.Date
-		}
-	}
-
-	return floor
 }

@@ -12,8 +12,11 @@ type sender interface {
 	Send(ctx context.Context, chatID int64, text string) error
 	SendWithKeyboard(ctx context.Context, chatID int64, text string, keyboard dto.Keyboard) error
 	EditMessageWithKeyboard(ctx context.Context, chatID int64, messageID int, text string, keyboard dto.Keyboard) error
+	// EditMessageWithKeyboardMarkdown is EditMessageWithKeyboard, but
+	// parses text as MarkdownV2 — only the calendar's "От"/"До" steps use
+	// it, to bold the open month/year line.
+	EditMessageWithKeyboardMarkdown(ctx context.Context, chatID int64, messageID int, text string, keyboard dto.Keyboard) error
 	AnswerCallback(ctx context.Context, callbackID string) error
-	AnswerCallbackWithText(ctx context.Context, callbackID, text string) error
 }
 
 type trainingRepo interface {

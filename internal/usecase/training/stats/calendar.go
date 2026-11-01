@@ -12,10 +12,11 @@ import (
 // The "📅 Другие даты" flow picks a custom (from, to) range entirely from
 // callback data — no draft row, no in-memory state (see the package doc
 // for why: an old message must keep working after a restart). Every step
-// re-derives everything it needs from the tapped button's own data plus
-// the overall (minDate, maxDate) bounds, which the caller (UseCase)
-// recomputes fresh on every tap from the user's own trainings/CreatedAt
-// and usertime.Today.
+// re-derives everything it needs from the tapped button's own data; the
+// only restriction on which day/month can be picked is the fixed
+// calAbsoluteMin/calAbsoluteMax window below — any real date within it
+// (future, past, before the user's first training, a neighboring month)
+// is always selectable.
 const (
 	callbackCalPrefix = "cal:"
 
@@ -38,16 +39,22 @@ const (
 	// callbackCalCancel returns to the default "Неделя" period view from
 	// any calendar step or the confirm screen.
 	callbackCalCancel = "cal:c"
-	// callbackCalNoop is every inert cell: the month/year label, the
-	// weekday header, and blank grid padding. It answers the tap with no
-	// visible feedback and leaves the screen untouched.
+	// callbackCalNoop is every inert cell or control: the weekday header,
+	// a grid cell whose date falls outside [calAbsoluteMin,
+	// calAbsoluteMax], and a nav arrow that would step outside that same
+	// window. It answers the tap with no visible feedback (just clearing
+	// the loading spinner) and leaves the screen untouched.
 	callbackCalNoop = "cal:noop"
-	// callbackCalUnavailable is a disabled day or nav arrow. Unlike
-	// callbackCalNoop, it answers with a short toast explaining why.
-	callbackCalUnavailable = "cal:x"
 )
 
-const calUnavailableToast = "Эта дата недоступна"
+// calAbsoluteMin/calAbsoluteMax are the calendar's own hard edges — never
+// tied to any user data (no "first training", no "today"). A grid cell or
+// nav arrow that would land outside this window is inert (callbackCalNoop)
+// instead of live.
+var (
+	calAbsoluteMin = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+	calAbsoluteMax = time.Date(2100, 12, 31, 0, 0, 0, 0, time.UTC)
+)
 
 const (
 	calDateLayout  = "20060102"
@@ -163,21 +170,50 @@ func calMonthLabel(month time.Time) string {
 	return monthsNominative[month.Month()-1] + " " + strconv.Itoa(month.Year())
 }
 
-// calFromText is the "От" step's message text — just the prompt, the
-// displayed month already shows in the nav row's own label.
-func calFromText() string {
-	return "Выбери начало периода"
+// calBoldMonth is the open month/year line, bold in MarkdownV2 — escaped
+// defensively even though a Russian month name never actually contains a
+// MarkdownV2 special character today.
+func calBoldMonth(month time.Time) string {
+	return "*" + escapeMarkdownV2(calMonthLabel(month)) + "*"
 }
 
-// calToText is the "До" step's message text.
-func calToText(from time.Time) string {
-	return "Выбери конец периода\nНачало: " + traininginfo.FormatDate(from)
+// calFromText is the "От" step's message text — the open month/year now
+// shows here (bold), not in the keyboard, which lost its own label button.
+func calFromText(month time.Time) string {
+	return "Выбери начало периода\n" + calBoldMonth(month)
+}
+
+// calToText is the "До" step's message text. month is the step's own
+// currently open month, which can drift away from from's month as the
+// user pages the calendar — that's what calBoldMonth always reflects.
+func calToText(from, month time.Time) string {
+	return "Выбери конец периода\nНачало: " + escapeMarkdownV2(traininginfo.FormatDate(from)) + "\n" + calBoldMonth(month)
 }
 
 // calConfirmText is the confirm screen shown right after "До" is picked —
 // distinct from the final applied stats screen's own header (rangeText).
+// Plain text, no MarkdownV2 — unchanged from before this screen's own fix.
 func calConfirmText(from, to time.Time) string {
 	return "Период: " + traininginfo.FormatDate(from) + " – " + traininginfo.FormatDate(to)
+}
+
+// escapeMarkdownV2 escapes every character MarkdownV2 treats specially.
+// None of this package's own content (Russian month names, FormatDate's
+// output) actually contains one today, but the text this feeds into is
+// parsed as MarkdownV2, so this stays correct if that ever changes.
+func escapeMarkdownV2(s string) string {
+	var b strings.Builder
+
+	for _, r := range s {
+		switch r {
+		case '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!', '\\':
+			b.WriteByte('\\')
+		}
+
+		b.WriteRune(r)
+	}
+
+	return b.String()
 }
 
 func calWeekdayRow() []dto.Button {
@@ -192,67 +228,76 @@ func calWeekdayRow() []dto.Button {
 	)
 }
 
-// calNavRow builds the «/‹/{Month Year}/›/» row. month is the currently
-// displayed month; minDate/maxDate bound the overall selectable range —
-// an arrow that would step outside it renders as a disabled "·" instead
-// of moving anywhere. toCallback builds the target callback for a month
-// that's still in range (calFromMonthCallback, or calToMonthCallback
-// bound to its own "От" date).
-func calNavRow(month, minDate, maxDate time.Time, toCallback func(time.Time) string) []dto.Button {
-	minMonth, maxMonth := monthIndex(startOfMonth(minDate)), monthIndex(startOfMonth(maxDate))
+// calNavRow builds the «/‹/›/» row — just the four arrows now, no
+// month/year label button (that moved into the message text). An arrow
+// that would step outside [calAbsoluteMin, calAbsoluteMax] still shows
+// its normal label, but is wired to callbackCalNoop instead of actually
+// moving — "на границе нажатие игнорируется". toCallback builds the
+// target callback for a month still in range (calFromMonthCallback, or
+// calToMonthCallback bound to its own "От" date).
+func calNavRow(month time.Time, toCallback func(time.Time) string) []dto.Button {
+	minMonth, maxMonth := monthIndex(calAbsoluteMin), monthIndex(calAbsoluteMax)
 
-	arrow := func(delta int) dto.Button {
+	arrow := func(delta int, label string) dto.Button {
 		target := addCalMonths(month, delta)
 
-		label := "‹"
-		switch delta {
-		case -12:
-			label = "«"
-		case 1:
-			label = "›"
-		case 12:
-			label = "»"
-		}
-
 		if monthIndex(target) < minMonth || monthIndex(target) > maxMonth {
-			return dto.Button{Label: "·", Data: callbackCalUnavailable}
+			return dto.Button{Label: label, Data: callbackCalNoop}
 		}
 
 		return dto.Button{Label: label, Data: toCallback(target)}
 	}
 
-	return dto.Row(
-		arrow(-12), arrow(-1),
-		dto.Button{Label: calMonthLabel(month), Data: callbackCalNoop},
-		arrow(1), arrow(12),
-	)
+	return dto.Row(arrow(-12, "«"), arrow(-1, "‹"), arrow(1, "›"), arrow(12, "»"))
 }
 
-// calDayRows lays the month out as full weeks (Monday-start), padding
-// leading/trailing cells with inert "·" blanks so every row has 7
-// buttons. A day outside [minDate, maxDate] (and, when fromFloor is set,
-// before it too) renders as a disabled "·" instead of a pickable number.
-func calDayRows(month, minDate, maxDate time.Time, fromFloor *time.Time, dayCallback func(time.Time) string) dto.Keyboard {
+// calDayLabel is the one place that decides how a grid cell shows its own
+// day number — plain for the open month, parenthesized for a neighboring
+// month's day (e.g. "(28)"). Swap the neighboring-month style here (e.g.
+// for "·28" on a narrow screen) without touching calDayRows itself. Never
+// escaped: this is always an inline-button label, which Telegram never
+// runs through any ParseMode/MarkdownV2 parsing.
+func calDayLabel(day, openMonth time.Time) string {
+	if day.Year() == openMonth.Year() && day.Month() == openMonth.Month() {
+		return strconv.Itoa(day.Day())
+	}
+
+	return "(" + strconv.Itoa(day.Day()) + ")"
+}
+
+// calGridCells is always six full weeks, so the keyboard's own height
+// never changes as the user pages between months.
+const calGridCells = 42
+
+// calGridStart is the Monday on/before month's own 1st.
+func calGridStart(month time.Time) time.Time {
 	first := startOfMonth(month)
 	// time.Weekday: Sunday=0..Saturday=6 — shift so Monday=0..Sunday=6.
 	leading := (int(first.Weekday()) + 6) % 7
-	daysInMonth := addCalMonths(month, 1).AddDate(0, 0, -1).Day()
 
-	blank := dto.Button{Label: "·", Data: callbackCalNoop}
+	return first.AddDate(0, 0, -leading)
+}
 
-	var rows dto.Keyboard
+// calDayRows lays month out as exactly six Monday-start weeks (42 cells),
+// padding with the neighboring months' own days (see calDayLabel) rather
+// than blanks. Every one of those days is pickable with the exact same
+// callback shape as a day in the open month (dayCallback always takes the
+// cell's own absolute date) — picking one does not re-page the grid to
+// its month, by construction: it's a plain day-selection callback, same
+// as any other. The sole exception is a cell whose date falls outside
+// [calAbsoluteMin, calAbsoluteMax], which renders as an inert "·".
+func calDayRows(month time.Time, dayCallback func(time.Time) string) dto.Keyboard {
+	start := calGridStart(month)
 
+	rows := make(dto.Keyboard, 0, calGridCells/7)
 	row := make([]dto.Button, 0, 7)
-	for range leading {
-		row = append(row, blank)
-	}
 
-	for day := 1; day <= daysInMonth; day++ {
-		date := time.Date(month.Year(), month.Month(), day, 0, 0, 0, 0, time.UTC)
+	for i := range calGridCells {
+		day := start.AddDate(0, 0, i)
 
-		btn := dto.Button{Label: strconv.Itoa(day), Data: dayCallback(date)}
-		if date.Before(minDate) || date.After(maxDate) || (fromFloor != nil && date.Before(*fromFloor)) {
-			btn = dto.Button{Label: "·", Data: callbackCalUnavailable}
+		btn := dto.Button{Label: calDayLabel(day, month), Data: dayCallback(day)}
+		if day.Before(calAbsoluteMin) || day.After(calAbsoluteMax) {
+			btn = dto.Button{Label: "·", Data: callbackCalNoop}
 		}
 
 		row = append(row, btn)
@@ -263,33 +308,25 @@ func calDayRows(month, minDate, maxDate time.Time, fromFloor *time.Time, dayCall
 		}
 	}
 
-	if len(row) > 0 {
-		for len(row) < 7 {
-			row = append(row, blank)
-		}
-
-		rows = append(rows, row)
-	}
-
 	return rows
 }
 
 // calFromKeyboard renders the "От" step at month.
-func calFromKeyboard(month, minDate, maxDate time.Time) dto.Keyboard {
-	kb := dto.Keyboard{calNavRow(month, minDate, maxDate, calFromMonthCallback), calWeekdayRow()}
-	kb = append(kb, calDayRows(month, minDate, maxDate, nil, calFromDayCallback)...)
+func calFromKeyboard(month time.Time) dto.Keyboard {
+	kb := dto.Keyboard{calNavRow(month, calFromMonthCallback), calWeekdayRow()}
+	kb = append(kb, calDayRows(month, calFromDayCallback)...)
 	kb = append(kb, dto.Row(dto.Button{Label: "Отмена", Data: callbackCalCancel}))
 
 	return kb
 }
 
 // calToKeyboard renders the "До" step at month, with from already fixed.
-func calToKeyboard(from, month, minDate, maxDate time.Time) dto.Keyboard {
+func calToKeyboard(from, month time.Time) dto.Keyboard {
 	kb := dto.Keyboard{
-		calNavRow(month, minDate, maxDate, func(m time.Time) string { return calToMonthCallback(from, m) }),
+		calNavRow(month, func(m time.Time) string { return calToMonthCallback(from, m) }),
 		calWeekdayRow(),
 	}
-	kb = append(kb, calDayRows(month, minDate, maxDate, &from, func(d time.Time) string { return calToDayCallback(from, d) })...)
+	kb = append(kb, calDayRows(month, func(d time.Time) string { return calToDayCallback(from, d) })...)
 	kb = append(
 		kb,
 		dto.Row(dto.Button{Label: "← Изменить начало", Data: calFromMonthCallback(startOfMonth(from))}),

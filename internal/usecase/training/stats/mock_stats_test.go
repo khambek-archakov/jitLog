@@ -56,20 +56,6 @@ func (mr *MocksenderMockRecorder) AnswerCallback(ctx, callbackID any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AnswerCallback", reflect.TypeOf((*Mocksender)(nil).AnswerCallback), ctx, callbackID)
 }
 
-// AnswerCallbackWithText mocks base method.
-func (m *Mocksender) AnswerCallbackWithText(ctx context.Context, callbackID, text string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AnswerCallbackWithText", ctx, callbackID, text)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AnswerCallbackWithText indicates an expected call of AnswerCallbackWithText.
-func (mr *MocksenderMockRecorder) AnswerCallbackWithText(ctx, callbackID, text any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AnswerCallbackWithText", reflect.TypeOf((*Mocksender)(nil).AnswerCallbackWithText), ctx, callbackID, text)
-}
-
 // EditMessageWithKeyboard mocks base method.
 func (m *Mocksender) EditMessageWithKeyboard(ctx context.Context, chatID int64, messageID int, text string, keyboard dto.Keyboard) error {
 	m.ctrl.T.Helper()
@@ -82,6 +68,20 @@ func (m *Mocksender) EditMessageWithKeyboard(ctx context.Context, chatID int64, 
 func (mr *MocksenderMockRecorder) EditMessageWithKeyboard(ctx, chatID, messageID, text, keyboard any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EditMessageWithKeyboard", reflect.TypeOf((*Mocksender)(nil).EditMessageWithKeyboard), ctx, chatID, messageID, text, keyboard)
+}
+
+// EditMessageWithKeyboardMarkdown mocks base method.
+func (m *Mocksender) EditMessageWithKeyboardMarkdown(ctx context.Context, chatID int64, messageID int, text string, keyboard dto.Keyboard) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EditMessageWithKeyboardMarkdown", ctx, chatID, messageID, text, keyboard)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// EditMessageWithKeyboardMarkdown indicates an expected call of EditMessageWithKeyboardMarkdown.
+func (mr *MocksenderMockRecorder) EditMessageWithKeyboardMarkdown(ctx, chatID, messageID, text, keyboard any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EditMessageWithKeyboardMarkdown", reflect.TypeOf((*Mocksender)(nil).EditMessageWithKeyboardMarkdown), ctx, chatID, messageID, text, keyboard)
 }
 
 // Send mocks base method.

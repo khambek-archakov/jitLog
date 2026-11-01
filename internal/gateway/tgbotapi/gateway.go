@@ -107,6 +107,25 @@ func (g *Gateway) EditMessageWithKeyboard(
 	return nil
 }
 
+// EditMessageWithKeyboardMarkdown is EditMessageWithKeyboard, but parses
+// text as MarkdownV2 — used only by the stats calendar's own "От"/"До"
+// step screens (see internal/usecase/training/stats), to bold the open
+// month/year line. Every other screen stays on EditMessageWithKeyboard's
+// plain text.
+func (g *Gateway) EditMessageWithKeyboardMarkdown(
+	ctx context.Context, chatID int64, messageID int, text string, keyboard dto.Keyboard,
+) error {
+	edit := tgbotapi.NewEditMessageTextAndMarkup(chatID, messageID, text, toInlineKeyboard(keyboard))
+	edit.ParseMode = tgbotapi.ModeMarkdownV2
+
+	_, err := request(ctx, g.bot, edit)
+	if err != nil {
+		return fmt.Errorf("edit message: %w", classify(err))
+	}
+
+	return nil
+}
+
 // SendAnimationWithKeyboard sends an animation by its Telegram file ID,
 // with a caption and an inline keyboard attached.
 func (g *Gateway) SendAnimationWithKeyboard(
