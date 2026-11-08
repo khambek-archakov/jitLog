@@ -47,6 +47,18 @@ func TestRender_NoRounds_NoBlockOrSegment(t *testing.T) {
 	assert.NotEmpty(t, data)
 }
 
+func TestRender_LongLegend(t *testing.T) {
+	t.Parallel()
+
+	data, err := Render(Input{
+		Name: "Алексей", Month: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
+		Trainings: 329, TotalMinutes: 329 * 60, Rounds: 1200,
+		GiCount: 128, NoGiCount: 104, OpenMatCount: 97,
+	})
+	require.NoError(t, err)
+	assert.NotEmpty(t, data)
+}
+
 func TestRender_LongNameAndLargeNumbers(t *testing.T) {
 	t.Parallel()
 

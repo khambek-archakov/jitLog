@@ -18,7 +18,7 @@ const callbackShareMonth = "share:month"
 
 const sharePhotoFilename = "jitlog-month.png"
 
-const shareCaption = "Выложи в сторис и отметь @JitLogBot — https://t.me/JitLogBot?start=src_share"
+const shareCaption = "Поделись своим прогрессом 🥋 — https://t.me/JitLogBot?start=src_share"
 
 func shareKeyboard() dto.Keyboard {
 	return dto.Keyboard{dto.Row(dto.Button{Label: "← Главное меню", Data: callbackMenuBack})}

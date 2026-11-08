@@ -31,7 +31,7 @@ func drawDecor(dc *gg.Context) {
 
 	dc.SetLineWidth(width)
 	dc.SetLineCapRound()
-	dc.SetRGBA255(0x16, 0x18, 0x1D, int(math.Round(255*0.06)))
+	dc.SetRGBA255(0x16, 0x18, 0x1D, int(math.Round(255*0.04)))
 
 	a1 := startDeg * math.Pi / 180
 	a2 := (startDeg + sweepDeg) * math.Pi / 180
@@ -41,9 +41,14 @@ func drawDecor(dc *gg.Context) {
 }
 
 // drawHeader draws the logo + name row and returns the y just below it.
+// logoHeight is 64 logical px — the spec's own "128 px" is stated at the
+// final 1080×1920 output, i.e. half that in this scaled-×2 logical space
+// (see share.go's own outputScale); drawing it at a literal 128 here was
+// rendering the logo twice as large as intended and eating into the
+// name's available width.
 func drawHeader(dc *gg.Context, name string) float64 {
 	const (
-		logoHeight = 128.0
+		logoHeight = 64.0
 		logoShiftX = -8.0
 		nameGap    = 20.0
 		nameSize   = 30.0
@@ -217,8 +222,6 @@ func drawTypeBar(dc *gg.Context, top float64, in Input) {
 		barRadius      = 14.0
 		barGap         = 6.0
 		gapBarToLegend = 16.0
-		legendSize     = 22.0
-		legendGap      = 28.0
 	)
 
 	segs := typeSegments(in)
@@ -252,27 +255,114 @@ func drawTypeBar(dc *gg.Context, top float64, in Input) {
 
 	y += barHeight + gapBarToLegend
 
-	legendFace := face(weightSemiBold, legendSize)
+	drawLegend(dc, segs, y)
+}
+
+// Legend sizing — the spec's own "28/28/18/10" are given at the final
+// 1080×1920 output, hence the /2 here (see share.go's outputScale).
+// legendGapFloor/legendSizeFloor are the shrink ladder's own two rungs,
+// tried in order, before falling back to wrapping the last item onto its
+// own second line — see drawLegend's own doc comment for why each step
+// exists.
+const (
+	legendSizeDefault = 14.0 // 28 final
+	legendGapDefault  = 14.0 // 28 final
+	swatchSize        = 9.0  // 18 final
+	swatchGap         = 5.0  // 10 final
+	swatchRadius      = swatchSize * 0.2
+
+	legendGapFloor  = 10.0 // 20 final
+	legendSizeFloor = 12.0 // 24 final
+
+	legendRowGap = 8.0 // vertical gap when the last item wraps to its own line.
+)
+
+// drawLegend lays segs out left to right, shrinking first the gap
+// between items, then the font size, if the default sizing would run
+// past contentRight — and, failing that, wraps the last item onto its
+// own second line. Every count is unbounded user data (a very active
+// month can easily reach triple digits), so this has to hold at any
+// width, not just the sizes this feature happened to be designed around.
+func drawLegend(dc *gg.Context, segs []typeSegment, top float64) {
+	size, gap := legendSizeDefault, legendGapDefault
+
+	if legendWidth(dc, segs, size, gap) > contentWidth {
+		gap = legendGapFloor
+	}
+
+	if legendWidth(dc, segs, size, gap) > contentWidth {
+		size = legendSizeFloor
+	}
+
+	if legendWidth(dc, segs, size, gap) > contentWidth && len(segs) > 1 {
+		y := drawLegendRow(dc, segs[:len(segs)-1], top, size, gap)
+		drawLegendRow(dc, segs[len(segs)-1:], y+legendRowGap, size, gap)
+
+		return
+	}
+
+	drawLegendRow(dc, segs, top, size, gap)
+}
+
+// legendWidth is drawLegendRow's own total width, computed without
+// drawing anything.
+func legendWidth(dc *gg.Context, segs []typeSegment, size, gap float64) float64 {
+	dc.SetFontFace(face(weightSemiBold, size))
+
+	var w float64
+
+	for i, s := range segs {
+		w += swatchSize + swatchGap
+
+		labelW, _ := dc.MeasureString(s.label)
+		countW, _ := dc.MeasureString(countSuffix(s.count))
+		w += labelW + countW
+
+		if i < len(segs)-1 {
+			w += gap
+		}
+	}
+
+	return w
+}
+
+// drawLegendRow draws one row of segs (swatch, label in colorText, count
+// in colorSub), returning the y just below it.
+func drawLegendRow(dc *gg.Context, segs []typeSegment, top, size, gap float64) float64 {
+	legendFace := face(weightSemiBold, size)
 	dc.SetFontFace(legendFace)
-	legendAscent, _ := lineMetrics(legendFace)
-	baseline := y + legendAscent
+	ascent, height := lineMetrics(legendFace)
+	baseline := top + ascent
+	swatchY := top + (height-swatchSize)/2
 
 	lx := contentLeft
 
 	for _, s := range segs {
 		dc.SetColor(typeColors[s.label])
+		dc.DrawRoundedRectangle(lx, swatchY, swatchSize, swatchSize, swatchRadius)
+		dc.Fill()
+
+		lx += swatchSize + swatchGap
+
+		dc.SetColor(colorText)
 		dc.DrawString(s.label, lx, baseline)
 
 		labelW, _ := dc.MeasureString(s.label)
 
-		countStr := " " + strconv.Itoa(s.count)
+		countStr := countSuffix(s.count)
 		dc.SetColor(colorSub)
 		dc.DrawString(countStr, lx+labelW, baseline)
 
 		countW, _ := dc.MeasureString(countStr)
 
-		lx += labelW + countW + legendGap
+		lx += labelW + countW + gap
 	}
+
+	return top + height
+}
+
+func countSuffix(n int) string {
+	return " " + strconv.Itoa(n)
 }
 
 // typeSegments orders in's three type counts Gi, No-Gi, Open Mat — the

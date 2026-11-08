@@ -735,7 +735,7 @@ func TestUseCase_Handle_Share(t *testing.T) {
 					DoAndReturn(func(_ context.Context, _ int64, photo []byte, filename, caption string, kb dto.Keyboard) error {
 						assert.NotEmpty(t, photo)
 						assert.Equal(t, "jitlog-month.png", filename)
-						assert.Contains(t, caption, "@JitLogBot")
+						assert.Contains(t, caption, "Поделись своим прогрессом")
 						assert.Contains(t, caption, "src_share")
 						assert.Equal(t, "← Главное меню", kb[0][0].Label)
 						assert.Equal(t, "menu:back", kb[0][0].Data)
