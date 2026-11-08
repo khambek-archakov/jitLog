@@ -114,6 +114,7 @@ func (c *Chain) defaultOrder() []Handler {
 		catalog.New(d.CatalogList, d.CatalogInfo, d.CatalogAdd),
 		&statsTrigger{stats: d.TrainingStats},
 		&calTrigger{stats: d.TrainingStats},
+		&shareTrigger{stats: d.TrainingStats},
 		&profileTrigger{profile: d.Profile},
 		&reminderTrigger{reminder: d.ReminderDisable},
 		&recTrigger{reminder: d.ReminderDisable},
