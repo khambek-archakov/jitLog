@@ -11,7 +11,9 @@ import (
 
 type user interface {
 	GetByTelegramID(ctx context.Context, telegramID int64) (*model.User, error)
-	Create(ctx context.Context, telegramID int64) (*model.User, error)
+	// Create's acquisitionSource is the validated /start payload's label
+	// (see Router.getOrCreateUser) — nil when absent or invalid.
+	Create(ctx context.Context, telegramID int64, acquisitionSource *string) (*model.User, error)
 	// TouchActivity records the user's own activity middleware write — see
 	// Router.touchActivity, the only caller.
 	TouchActivity(ctx context.Context, userID int64, now time.Time) error

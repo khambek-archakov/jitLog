@@ -19,6 +19,9 @@ func NewInput(update tgbotapi.Update) dto.Input {
 		in.HasMessage = true
 		in.Text = update.Message.Text
 		in.IsStartCmd = update.Message.IsCommand() && update.Message.Command() == "start"
+		if in.IsStartCmd {
+			in.StartPayload = update.Message.CommandArguments()
+		}
 	case update.CallbackQuery != nil:
 		in.TelegramID = update.CallbackQuery.From.ID
 		in.HasCallback = true

@@ -45,6 +45,9 @@ func (uc *UseCase) Handle(ctx context.Context, u *model.User, in dto.Input) erro
 	case in.CallbackData == callbackStatsBelts:
 		return uc.handleBelts(ctx, u, in)
 
+	case in.CallbackData == callbackShareMonth:
+		return uc.handleShare(ctx, u, in)
+
 	case strings.HasPrefix(in.CallbackData, callbackCalPrefix):
 		return uc.handleCalendar(ctx, u, in)
 	}
@@ -86,9 +89,10 @@ func (uc *UseCase) handlePeriod(ctx context.Context, u *model.User, in dto.Input
 	c := countStats(filterByPeriod(all, p, now))
 	weeks := streak(all, now)
 	showModeSwitch := len(promotions) >= 2
+	showShare := p == periodMonth && c.Total > 0
 
 	return uc.bot.EditMessageWithKeyboard(
-		ctx, in.ChatID, in.MessageID, statsText(p, now, c, weeks), statsKeyboard(p, showModeSwitch, now),
+		ctx, in.ChatID, in.MessageID, statsText(p, now, c, weeks), statsKeyboard(p, showModeSwitch, showShare, now),
 	)
 }
 

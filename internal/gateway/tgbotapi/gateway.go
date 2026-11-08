@@ -107,6 +107,37 @@ func (g *Gateway) EditMessageWithKeyboard(
 	return nil
 }
 
+// SendUploadPhotoAction tells the chat "the bot is preparing a photo" —
+// the brief spinner Telegram shows while a SendPhotoWithKeyboard call is
+// still rendering/uploading. Best-effort UX only, never fatal to the
+// caller on its own.
+func (g *Gateway) SendUploadPhotoAction(ctx context.Context, chatID int64) error {
+	_, err := request(ctx, g.bot, tgbotapi.NewChatAction(chatID, tgbotapi.ChatUploadPhoto))
+	if err != nil {
+		return fmt.Errorf("send chat action: %w", classify(err))
+	}
+
+	return nil
+}
+
+// SendPhotoWithKeyboard sends photo (already-encoded image bytes — PNG,
+// JPEG, whatever Telegram accepts) straight from memory, no temp file
+// ever touches disk, with a caption and an inline keyboard attached.
+func (g *Gateway) SendPhotoWithKeyboard(
+	ctx context.Context, chatID int64, photo []byte, filename, caption string, keyboard dto.Keyboard,
+) error {
+	msg := tgbotapi.NewPhoto(chatID, tgbotapi.FileBytes{Name: filename, Bytes: photo})
+	msg.Caption = caption
+	msg.ReplyMarkup = toInlineKeyboard(keyboard)
+
+	_, err := request(ctx, g.bot, msg)
+	if err != nil {
+		return fmt.Errorf("send photo: %w", classify(err))
+	}
+
+	return nil
+}
+
 // EditMessageWithKeyboardMarkdown is EditMessageWithKeyboard, but parses
 // text as MarkdownV2 — used only by the stats calendar's own "От"/"До"
 // step screens (see internal/usecase/training/stats), to bold the open

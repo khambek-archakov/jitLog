@@ -133,7 +133,7 @@ func TestStatsKeyboard(t *testing.T) {
 	t.Run("without the mode switch", func(t *testing.T) {
 		t.Parallel()
 
-		kb := statsKeyboard(periodMonth, false, now)
+		kb := statsKeyboard(periodMonth, false, false, now)
 
 		require.Len(t, kb, 3)
 		require.Len(t, kb[0], 4)
@@ -157,7 +157,7 @@ func TestStatsKeyboard(t *testing.T) {
 	t.Run("with the mode switch", func(t *testing.T) {
 		t.Parallel()
 
-		kb := statsKeyboard(periodWeek, true, now)
+		kb := statsKeyboard(periodWeek, true, false, now)
 
 		require.Len(t, kb, 4)
 		assert.Equal(t, "📅 Другие даты", kb[1][0].Label)
@@ -168,6 +168,31 @@ func TestStatsKeyboard(t *testing.T) {
 		assert.Equal(t, "stats:belts", kb[2][1].Data)
 
 		assert.Equal(t, "← Главное меню", kb[3][0].Label)
+	})
+
+	t.Run("with the share button", func(t *testing.T) {
+		t.Parallel()
+
+		kb := statsKeyboard(periodMonth, false, true, now)
+
+		require.Len(t, kb, 4)
+		assert.Equal(t, "📅 Другие даты", kb[1][0].Label)
+
+		assert.Equal(t, "📤 Поделиться", kb[2][0].Label)
+		assert.Equal(t, "share:month", kb[2][0].Data)
+
+		assert.Equal(t, "← Главное меню", kb[3][0].Label)
+	})
+
+	t.Run("share button and mode switch together — share comes first", func(t *testing.T) {
+		t.Parallel()
+
+		kb := statsKeyboard(periodMonth, true, true, now)
+
+		require.Len(t, kb, 5)
+		assert.Equal(t, "📤 Поделиться", kb[2][0].Label)
+		assert.Equal(t, "• За период •", kb[3][0].Label)
+		assert.Equal(t, "← Главное меню", kb[4][0].Label)
 	})
 }
 

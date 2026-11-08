@@ -153,6 +153,74 @@ func TestUseCase_Handle(t *testing.T) {
 		},
 
 		{
+			name: "share button shows on the Month tab once it has a training",
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "stats:period:month",
+			},
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
+				repo.EXPECT().
+					ListAllTrainings(gomock.Any(), userID).
+					Return([]*model.Training{{Date: today, DurationMinutes: 60}}, nil)
+
+				belts.EXPECT().
+					ListBeltPromotions(gomock.Any(), userID).
+					Return([]*model.BeltPromotion{{Belt: model.BeltWhite}}, nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
+						require.Len(t, kb, 4) // period row + "other dates" row + share row + back row
+						assert.Equal(t, "📤 Поделиться", kb[2][0].Label)
+						assert.Equal(t, "share:month", kb[2][0].Data)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "share button hidden on the Month tab when that month has no trainings",
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "stats:period:month",
+			},
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
+				// Only a training from well outside the current month —
+				// len(all) != 0, so the empty-state screen never fires,
+				// but filterByPeriod(month) still comes back empty.
+				repo.EXPECT().
+					ListAllTrainings(gomock.Any(), userID).
+					Return([]*model.Training{{Date: today.AddDate(-1, 0, 0), DurationMinutes: 60}}, nil)
+
+				belts.EXPECT().
+					ListBeltPromotions(gomock.Any(), userID).
+					Return([]*model.BeltPromotion{{Belt: model.BeltWhite}}, nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
+						require.Len(t, kb, 3) // period row + "other dates" row + back row, no share row
+						for _, row := range kb {
+							assert.NotEqual(t, "share:month", row[0].Data)
+						}
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
 			name: "mode switch shown with two or more belts",
 			in: dto.Input{
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
@@ -622,6 +690,126 @@ func TestUseCase_Handle_Calendar(t *testing.T) {
 			uc := stats.New(mockSender, mockRepo, mockBelts)
 
 			err := uc.Handle(context.Background(), u, tc.in)
+
+			tc.expected(t, err)
+		})
+	}
+}
+
+// TestUseCase_Handle_Share covers the "📤 Поделиться" monthly recap image
+// (share:month) — a fixed clock, since "this month" needs to be
+// deterministic.
+func TestUseCase_Handle_Share(t *testing.T) {
+	t.Parallel()
+
+	const chatID, userID, messageID int64 = 777, 42, 555
+
+	now := time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)
+	nowFn := func() time.Time { return now }
+
+	name := "Алексей"
+	u := &model.User{ID: userID, Name: &name}
+
+	tests := []struct {
+		name     string
+		prepare  func(sender *Mocksender, repo *MocktrainingRepo)
+		expected func(t assert.TestingT, err error)
+	}{
+		{
+			name: "renders and sends the month's recap as a new photo message",
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo) {
+				rounds := int16(21)
+
+				repo.EXPECT().
+					ListAllTrainings(gomock.Any(), userID).
+					Return([]*model.Training{
+						{Date: time.Date(2026, 10, 5, 0, 0, 0, 0, time.UTC), TrainingType: model.TrainingTypeGi, DurationMinutes: 60, Rounds: &rounds},
+						{Date: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC), TrainingType: model.TrainingTypeGi, DurationMinutes: 60}, // outside October — must not count.
+					}, nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().SendUploadPhotoAction(gomock.Any(), chatID).Return(nil)
+
+				sender.EXPECT().
+					SendPhotoWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, photo []byte, filename, caption string, kb dto.Keyboard) error {
+						assert.NotEmpty(t, photo)
+						assert.Equal(t, "jitlog-month.png", filename)
+						assert.Contains(t, caption, "@JitLogBot")
+						assert.Contains(t, caption, "src_share")
+						assert.Equal(t, "← Главное меню", kb[0][0].Label)
+						assert.Equal(t, "menu:back", kb[0][0].Data)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "a stale tap with nothing left in the month sends nothing",
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo) {
+				repo.EXPECT().ListAllTrainings(gomock.Any(), userID).Return(nil, nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().SendUploadPhotoAction(gomock.Any(), chatID).Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "a chat-action failure doesn't block the photo",
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo) {
+				repo.EXPECT().
+					ListAllTrainings(gomock.Any(), userID).
+					Return([]*model.Training{{Date: now, DurationMinutes: 60}}, nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().SendUploadPhotoAction(gomock.Any(), chatID).Return(errors.New("fail"))
+				sender.EXPECT().
+					SendPhotoWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "failed to list trainings",
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo) {
+				repo.EXPECT().ListAllTrainings(gomock.Any(), userID).Return(nil, errors.New("fail"))
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().SendUploadPhotoAction(gomock.Any(), chatID).Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.Error(t, err)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+
+			mockSender := NewMocksender(ctrl)
+			mockRepo := NewMocktrainingRepo(ctrl)
+			mockBelts := NewMockbeltRepo(ctrl)
+
+			tc.prepare(mockSender, mockRepo)
+
+			uc := stats.NewWithClock(mockSender, mockRepo, mockBelts, nowFn)
+
+			in := dto.Input{ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1", CallbackData: "share:month"}
+
+			err := uc.Handle(context.Background(), u, in)
 
 			tc.expected(t, err)
 		})

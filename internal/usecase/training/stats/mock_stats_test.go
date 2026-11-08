@@ -98,6 +98,34 @@ func (mr *MocksenderMockRecorder) Send(ctx, chatID, text any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*Mocksender)(nil).Send), ctx, chatID, text)
 }
 
+// SendPhotoWithKeyboard mocks base method.
+func (m *Mocksender) SendPhotoWithKeyboard(ctx context.Context, chatID int64, photo []byte, filename, caption string, keyboard dto.Keyboard) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendPhotoWithKeyboard", ctx, chatID, photo, filename, caption, keyboard)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SendPhotoWithKeyboard indicates an expected call of SendPhotoWithKeyboard.
+func (mr *MocksenderMockRecorder) SendPhotoWithKeyboard(ctx, chatID, photo, filename, caption, keyboard any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendPhotoWithKeyboard", reflect.TypeOf((*Mocksender)(nil).SendPhotoWithKeyboard), ctx, chatID, photo, filename, caption, keyboard)
+}
+
+// SendUploadPhotoAction mocks base method.
+func (m *Mocksender) SendUploadPhotoAction(ctx context.Context, chatID int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendUploadPhotoAction", ctx, chatID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SendUploadPhotoAction indicates an expected call of SendUploadPhotoAction.
+func (mr *MocksenderMockRecorder) SendUploadPhotoAction(ctx, chatID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendUploadPhotoAction", reflect.TypeOf((*Mocksender)(nil).SendUploadPhotoAction), ctx, chatID)
+}
+
 // SendWithKeyboard mocks base method.
 func (m *Mocksender) SendWithKeyboard(ctx context.Context, chatID int64, text string, keyboard dto.Keyboard) error {
 	m.ctrl.T.Helper()

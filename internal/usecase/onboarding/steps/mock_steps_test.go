@@ -151,21 +151,6 @@ func (mr *MockuserMockRecorder) AddBeltPromotion(ctx, userID, belt, promotedAt a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBeltPromotion", reflect.TypeOf((*Mockuser)(nil).AddBeltPromotion), ctx, userID, belt, promotedAt)
 }
 
-// Create mocks base method.
-func (m *Mockuser) Create(ctx context.Context, telegramID int64) (*model.User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", ctx, telegramID)
-	ret0, _ := ret[0].(*model.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Create indicates an expected call of Create.
-func (mr *MockuserMockRecorder) Create(ctx, telegramID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*Mockuser)(nil).Create), ctx, telegramID)
-}
-
 // GetByTelegramID mocks base method.
 func (m *Mockuser) GetByTelegramID(ctx context.Context, telegramID int64) (*model.User, error) {
 	m.ctrl.T.Helper()

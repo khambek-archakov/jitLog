@@ -200,11 +200,17 @@ func weeksWord(n int) string {
 
 // statsKeyboard builds the "За период" screen's keyboard. showModeSwitch
 // is true once the user has ≥2 recorded belts — otherwise "По поясам"
-// would always be a 100%-one-belt no-op, so it just isn't offered. now is
-// only needed to seed "📅 Другие даты" — it always opens the calendar on
-// the current month.
-func statsKeyboard(selected period, showModeSwitch bool, now time.Time) dto.Keyboard {
+// would always be a 100%-one-belt no-op, so it just isn't offered.
+// showShare is true only for the Month tab with ≥1 training that month
+// — see the share feature's own spec for why it's gated this narrowly.
+// now is only needed to seed "📅 Другие даты" — it always opens the
+// calendar on the current month.
+func statsKeyboard(selected period, showModeSwitch, showShare bool, now time.Time) dto.Keyboard {
 	kb := dto.Keyboard{periodRow(selected), otherDatesRow(now)}
+
+	if showShare {
+		kb = append(kb, dto.Row(dto.Button{Label: "📤 Поделиться", Data: callbackShareMonth}))
+	}
 
 	if showModeSwitch {
 		kb = append(kb, modeSwitchRow(false))

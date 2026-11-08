@@ -10,6 +10,9 @@ type Input struct {
 	MessageID  int
 
 	IsStartCmd bool
+	// StartPayload is /start's own deep-link payload (the text after
+	// "/start "), unvalidated — only ever set alongside IsStartCmd.
+	StartPayload string
 
 	HasMessage bool
 	Text       string

@@ -454,6 +454,136 @@ func TestGateway_SendAnimationWithKeyboard(t *testing.T) {
 	}
 }
 
+func TestGateway_SendPhotoWithKeyboard(t *testing.T) {
+	t.Parallel()
+
+	keyboard := dto.Keyboard{dto.Row(dto.Button{Label: "← Главное меню", Data: "menu:back"})}
+	photo := []byte{0x89, 0x50, 0x4E, 0x47} // a PNG magic-number stub, never actually decoded here.
+
+	tests := []struct {
+		name     string
+		prepare  func(transport *Mocktransport)
+		expected func(t assert.TestingT, err error)
+	}{
+		{
+			name: "success",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					DoAndReturn(func(c tgbotapi.Chattable) (*tgbotapi.APIResponse, error) {
+						photoCfg, ok := c.(tgbotapi.PhotoConfig)
+						require.True(t, ok)
+						assert.Equal(t, chatID, photoCfg.ChatID)
+						assert.Equal(t, "Подпись", photoCfg.Caption)
+
+						fb, ok := photoCfg.File.(tgbotapi.FileBytes)
+						require.True(t, ok)
+						assert.Equal(t, "share.png", fb.Name)
+						assert.Equal(t, photo, fb.Bytes)
+
+						markup, ok := photoCfg.ReplyMarkup.(tgbotapi.InlineKeyboardMarkup)
+						require.True(t, ok)
+						assert.Equal(t, "menu:back", *markup.InlineKeyboard[0][0].CallbackData)
+
+						return &tgbotapi.APIResponse{}, nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "transport error",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					Return(nil, errors.New("fail"))
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.Error(t, err)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+
+			mockTransport := NewMocktransport(ctrl)
+
+			tc.prepare(mockTransport)
+
+			g := gateway.New(mockTransport)
+
+			err := g.SendPhotoWithKeyboard(context.Background(), chatID, photo, "share.png", "Подпись", keyboard)
+
+			tc.expected(t, err)
+		})
+	}
+}
+
+func TestGateway_SendUploadPhotoAction(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		prepare  func(transport *Mocktransport)
+		expected func(t assert.TestingT, err error)
+	}{
+		{
+			name: "success",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					DoAndReturn(func(c tgbotapi.Chattable) (*tgbotapi.APIResponse, error) {
+						action, ok := c.(tgbotapi.ChatActionConfig)
+						require.True(t, ok)
+						assert.Equal(t, chatID, action.ChatID)
+						assert.Equal(t, tgbotapi.ChatUploadPhoto, action.Action)
+
+						return &tgbotapi.APIResponse{}, nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "transport error",
+			prepare: func(transport *Mocktransport) {
+				transport.EXPECT().
+					Request(gomock.Any()).
+					Return(nil, errors.New("fail"))
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.Error(t, err)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+
+			mockTransport := NewMocktransport(ctrl)
+
+			tc.prepare(mockTransport)
+
+			g := gateway.New(mockTransport)
+
+			err := g.SendUploadPhotoAction(context.Background(), chatID)
+
+			tc.expected(t, err)
+		})
+	}
+}
+
 func TestGateway_RemoveKeyboard(t *testing.T) {
 	t.Parallel()
 

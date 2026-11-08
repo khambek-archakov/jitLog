@@ -30,7 +30,7 @@ func New(db *pgxpool.Pool) *Repository {
 func (r *Repository) GetByTelegramID(ctx context.Context, telegramID int64) (*model.User, error) {
 	const query = `
 		select id, telegram_id, name, age, belt, onboarding_step, timezone, city, reminders_enabled,
-			last_activity_at, winback_sent_at, winback_declined_at, created_at, updated_at
+			last_activity_at, winback_sent_at, winback_declined_at, acquisition_source, created_at, updated_at
 		from "user"
 		where telegram_id = $1
 	`
@@ -53,7 +53,7 @@ func (r *Repository) GetByTelegramID(ctx context.Context, telegramID int64) (*mo
 func (r *Repository) GetByID(ctx context.Context, id int64) (*model.User, error) {
 	const query = `
 		select id, telegram_id, name, age, belt, onboarding_step, timezone, city, reminders_enabled,
-			last_activity_at, winback_sent_at, winback_declined_at, created_at, updated_at
+			last_activity_at, winback_sent_at, winback_declined_at, acquisition_source, created_at, updated_at
 		from "user"
 		where id = $1
 	`
@@ -69,15 +69,19 @@ func (r *Repository) GetByID(ctx context.Context, id int64) (*model.User, error)
 	return u, nil
 }
 
-func (r *Repository) Create(ctx context.Context, telegramID int64) (*model.User, error) {
+// Create inserts a fresh user row. acquisitionSource is the validated
+// /start?start=src_<label> payload's label (nil when absent or invalid)
+// — written once here and never overwritten afterwards, since this is
+// the only INSERT this table ever gets (see internal/usecase/router).
+func (r *Repository) Create(ctx context.Context, telegramID int64, acquisitionSource *string) (*model.User, error) {
 	const query = `
-		insert into "user" (telegram_id)
-		values ($1)
+		insert into "user" (telegram_id, acquisition_source)
+		values ($1, $2)
 		returning id, telegram_id, name, age, belt, onboarding_step, timezone, city, reminders_enabled,
-			last_activity_at, winback_sent_at, winback_declined_at, created_at, updated_at
+			last_activity_at, winback_sent_at, winback_declined_at, acquisition_source, created_at, updated_at
 	`
 
-	u, err := scanUser(r.db.QueryRow(ctx, query, telegramID))
+	u, err := scanUser(r.db.QueryRow(ctx, query, telegramID, acquisitionSource))
 	if err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
 	}
@@ -110,7 +114,7 @@ func (r *Repository) Update(ctx context.Context, u *model.User) error {
 func (r *Repository) ListRemindersEnabled(ctx context.Context) ([]*model.User, error) {
 	const query = `
 		select id, telegram_id, name, age, belt, onboarding_step, timezone, city, reminders_enabled,
-			last_activity_at, winback_sent_at, winback_declined_at, created_at, updated_at
+			last_activity_at, winback_sent_at, winback_declined_at, acquisition_source, created_at, updated_at
 		from "user"
 		where reminders_enabled = true
 	`
@@ -147,7 +151,7 @@ func (r *Repository) ListRemindersEnabled(ctx context.Context) ([]*model.User, e
 func (r *Repository) ListAll(ctx context.Context) ([]*model.User, error) {
 	const query = `
 		select id, telegram_id, name, age, belt, onboarding_step, timezone, city, reminders_enabled,
-			last_activity_at, winback_sent_at, winback_declined_at, created_at, updated_at
+			last_activity_at, winback_sent_at, winback_declined_at, acquisition_source, created_at, updated_at
 		from "user"
 	`
 
@@ -424,6 +428,7 @@ func scanUser(row pgx.Row) (*model.User, error) {
 		&u.LastActivityAt,
 		&u.WinbackSentAt,
 		&u.WinbackDeclinedAt,
+		&u.AcquisitionSource,
 		&u.CreatedAt,
 		&u.UpdatedAt,
 	)

@@ -44,18 +44,18 @@ func (m *Mockuser) EXPECT() *MockuserMockRecorder {
 }
 
 // Create mocks base method.
-func (m *Mockuser) Create(ctx context.Context, telegramID int64) (*model.User, error) {
+func (m *Mockuser) Create(ctx context.Context, telegramID int64, acquisitionSource *string) (*model.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", ctx, telegramID)
+	ret := m.ctrl.Call(m, "Create", ctx, telegramID, acquisitionSource)
 	ret0, _ := ret[0].(*model.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Create indicates an expected call of Create.
-func (mr *MockuserMockRecorder) Create(ctx, telegramID any) *gomock.Call {
+func (mr *MockuserMockRecorder) Create(ctx, telegramID, acquisitionSource any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*Mockuser)(nil).Create), ctx, telegramID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*Mockuser)(nil).Create), ctx, telegramID, acquisitionSource)
 }
 
 // GetByTelegramID mocks base method.

@@ -34,6 +34,11 @@ type User struct {
 	// sets them until a user goes quiet for 14+ days.
 	WinbackSentAt     *time.Time
 	WinbackDeclinedAt *time.Time
+	// AcquisitionSource is the /start?start=src_<label> payload's label,
+	// recorded once at signup and never overwritten afterwards (see
+	// internal/usecase/router's own validation) — nullable, since most
+	// signups carry no label at all.
+	AcquisitionSource *string
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }

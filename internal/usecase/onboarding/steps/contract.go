@@ -19,7 +19,6 @@ type sender interface {
 
 type user interface {
 	GetByTelegramID(ctx context.Context, telegramID int64) (*model.User, error)
-	Create(ctx context.Context, telegramID int64) (*model.User, error)
 	Update(ctx context.Context, u *model.User) error
 	// AddBeltPromotion mirrors internal/usecase/profile's own private
 	// contract — onboarding's own belt step uses it too, to backfill the

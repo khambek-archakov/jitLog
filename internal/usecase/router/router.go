@@ -10,11 +10,28 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/khambek-archakov/jitLog/internal/model"
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
+
+// acquisitionSourceRe is /start's own deep-link payload shape
+// (/start?start=src_<label>) — anything else (absent, malformed, some
+// other bot's payload format) is silently ignored, never surfaced to the
+// user or the onboarding flow.
+var acquisitionSourceRe = regexp.MustCompile(`^src_[a-z0-9_]{1,32}$`)
+
+// acquisitionSource validates payload against acquisitionSourceRe,
+// returning nil for anything that doesn't match.
+func acquisitionSource(payload string) *string {
+	if !acquisitionSourceRe.MatchString(payload) {
+		return nil
+	}
+
+	return &payload
+}
 
 type Router struct {
 	chain chain
@@ -66,7 +83,7 @@ func (r *Router) getOrCreateUser(ctx context.Context, in dto.Input) (*model.User
 		return nil, nil
 	}
 
-	u, err = r.user.Create(ctx, in.TelegramID)
+	u, err = r.user.Create(ctx, in.TelegramID, acquisitionSource(in.StartPayload))
 	if err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
 	}

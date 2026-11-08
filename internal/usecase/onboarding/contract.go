@@ -19,7 +19,6 @@ type sender interface {
 
 type user interface {
 	GetByTelegramID(ctx context.Context, telegramID int64) (*model.User, error)
-	Create(ctx context.Context, telegramID int64) (*model.User, error)
 	Update(ctx context.Context, u *model.User) error
 	AddBeltPromotion(ctx context.Context, userID int64, belt model.Belt, promotedAt time.Time) error
 }

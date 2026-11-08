@@ -50,6 +50,26 @@ func TestNewInput(t *testing.T) {
 		in := update.NewInput(upd)
 
 		assert.True(t, in.IsStartCmd)
+		assert.Empty(t, in.StartPayload)
+	})
+
+	t.Run("/start command with a deep-link payload", func(t *testing.T) {
+		t.Parallel()
+
+		upd := tgbotapi.Update{
+			Message: &tgbotapi.Message{
+				MessageID: 1,
+				From:      &tgbotapi.User{ID: 42},
+				Chat:      &tgbotapi.Chat{ID: 777},
+				Text:      "/start src_ads",
+				Entities:  []tgbotapi.MessageEntity{{Type: "bot_command", Offset: 0, Length: 6}},
+			},
+		}
+
+		in := update.NewInput(upd)
+
+		assert.True(t, in.IsStartCmd)
+		assert.Equal(t, "src_ads", in.StartPayload)
 	})
 
 	t.Run("callback with its originating message present", func(t *testing.T) {

@@ -72,6 +72,86 @@ func TestRouter_Route(t *testing.T) {
 		},
 
 		{
+			name: "new user, /start with a valid payload records the acquisition source",
+			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, IsStartCmd: true, StartPayload: "src_ads"},
+			prepare: func(user *Mockuser) {
+				user.EXPECT().
+					GetByTelegramID(gomock.Any(), telegramID).
+					Return(nil, model.ErrNotFound)
+
+				label := "src_ads"
+				user.EXPECT().
+					Create(gomock.Any(), telegramID, &label).
+					Return(&model.User{ID: userID}, nil)
+
+				user.EXPECT().TouchActivity(gomock.Any(), userID, gomock.Any()).Return(nil)
+			},
+			chain: &fakeChain{},
+			expected: func(t assert.TestingT, c *fakeChain, err error) {
+				assert.NoError(t, err)
+				assert.True(t, c.called)
+			},
+		},
+
+		{
+			name: "new user, /start with an invalid payload records no source",
+			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, IsStartCmd: true, StartPayload: "not-a-valid-payload"},
+			prepare: func(user *Mockuser) {
+				user.EXPECT().
+					GetByTelegramID(gomock.Any(), telegramID).
+					Return(nil, model.ErrNotFound)
+
+				user.EXPECT().
+					Create(gomock.Any(), telegramID, (*string)(nil)).
+					Return(&model.User{ID: userID}, nil)
+
+				user.EXPECT().TouchActivity(gomock.Any(), userID, gomock.Any()).Return(nil)
+			},
+			chain: &fakeChain{},
+			expected: func(t assert.TestingT, c *fakeChain, err error) {
+				assert.NoError(t, err)
+				assert.True(t, c.called)
+			},
+		},
+
+		{
+			name: "new user, plain /start (no payload) records no source",
+			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, IsStartCmd: true},
+			prepare: func(user *Mockuser) {
+				user.EXPECT().
+					GetByTelegramID(gomock.Any(), telegramID).
+					Return(nil, model.ErrNotFound)
+
+				user.EXPECT().
+					Create(gomock.Any(), telegramID, (*string)(nil)).
+					Return(&model.User{ID: userID}, nil)
+
+				user.EXPECT().TouchActivity(gomock.Any(), userID, gomock.Any()).Return(nil)
+			},
+			chain: &fakeChain{},
+			expected: func(t assert.TestingT, c *fakeChain, err error) {
+				assert.NoError(t, err)
+				assert.True(t, c.called)
+			},
+		},
+
+		{
+			name: "an existing user's /start payload changes nothing — Create is never called",
+			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, IsStartCmd: true, StartPayload: "src_ads"},
+			prepare: func(user *Mockuser) {
+				user.EXPECT().
+					GetByTelegramID(gomock.Any(), telegramID).
+					Return(&model.User{ID: userID}, nil)
+				user.EXPECT().TouchActivity(gomock.Any(), userID, gomock.Any()).Return(nil)
+			},
+			chain: &fakeChain{},
+			expected: func(t assert.TestingT, c *fakeChain, err error) {
+				assert.NoError(t, err)
+				assert.True(t, c.called)
+			},
+		},
+
+		{
 			name: "an error from the chain propagates",
 			in:   dto.Input{TelegramID: telegramID, ChatID: chatID, IsStartCmd: true},
 			prepare: func(user *Mockuser) {
