@@ -82,7 +82,7 @@ func drawHeader(dc *gg.Context, name string) float64 {
 // seal, returning the y just below the headline.
 func drawTitle(dc *gg.Context, top float64, month time.Time) float64 {
 	const (
-		gapAfterHeader = 32.0
+		gapAfterHeader = 56.0 // 112 final.
 		labelSize      = 24.0
 		labelSpacing   = 3.0
 		gapLabelTitle  = 8.0
@@ -126,7 +126,7 @@ func drawTitle(dc *gg.Context, top float64, month time.Time) float64 {
 // label on one baseline, returning the y just below it.
 func drawTrainingsCount(dc *gg.Context, top float64, n int) float64 {
 	const (
-		gap      = 40.0
+		gap      = 40.0 // 80 final.
 		numSize  = 140.0
 		lblSize  = 28.0
 		numToLbl = 20.0
@@ -162,7 +162,7 @@ type numberBlock struct {
 // block" rule), side by side, returning the y just below them.
 func drawHoursAndRounds(dc *gg.Context, top float64, totalMinutes, rounds int32) float64 {
 	const (
-		gap      = 28.0
+		gap      = 20.0 // 40 final.
 		numSize  = 72.0
 		lblSize  = 22.0
 		blockGap = 48.0
@@ -212,21 +212,22 @@ type typeSegment struct {
 	count int
 }
 
-// drawTypeBar draws the proportional type-breakdown bar and its legend.
-// A zero-count type is left out of both entirely (never a zero-width
-// segment) — see the spec's own rule.
-func drawTypeBar(dc *gg.Context, top float64, in Input) {
+// drawTypeBar draws the proportional type-breakdown bar and its legend,
+// returning the y just below the legend (top, unchanged, if there's
+// nothing to draw). A zero-count type is left out of both entirely
+// (never a zero-width segment) — see the spec's own rule.
+func drawTypeBar(dc *gg.Context, top float64, in Input) float64 {
 	const (
-		gap            = 28.0
+		gap            = 36.0 // 72 final.
 		barHeight      = 28.0
 		barRadius      = 14.0
 		barGap         = 6.0
-		gapBarToLegend = 16.0
+		gapBarToLegend = 10.0 // 20 final.
 	)
 
 	segs := typeSegments(in)
 	if len(segs) == 0 {
-		return
+		return top
 	}
 
 	y := top + gap
@@ -255,7 +256,7 @@ func drawTypeBar(dc *gg.Context, top float64, in Input) {
 
 	y += barHeight + gapBarToLegend
 
-	drawLegend(dc, segs, y)
+	return drawLegend(dc, segs, y)
 }
 
 // Legend sizing — the spec's own "28/28/18/10" are given at the final
@@ -283,7 +284,7 @@ const (
 // own second line. Every count is unbounded user data (a very active
 // month can easily reach triple digits), so this has to hold at any
 // width, not just the sizes this feature happened to be designed around.
-func drawLegend(dc *gg.Context, segs []typeSegment, top float64) {
+func drawLegend(dc *gg.Context, segs []typeSegment, top float64) float64 {
 	size, gap := legendSizeDefault, legendGapDefault
 
 	if legendWidth(dc, segs, size, gap) > contentWidth {
@@ -296,12 +297,11 @@ func drawLegend(dc *gg.Context, segs []typeSegment, top float64) {
 
 	if legendWidth(dc, segs, size, gap) > contentWidth && len(segs) > 1 {
 		y := drawLegendRow(dc, segs[:len(segs)-1], top, size, gap)
-		drawLegendRow(dc, segs[len(segs)-1:], y+legendRowGap, size, gap)
 
-		return
+		return drawLegendRow(dc, segs[len(segs)-1:], y+legendRowGap, size, gap)
 	}
 
-	drawLegendRow(dc, segs, top, size, gap)
+	return drawLegendRow(dc, segs, top, size, gap)
 }
 
 // legendWidth is drawLegendRow's own total width, computed without
@@ -387,8 +387,10 @@ func typeSegments(in Input) []typeSegment {
 }
 
 // drawFooter draws the top rule + handle + tagline, anchored to the
-// canvas's own bottom margin (960 - marginBottom).
-func drawFooter(dc *gg.Context) {
+// canvas's own bottom margin (960 - marginBottom), and returns the
+// rule's own top y — the hard ceiling whatever's drawn above (the
+// legend) must clear by at least the spec's own 40px-final gap.
+func drawFooter(dc *gg.Context) float64 {
 	const (
 		lineThickness    = 4.0
 		gapAfterLine     = 24.0
@@ -421,4 +423,6 @@ func drawFooter(dc *gg.Context) {
 	dc.SetFontFace(taglineFace)
 	dc.SetColor(colorSub)
 	dc.DrawString("Твой путь на татами под контролем", contentLeft, taglineTop+taglineAscent)
+
+	return lineTop
 }

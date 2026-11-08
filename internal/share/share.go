@@ -16,9 +16,14 @@ const (
 	logicalW, logicalH = 540, 960
 	outputScale        = 2
 
-	marginX      = 96.0
-	marginTop    = 112.0
-	marginBottom = 96.0
+	marginX = 96.0
+	// marginTop/marginBottom carve out Instagram/Telegram's own story UI
+	// safe zone — their own chrome covers the top ~270px and bottom
+	// ~384px of a published 1080×1920 story, hence 135/192 here (half of
+	// that, this space being drawn at outputScale=2). Content must stay
+	// within final y ∈ [270, 1536] — see TestContentStaysInSafeZone.
+	marginTop    = 135.0
+	marginBottom = 192.0
 )
 
 var (
@@ -54,11 +59,17 @@ func Render(in Input) ([]byte, error) {
 	drawDecor(dc)
 
 	y := drawHeader(dc, in.Name)
+	fmt.Println("DEBUG header", y)
 	y = drawTitle(dc, y, in.Month)
+	fmt.Println("DEBUG title", y)
 	y = drawTrainingsCount(dc, y, in.Trainings)
+	fmt.Println("DEBUG trainings", y)
 	y = drawHoursAndRounds(dc, y, in.TotalMinutes, in.Rounds)
-	drawTypeBar(dc, y, in)
-	drawFooter(dc)
+	fmt.Println("DEBUG hours", y)
+	legendBottom := drawTypeBar(dc, y, in)
+	fmt.Println("DEBUG legend", legendBottom)
+	lineTop := drawFooter(dc)
+	fmt.Println("DEBUG footer lineTop", lineTop, "gap", lineTop-legendBottom)
 
 	var buf bytes.Buffer
 	if err := dc.EncodePNG(&buf); err != nil {
