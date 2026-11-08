@@ -12,38 +12,56 @@ import (
 // legend and the footer's top rule, at the final 1080×1920 output —
 // halved here since this test works in the same logical space as the
 // drawing code (see share.go's outputScale).
-const legendFooterGapFloor = 40.0 / outputScale
+const legendFooterGapFloor = 120.0 / outputScale
 
-// TestLegendClearsFooter guards the densest shipped case (three types,
-// a rounds block) against the exact regression this test was added for:
-// the legend and the footer's own top rule drew on top of each other
-// once the top/bottom safe-zone margins grew, because the footer's own
-// bottom-anchored position never accounted for how far down the legend
-// above it actually reaches.
+// TestLegendClearsFooter guards three datasets — the densest shipped
+// case (three types, a rounds block), a single-type/no-rounds case, and
+// the long-legend/wrap case — against the exact regression this test was
+// added for: the legend and the footer's own top rule drawing on top of
+// (or too close to) each other, because the footer's own bottom-anchored
+// position never accounted for how far down the legend above it actually
+// reaches.
 func TestLegendClearsFooter(t *testing.T) {
 	t.Parallel()
 
-	dc := gg.NewContext(logicalW*outputScale, logicalH*outputScale)
-	dc.Scale(outputScale, outputScale)
-
-	in := Input{
-		Name: "Алексей", Month: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
-		Trainings: 14, TotalMinutes: 21 * 60, Rounds: 63,
-		GiCount: 8, NoGiCount: 4, OpenMatCount: 2,
+	tests := []struct {
+		name string
+		in   Input
+	}{
+		{name: "three types, with a rounds block", in: Input{
+			Name: "Алексей", Month: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
+			Trainings: 14, TotalMinutes: 21 * 60, Rounds: 63,
+			GiCount: 8, NoGiCount: 4, OpenMatCount: 2,
+		}},
+		{name: "one type, no rounds block", in: Input{
+			Name: "Мария", Month: time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC),
+			Trainings: 1, TotalMinutes: 60, Rounds: 0,
+			GiCount: 1,
+		}},
+		{name: "long legend, wrapped", in: Input{
+			Name: "Алексей", Month: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
+			Trainings: 329, TotalMinutes: 329 * 60, Rounds: 1200,
+			GiCount: 128, NoGiCount: 104, OpenMatCount: 97,
+		}},
 	}
 
-	y := drawHeader(dc, in.Name)
-	y = drawTitle(dc, y, in.Month)
-	y = drawTrainingsCount(dc, y, in.Trainings)
-	y = drawHoursAndRounds(dc, y, in.TotalMinutes, in.Rounds)
-	legendBottom := drawTypeBar(dc, y, in)
-	lineTop := drawFooter(dc)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	gap := lineTop - legendBottom
-	assert.GreaterOrEqualf(
-		t, gap, legendFooterGapFloor, "legend bottom (%.1f) to footer line top (%.1f) is only %.1f, want ≥ %.1f",
-		legendBottom, lineTop, gap, legendFooterGapFloor,
-	)
+			dc := gg.NewContext(logicalW*outputScale, logicalH*outputScale)
+			dc.Scale(outputScale, outputScale)
+
+			legendBottom := drawTypeBar(dc, tc.in, nil)
+			lineTop := targetFooterLineCapTop
+
+			gap := lineTop - legendBottom
+			assert.GreaterOrEqualf(
+				t, gap, legendFooterGapFloor, "legend bottom (%.1f) to footer line top (%.1f) is only %.1f, want ≥ %.1f",
+				legendBottom, lineTop, gap, legendFooterGapFloor,
+			)
+		})
+	}
 }
 
 // TestDrawLegend_NeverOverflows guards the shrink-then-wrap ladder itself

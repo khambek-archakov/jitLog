@@ -45,6 +45,28 @@ func scaleToHeight(img image.Image, h int) image.Image {
 	return dst
 }
 
+// inkBounds is s's own true ink extent in face, relative to its own
+// baseline (negative = above baseline) — via font.BoundString, not the
+// font's generic ascent/descent metrics, which (per this feature's own
+// debug test) sit well outside where any specific string's ink actually
+// falls.
+func inkBounds(w weight, size float64, s string) (minY, maxY float64) {
+	bounds, _ := font.BoundString(face(w, size), s)
+
+	return float64(bounds.Min.Y) / 64, float64(bounds.Max.Y) / 64
+}
+
+// baselineForCapTop returns the baseline y that puts s's own true ink
+// top exactly at capTop, for a string drawn in face w at size — the
+// layout's own primary positioning primitive: every text block is placed
+// by its target cap-top, not by accumulating gaps/ascents downward (the
+// approach TestDebugLayoutPositions found drifted 60-190px off target).
+func baselineForCapTop(w weight, size, capTop float64, s string) float64 {
+	minY, _ := inkBounds(w, size, s)
+
+	return capTop - minY
+}
+
 // drawTracked draws s letter by letter with spacing extra pixels (can be
 // negative, for slightly tighter-than-normal tracking) between glyphs,
 // baseline-left anchored at (x, y). Returns the total width drawn.

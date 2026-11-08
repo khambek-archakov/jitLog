@@ -50,6 +50,16 @@ type Input struct {
 // Render draws Input as a 1080×1920 PNG, entirely in memory — no file
 // ever touches disk.
 func Render(in Input) ([]byte, error) {
+	data, _, err := renderTraced(in, nil)
+	return data, err
+}
+
+// renderTraced is Render's own real body, plus an optional *trace: when
+// non-nil, every block's measured position is recorded into it as it's
+// drawn — see TestDebugLayoutPositions, the only caller that passes one.
+// A nil trace (every production Render call) makes the recording calls
+// below free no-ops.
+func renderTraced(in Input, tr *trace) ([]byte, *trace, error) {
 	dc := gg.NewContext(logicalW*outputScale, logicalH*outputScale)
 	dc.Scale(outputScale, outputScale)
 
@@ -58,17 +68,17 @@ func Render(in Input) ([]byte, error) {
 
 	drawDecor(dc)
 
-	y := drawHeader(dc, in.Name)
-	y = drawTitle(dc, y, in.Month)
-	y = drawTrainingsCount(dc, y, in.Trainings)
-	y = drawHoursAndRounds(dc, y, in.TotalMinutes, in.Rounds)
-	y = drawTypeBar(dc, y, in)
-	drawFooter(dc)
+	drawHeader(dc, in.Name, tr)
+	drawTitle(dc, in.Month, tr)
+	drawTrainingsCount(dc, in.Trainings, tr)
+	drawHoursAndRounds(dc, in.TotalMinutes, in.Rounds, tr)
+	_ = drawTypeBar(dc, in, tr)
+	drawFooter(dc, tr)
 
 	var buf bytes.Buffer
 	if err := dc.EncodePNG(&buf); err != nil {
-		return nil, fmt.Errorf("encode share image: %w", err)
+		return nil, tr, fmt.Errorf("encode share image: %w", err)
 	}
 
-	return buf.Bytes(), nil
+	return buf.Bytes(), tr, nil
 }

@@ -12,7 +12,8 @@ import (
 // other element, drawn right after the flat background fill and before
 // anything else. Its center sits off-canvas to the right on purpose
 // (contentRight tops out at 444); only the arc's left-hand sliver ever
-// shows.
+// shows. Exempt from the safe-zone/trace checks — it's decor, not
+// content.
 func drawDecor(dc *gg.Context) {
 	dc.Push()
 	defer dc.Pop()
@@ -40,13 +41,13 @@ func drawDecor(dc *gg.Context) {
 	dc.Stroke()
 }
 
-// drawHeader draws the logo + name row and returns the y just below it.
-// logoHeight is 64 logical px — the spec's own "128 px" is stated at the
-// final 1080×1920 output, i.e. half that in this scaled-×2 logical space
-// (see share.go's own outputScale); drawing it at a literal 128 here was
-// rendering the logo twice as large as intended and eating into the
-// name's available width.
-func drawHeader(dc *gg.Context, name string) float64 {
+// drawHeader draws the logo + name row. logoHeight is 64 logical px —
+// the spec's own "128 px" is stated at the final 1080×1920 output, i.e.
+// half that in this scaled-×2 logical space (see share.go's own
+// outputScale). The logo's own top sits exactly at targetLogoCapTop —
+// the one block whose target already matched marginTop with no
+// adjustment needed.
+func drawHeader(dc *gg.Context, name string, tr *trace) {
 	const (
 		logoHeight = 64.0
 		logoShiftX = -8.0
@@ -58,9 +59,10 @@ func drawHeader(dc *gg.Context, name string) float64 {
 	logoW := float64(logo.Bounds().Dx())
 
 	logoX := contentLeft + logoShiftX
-	logoY := marginTop
+	logoY := targetLogoCapTop
 
 	dc.DrawImage(logo, int(math.Round(logoX)), int(math.Round(logoY)))
+	tr.image("логотип", logoY)
 
 	nameFace := face(weightSemiBold, nameSize)
 	dc.SetFontFace(nameFace)
@@ -74,82 +76,73 @@ func drawHeader(dc *gg.Context, name string) float64 {
 
 	nameCenterY := logoY + logoHeight/2
 	dc.DrawStringAnchored(name, contentRight, nameCenterY, 1, 0.5)
-
-	return logoY + logoHeight
 }
 
-// drawTitle draws "МОЙ МЕСЯЦ НА ТАТАМИ" + the month/year headline + the
-// seal, returning the y just below the headline.
-func drawTitle(dc *gg.Context, top float64, month time.Time) float64 {
+// drawTitle draws "МОЙ МЕСЯЦ НА ТАТАМИ" and the month/year headline, each
+// independently placed at its own target cap-top, plus the seal (bottom
+// aligned to the headline's own baseline, per the original spec).
+func drawTitle(dc *gg.Context, month time.Time, tr *trace) {
 	const (
-		gapAfterHeader = 56.0 // 112 final.
-		labelSize      = 24.0
-		labelSpacing   = 3.0
-		gapLabelTitle  = 4.0
-		titleSize      = 36.0
-		titleSpacing   = -1.0
-		sealSize       = 36.0
+		labelSize    = 24.0
+		labelSpacing = 3.0
+		titleSize    = 36.0
+		titleSpacing = -1.0
+		sealSize     = 36.0
 	)
-
-	y := top + gapAfterHeader
 
 	labelFace := face(weightSemiBold, labelSize)
 	dc.SetFontFace(labelFace)
 	dc.SetColor(colorAccent)
 
-	labelAscent, labelHeight := lineMetrics(labelFace)
-	labelBaseline := y + labelAscent
-	drawTracked(dc, "МОЙ МЕСЯЦ НА ТАТАМИ", contentLeft, labelBaseline, labelSpacing)
-	y += labelHeight
-
-	y += gapLabelTitle
+	const labelText = "МОЙ МЕСЯЦ НА ТАТАМИ"
+	labelBaseline := baselineForCapTop(weightSemiBold, labelSize, targetLabelCapTop, labelText)
+	drawTracked(dc, labelText, contentLeft, labelBaseline, labelSpacing)
+	tr.text("надпись", weightSemiBold, labelSize, labelBaseline, labelText)
 
 	titleFace := face(weightExtraBold, titleSize)
 	dc.SetFontFace(titleFace)
 	dc.SetColor(colorText)
 
-	titleAscent, titleHeight := lineMetrics(titleFace)
-	titleBaseline := y + titleAscent
-	drawTracked(dc, monthTitle(month), contentLeft, titleBaseline, titleSpacing)
-	titleBottom := y + titleHeight
+	title := monthTitle(month)
+	titleBaseline := baselineForCapTop(weightExtraBold, titleSize, targetTitleCapTop, title)
+	drawTracked(dc, title, contentLeft, titleBaseline, titleSpacing)
+	tr.text("заголовок", weightExtraBold, titleSize, titleBaseline, title)
 
 	seal := scaleToHeight(sealImage, int(sealSize))
 	sealW := float64(seal.Bounds().Dx())
 	sealX := contentRight - sealW
 	sealY := titleBaseline - sealSize
 	dc.DrawImage(seal, int(math.Round(sealX)), int(math.Round(sealY)))
-
-	return titleBottom
 }
 
 // drawTrainingsCount draws the big trainings number and its declined
-// label on one baseline, returning the y just below it.
-func drawTrainingsCount(dc *gg.Context, top float64, n int) float64 {
+// label on one baseline, the number's own cap-top pinned to
+// targetTrainingsCapTop.
+func drawTrainingsCount(dc *gg.Context, n int, tr *trace) {
 	const (
-		gap      = 40.0 // 80 final.
-		numSize  = 140.0
+		// numSize was 140 — shrunk so the number's own baseline also
+		// lands on targetTrainingsCapTop's own ascent target (824 final),
+		// not just its cap-top; see TestDebugLayoutPositions.
+		numSize  = 112.0
 		lblSize  = 28.0
 		numToLbl = 20.0
 	)
 
-	y := top + gap
-
 	numFace := face(weightExtraBold, numSize)
 	dc.SetFontFace(numFace)
-	numAscent, numHeight := lineMetrics(numFace)
-	baseline := y + numAscent
+
+	numStr := strconv.Itoa(n)
+	baseline := baselineForCapTop(weightExtraBold, numSize, targetTrainingsCapTop, numStr)
 
 	dc.SetColor(colorText)
-	numStr := strconv.Itoa(n)
 	dc.DrawString(numStr, contentLeft, baseline)
+	tr.text("число тренировок", weightExtraBold, numSize, baseline, numStr)
 	numW, _ := dc.MeasureString(numStr)
 
 	lblFace := face(weightSemiBold, lblSize)
 	dc.SetFontFace(lblFace)
 	dc.SetColor(colorSub)
 	dc.DrawString(trainingsWord(n), contentLeft+numW+numToLbl, baseline)
-
-	return y + numHeight
 }
 
 type numberBlock struct {
@@ -159,16 +152,18 @@ type numberBlock struct {
 
 // drawHoursAndRounds draws the hours block (always) and the rounds
 // block (only when rounds > 0 — see the spec's own "no rounds, no
-// block" rule), side by side, returning the y just below them.
-func drawHoursAndRounds(dc *gg.Context, top float64, totalMinutes, rounds int32) float64 {
+// block" rule), side by side — each number's cap-top pinned to
+// targetHoursCapTop, each label's cap-top pinned to
+// targetHoursLabelCapTop.
+func drawHoursAndRounds(dc *gg.Context, totalMinutes, rounds int32, tr *trace) {
 	const (
-		gap      = 20.0 // 40 final.
-		numSize  = 72.0
+		// numSize was 72 — shrunk for the same reason as
+		// drawTrainingsCount's own numSize, to also hit the baseline
+		// target (982 final), not just cap-top.
+		numSize  = 55.0
 		lblSize  = 22.0
 		blockGap = 48.0
 	)
-
-	y := top + gap
 
 	hours := roundHours(totalMinutes)
 
@@ -185,26 +180,29 @@ func drawHoursAndRounds(dc *gg.Context, top float64, totalMinutes, rounds int32)
 	numFace := face(weightExtraBold, numSize)
 	lblFace := face(weightSemiBold, lblSize)
 
-	numAscent, numHeight := lineMetrics(numFace)
-	lblAscent, lblHeight := lineMetrics(lblFace)
-
-	numBaseline := y + numAscent
-	labelTop := y + numHeight
-	labelBaseline := labelTop + lblAscent
+	blockNames := []string{"часы", "раунды"}
 
 	for i, b := range blocks {
 		x := contentLeft + float64(i)*(blockWidth+blockGap)
 
+		numStr := strconv.Itoa(b.n)
+		numBaseline := baselineForCapTop(weightExtraBold, numSize, targetHoursCapTop, numStr)
+
 		dc.SetFontFace(numFace)
 		dc.SetColor(colorText)
-		dc.DrawString(strconv.Itoa(b.n), x, numBaseline)
+		dc.DrawString(numStr, x, numBaseline)
+		tr.text(blockNames[i]+" (число)", weightExtraBold, numSize, numBaseline, numStr)
+
+		labelBaseline := baselineForCapTop(weightSemiBold, lblSize, targetHoursLabelCapTop, b.label)
 
 		dc.SetFontFace(lblFace)
 		dc.SetColor(colorSub)
 		dc.DrawString(b.label, x, labelBaseline)
-	}
 
-	return labelTop + lblHeight
+		if i == 0 {
+			tr.text("часы/раунды (подпись)", weightSemiBold, lblSize, labelBaseline, b.label)
+		}
+	}
 }
 
 type typeSegment struct {
@@ -212,25 +210,32 @@ type typeSegment struct {
 	count int
 }
 
-// drawTypeBar draws the proportional type-breakdown bar and its legend,
-// returning the y just below the legend (top, unchanged, if there's
-// nothing to draw). A zero-count type is left out of both entirely
-// (never a zero-width segment) — see the spec's own rule.
-func drawTypeBar(dc *gg.Context, top float64, in Input) float64 {
+// drawTypeBar draws the proportional type-breakdown bar (top pinned to
+// targetBarCapTop) and its legend (top pinned to targetLegendCapTop),
+// returning the legend's own bottom y (top, unchanged, if there's
+// nothing to draw) — used only to verify clearance from the footer (see
+// TestLegendClearsFooter), since every block's own position is now
+// independent of what was drawn above it. A zero-count type is left out
+// of both entirely (never a zero-width segment) — see the spec's own
+// rule.
+func drawTypeBar(dc *gg.Context, in Input, tr *trace) float64 {
 	const (
-		gap            = 24.0 // was spec'd to 72 final/36 logical — trimmed further, see TestContentStaysInSafeZone's own doc.
-		barHeight      = 28.0
-		barRadius      = 14.0
-		barGap         = 6.0
-		gapBarToLegend = 4.0 // was spec'd to 20 final/10 logical — trimmed further, same reason.
+		// barHeight was 28 (logical) — the user's own "полоса 1100
+		// (высота 28)" note gives 28 at final scale, same as every other
+		// number in that message; at 28 logical (56 final) the bar's own
+		// bottom (1100+56=1156 final) ran past targetLegendCapTop (1150),
+		// overlapping the legend above it.
+		barHeight = 14.0
+		barRadius = 7.0
+		barGap    = 6.0
 	)
 
 	segs := typeSegments(in)
 	if len(segs) == 0 {
-		return top
+		return targetBarCapTop
 	}
 
-	y := top + gap
+	y := targetBarCapTop
 
 	total := 0
 	for _, s := range segs {
@@ -254,9 +259,9 @@ func drawTypeBar(dc *gg.Context, top float64, in Input) float64 {
 		x += w + barGap
 	}
 
-	y += barHeight + gapBarToLegend
+	tr.shape("полоса", y)
 
-	return drawLegend(dc, segs, y)
+	return drawLegend(dc, segs, tr)
 }
 
 // Legend sizing — the spec's own "28/28/18/10" are given at the final
@@ -284,7 +289,9 @@ const (
 // own second line. Every count is unbounded user data (a very active
 // month can easily reach triple digits), so this has to hold at any
 // width, not just the sizes this feature happened to be designed around.
-func drawLegend(dc *gg.Context, segs []typeSegment, top float64) float64 {
+// The first row's own cap-top is pinned to targetLegendCapTop; a second
+// (wrapped) row follows it by legendRowGap.
+func drawLegend(dc *gg.Context, segs []typeSegment, tr *trace) float64 {
 	size, gap := legendSizeDefault, legendGapDefault
 
 	if legendWidth(dc, segs, size, gap) > contentWidth {
@@ -296,12 +303,12 @@ func drawLegend(dc *gg.Context, segs []typeSegment, top float64) float64 {
 	}
 
 	if legendWidth(dc, segs, size, gap) > contentWidth && len(segs) > 1 {
-		y := drawLegendRow(dc, segs[:len(segs)-1], top, size, gap)
+		rowBottom := drawLegendRow(dc, segs[:len(segs)-1], targetLegendCapTop, size, gap, tr)
 
-		return drawLegendRow(dc, segs[len(segs)-1:], y+legendRowGap, size, gap)
+		return drawLegendRowAtCapTop(dc, segs[len(segs)-1:], rowBottom+legendRowGap, size, gap, nil)
 	}
 
-	return drawLegendRow(dc, segs, top, size, gap)
+	return drawLegendRow(dc, segs, targetLegendCapTop, size, gap, tr)
 }
 
 // legendWidth is drawLegendRow's own total width, computed without
@@ -326,18 +333,21 @@ func legendWidth(dc *gg.Context, segs []typeSegment, size, gap float64) float64 
 	return w
 }
 
-// drawLegendRow draws one row of segs (swatch, label in colorText, count
-// in colorSub), returning the y just below it.
-func drawLegendRow(dc *gg.Context, segs []typeSegment, top, size, gap float64) float64 {
+// drawLegendRow draws one row of segs with its own cap-top pinned to
+// capTop (via the row's first segment), returning the row's own bottom
+// (capTop + ink height) for the wrap case's second row to follow.
+func drawLegendRow(dc *gg.Context, segs []typeSegment, capTop, size, gap float64, tr *trace) float64 {
 	legendFace := face(weightSemiBold, size)
 	dc.SetFontFace(legendFace)
-	ascent, height := lineMetrics(legendFace)
-	baseline := top + ascent
-	swatchY := top + (height-swatchSize)/2
+
+	baseline := baselineForCapTop(weightSemiBold, size, capTop, segs[0].label)
+	_, maxY := inkBounds(weightSemiBold, size, segs[0].label)
+	inkBottom := baseline + maxY
+	swatchY := capTop + (inkBottom-capTop-swatchSize)/2
 
 	lx := contentLeft
 
-	for _, s := range segs {
+	for i, s := range segs {
 		dc.SetColor(typeColors[s.label])
 		dc.DrawRoundedRectangle(lx, swatchY, swatchSize, swatchSize, swatchRadius)
 		dc.Fill()
@@ -346,6 +356,10 @@ func drawLegendRow(dc *gg.Context, segs []typeSegment, top, size, gap float64) f
 
 		dc.SetColor(colorText)
 		dc.DrawString(s.label, lx, baseline)
+
+		if i == 0 {
+			tr.text("легенда", weightSemiBold, size, baseline, s.label)
+		}
 
 		labelW, _ := dc.MeasureString(s.label)
 
@@ -358,7 +372,15 @@ func drawLegendRow(dc *gg.Context, segs []typeSegment, top, size, gap float64) f
 		lx += labelW + countW + gap
 	}
 
-	return top + height
+	return baseline + maxY
+}
+
+// drawLegendRowAtCapTop is drawLegendRow's own twin for the wrap case's
+// second row, where the caller already computed its own top (not a
+// target constant) — kept as a separate name purely for readability at
+// the call site.
+func drawLegendRowAtCapTop(dc *gg.Context, segs []typeSegment, capTop, size, gap float64, tr *trace) float64 {
+	return drawLegendRow(dc, segs, capTop, size, gap, tr)
 }
 
 func countSuffix(n int) string {
@@ -386,43 +408,39 @@ func typeSegments(in Input) []typeSegment {
 	return segs
 }
 
-// drawFooter draws the top rule + handle + tagline, anchored to the
-// canvas's own bottom margin (960 - marginBottom), and returns the
-// rule's own top y — the hard ceiling whatever's drawn above (the
-// legend) must clear by at least the spec's own 40px-final gap.
-func drawFooter(dc *gg.Context) float64 {
+// drawFooter draws the top rule (targetFooterLineCapTop), the handle
+// (targetHandleCapTop) and the tagline — the tagline is the one block
+// the spec gave a baseline target for directly (targetTaglineBaseline),
+// rather than a cap-top, so it's used as-is, no BoundString needed.
+func drawFooter(dc *gg.Context, tr *trace) {
 	const (
-		lineThickness    = 4.0
-		gapAfterLine     = 7.0
-		handleSize       = 28.0
-		taglineSize      = 20.0
-		gapHandleTagline = 4.0
+		lineThickness = 4.0
+		handleSize    = 28.0
+		taglineSize   = 20.0
 	)
 
-	bottom := float64(logicalH) - marginBottom
-
-	handleFace := face(weightExtraBold, handleSize)
-	taglineFace := face(weightRegular, taglineSize)
-
-	handleAscent, handleHeight := lineMetrics(handleFace)
-	taglineAscent, taglineHeight := lineMetrics(taglineFace)
-
-	taglineTop := bottom - taglineHeight
-	handleBottom := taglineTop - gapHandleTagline
-	handleTop := handleBottom - handleHeight
-	lineTop := handleTop - gapAfterLine - lineThickness
+	lineTop := targetFooterLineCapTop
 
 	dc.SetColor(colorText)
 	dc.DrawRoundedRectangle(contentLeft, lineTop, contentWidth, lineThickness, 0)
 	dc.Fill()
+	tr.shape("линия футера", lineTop)
 
+	handleFace := face(weightExtraBold, handleSize)
 	dc.SetFontFace(handleFace)
 	dc.SetColor(colorText)
-	dc.DrawString("@JitLogBot", contentLeft, handleTop+handleAscent)
 
+	const handleText = "@JitLogBot"
+	handleBaseline := baselineForCapTop(weightExtraBold, handleSize, targetHandleCapTop, handleText)
+	dc.DrawString(handleText, contentLeft, handleBaseline)
+	tr.text("@JitLogBot", weightExtraBold, handleSize, handleBaseline, handleText)
+
+	taglineFace := face(weightRegular, taglineSize)
 	dc.SetFontFace(taglineFace)
 	dc.SetColor(colorSub)
-	dc.DrawString("Твой путь на татами под контролем", contentLeft, taglineTop+taglineAscent)
 
-	return lineTop
+	const taglineText = "Твой путь на татами под контролем"
+	taglineBaseline := targetTaglineBaseline
+	dc.DrawString(taglineText, contentLeft, taglineBaseline)
+	tr.text("таглайн", weightRegular, taglineSize, taglineBaseline, taglineText)
 }
