@@ -59,17 +59,11 @@ func Render(in Input) ([]byte, error) {
 	drawDecor(dc)
 
 	y := drawHeader(dc, in.Name)
-	fmt.Println("DEBUG header", y)
 	y = drawTitle(dc, y, in.Month)
-	fmt.Println("DEBUG title", y)
 	y = drawTrainingsCount(dc, y, in.Trainings)
-	fmt.Println("DEBUG trainings", y)
 	y = drawHoursAndRounds(dc, y, in.TotalMinutes, in.Rounds)
-	fmt.Println("DEBUG hours", y)
-	legendBottom := drawTypeBar(dc, y, in)
-	fmt.Println("DEBUG legend", legendBottom)
-	lineTop := drawFooter(dc)
-	fmt.Println("DEBUG footer lineTop", lineTop, "gap", lineTop-legendBottom)
+	y = drawTypeBar(dc, y, in)
+	drawFooter(dc)
 
 	var buf bytes.Buffer
 	if err := dc.EncodePNG(&buf); err != nil {

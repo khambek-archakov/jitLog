@@ -2,10 +2,49 @@ package share
 
 import (
 	"testing"
+	"time"
 
 	"github.com/fogleman/gg"
 	"github.com/stretchr/testify/assert"
 )
+
+// legendFooterGapFloor is the spec's own minimum clearance between the
+// legend and the footer's top rule, at the final 1080×1920 output —
+// halved here since this test works in the same logical space as the
+// drawing code (see share.go's outputScale).
+const legendFooterGapFloor = 40.0 / outputScale
+
+// TestLegendClearsFooter guards the densest shipped case (three types,
+// a rounds block) against the exact regression this test was added for:
+// the legend and the footer's own top rule drew on top of each other
+// once the top/bottom safe-zone margins grew, because the footer's own
+// bottom-anchored position never accounted for how far down the legend
+// above it actually reaches.
+func TestLegendClearsFooter(t *testing.T) {
+	t.Parallel()
+
+	dc := gg.NewContext(logicalW*outputScale, logicalH*outputScale)
+	dc.Scale(outputScale, outputScale)
+
+	in := Input{
+		Name: "Алексей", Month: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
+		Trainings: 14, TotalMinutes: 21 * 60, Rounds: 63,
+		GiCount: 8, NoGiCount: 4, OpenMatCount: 2,
+	}
+
+	y := drawHeader(dc, in.Name)
+	y = drawTitle(dc, y, in.Month)
+	y = drawTrainingsCount(dc, y, in.Trainings)
+	y = drawHoursAndRounds(dc, y, in.TotalMinutes, in.Rounds)
+	legendBottom := drawTypeBar(dc, y, in)
+	lineTop := drawFooter(dc)
+
+	gap := lineTop - legendBottom
+	assert.GreaterOrEqualf(
+		t, gap, legendFooterGapFloor, "legend bottom (%.1f) to footer line top (%.1f) is only %.1f, want ≥ %.1f",
+		legendBottom, lineTop, gap, legendFooterGapFloor,
+	)
+}
 
 // TestDrawLegend_NeverOverflows guards the shrink-then-wrap ladder itself
 // — regardless of how wide the three counts get, no row the legend

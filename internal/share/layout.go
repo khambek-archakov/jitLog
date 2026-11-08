@@ -85,7 +85,7 @@ func drawTitle(dc *gg.Context, top float64, month time.Time) float64 {
 		gapAfterHeader = 56.0 // 112 final.
 		labelSize      = 24.0
 		labelSpacing   = 3.0
-		gapLabelTitle  = 8.0
+		gapLabelTitle  = 4.0
 		titleSize      = 36.0
 		titleSpacing   = -1.0
 		sealSize       = 36.0
@@ -218,11 +218,11 @@ type typeSegment struct {
 // (never a zero-width segment) — see the spec's own rule.
 func drawTypeBar(dc *gg.Context, top float64, in Input) float64 {
 	const (
-		gap            = 36.0 // 72 final.
+		gap            = 24.0 // was spec'd to 72 final/36 logical — trimmed further, see TestContentStaysInSafeZone's own doc.
 		barHeight      = 28.0
 		barRadius      = 14.0
 		barGap         = 6.0
-		gapBarToLegend = 10.0 // 20 final.
+		gapBarToLegend = 4.0 // was spec'd to 20 final/10 logical — trimmed further, same reason.
 	)
 
 	segs := typeSegments(in)
@@ -393,10 +393,10 @@ func typeSegments(in Input) []typeSegment {
 func drawFooter(dc *gg.Context) float64 {
 	const (
 		lineThickness    = 4.0
-		gapAfterLine     = 24.0
+		gapAfterLine     = 7.0
 		handleSize       = 28.0
 		taglineSize      = 20.0
-		gapHandleTagline = 8.0
+		gapHandleTagline = 4.0
 	)
 
 	bottom := float64(logicalH) - marginBottom
