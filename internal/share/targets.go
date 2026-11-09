@@ -1,22 +1,24 @@
 package share
 
-// Target cap-top/baseline positions, at the final 1080×1920 output —
-// halved into this logical (540×960, outputScale=2) space. Every
-// section is positioned directly against its own target (via
-// baselineForCapTop), not by accumulating gaps down the page — see
-// TestDebugLayoutPositions, which found the old gap-chain approach
-// drifting 60-190px off these targets by the time it reached the
-// bottom of the card.
+// Target block positions, at the final 1080×1920 output — halved into
+// this logical (540×960, outputScale=2) space. Sourced directly from
+// assets/share/reference/reference_layout.json (an HTML/CSS-rendered
+// reference at the same canvas size) rather than hand-derived: its own
+// box tops are CSS line-box tops, not tight glyph ink — a few px above
+// where a given string's own cap-top actually falls, which is exactly
+// the "6-8px" the reference's own author called a normal difference —
+// see TestMatchesReference, which checks against it directly.
 const (
 	targetLogoCapTop       = 270.0 / outputScale
-	targetLabelCapTop      = 440.0 / outputScale
-	targetTitleCapTop      = 490.0 / outputScale
-	targetTrainingsCapTop  = 660.0 / outputScale
-	targetHoursCapTop      = 900.0 / outputScale
-	targetHoursLabelCapTop = 1030.0 / outputScale
-	targetBarCapTop        = 1100.0 / outputScale
-	targetLegendCapTop     = 1150.0 / outputScale
-	targetFooterLineCapTop = 1370.0 / outputScale
-	targetHandleCapTop     = 1410.0 / outputScale
-	targetTaglineBaseline  = 1520.0 / outputScale
+	targetLabelCapTop      = 438.0 / outputScale
+	targetTitleCapTop      = 482.0 / outputScale
+	targetSealTop          = 478.0 / outputScale
+	targetTrainingsCapTop  = 642.0 / outputScale
+	targetHoursCapTop      = 880.0 / outputScale
+	targetHoursLabelCapTop = 985.0 / outputScale
+	targetBarCapTop        = 1089.0 / outputScale
+	targetLegendCapTop     = 1139.0 / outputScale
+	targetFooterLineCapTop = 1420.0 / outputScale
+	targetHandleCapTop     = 1460.0 / outputScale
+	targetTaglineCapTop    = 1505.0 / outputScale
 )

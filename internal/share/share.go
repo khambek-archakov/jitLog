@@ -16,7 +16,12 @@ const (
 	logicalW, logicalH = 540, 960
 	outputScale        = 2
 
-	marginX = 96.0
+	// marginX was 96 — the reference layout's own content_x is
+	// [96, 984] at final (1080×1920) scale, i.e. 48 here (half that,
+	// this space being drawn at outputScale=2). The old 96 doubled the
+	// side margins, narrowing every block (and the name's own available
+	// width, and the bar/legend) well past what the reference shows.
+	marginX = 48.0
 	// marginTop/marginBottom carve out Instagram/Telegram's own story UI
 	// safe zone — their own chrome covers the top ~270px and bottom
 	// ~384px of a published 1080×1920 story, hence 135/192 here (half of

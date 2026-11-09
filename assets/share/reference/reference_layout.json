@@ -1,0 +1,8 @@
+{"canvas":[1080,1920],"safe_zone_y":[270,1536],"content_x":[96,984],
+ "boxes_left_top_right_bottom_full_card":{
+ "logo":[88,270,314,382],"name":[857,308,984,344],"label":[96,438,984,468],
+ "title":[96,482,984,586],"seal":[880,478,984,582],"big_number_row":[96,642,984,832],
+ "hours_rounds_row":[96,880,984,1033],"bar":[96,1089,984,1117],"legend":[96,1139,984,1173],
+ "footer_line_top":1420,"handle":[96,1460,984,1499],"tagline":[96,1505,984,1536]},
+ "font_px":{"name":30,"label":30,"title":104,"big_number":224,"big_label":44,"small_number":112,"small_label":32,"legend":28,"handle":36,"tagline":28},
+ "note":"boxes are CSS line boxes; glyph tops are a few px inside"}

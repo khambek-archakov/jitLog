@@ -18,37 +18,27 @@ type target struct {
 	knownDeviation string
 }
 
-// wantedLayout is the spec's own target table (see the user's own
-// message; targets.go holds the same numbers, halved into logical
-// space, as the actual drawing constants) — capTop/baseline in final
-// px, ±8px tolerance unless noted.
-//
-// "заголовок"'s baseline is the one target this doesn't hit, and
-// deliberately isn't forced to: its cap-top (490) is exact, but reaching
-// baseline 566 too needs an ascent of 76px, which titleSize=36 can't
-// produce (its own ascent is 54px). Scaling the title font up to the
-// ~51px that would need reopens a bug fixed earlier this feature: at
-// that size "Сентябрь 2026"/"Декабрь 2026" (longer than October, this
-// test's own month) run wide enough to collide with the seal in the
-// title's own top-right corner. See the number blocks' own numSize
-// comments for the two targets this same kind of mismatch was fixed for
-// instead (shrinking a font has no such downside).
+// wantedLayout is assets/share/reference/reference_layout.json's own
+// box-top table (targets.go holds the same numbers, halved into logical
+// space, as the actual drawing constants) — capTop in final px, ±8px
+// tolerance throughout. No baseline targets here any more: the
+// reference gives CSS line-box tops, not baselines, for every block
+// (including "таглайн", which earlier rounds tracked by baseline before
+// the reference showed it as a box like everything else) — see
+// targets.go's own comment on why cap-top is the right thing to check
+// against a box-top target in the first place.
 var wantedLayout = []target{
 	{name: "логотип", capTop: targetLogoCapTop * outputScale, tolerance: 8},
 	{name: "надпись", capTop: targetLabelCapTop * outputScale, tolerance: 8},
-	{
-		name: "заголовок", capTop: targetTitleCapTop * outputScale, baseline: 566, tolerance: 8,
-		knownDeviation: "titleSize=36 only reaches baseline 544 (ascent 54px, target needs 76px); " +
-			"the ~51px size that would close it reopens the seal-overlap bug for longer month names",
-	},
-	{name: "число тренировок", capTop: targetTrainingsCapTop * outputScale, baseline: 824, tolerance: 8},
-	{name: "часы (число)", capTop: targetHoursCapTop * outputScale, baseline: 982, tolerance: 8},
+	{name: "заголовок", capTop: targetTitleCapTop * outputScale, tolerance: 8},
+	{name: "число тренировок", capTop: targetTrainingsCapTop * outputScale, tolerance: 8},
+	{name: "часы (число)", capTop: targetHoursCapTop * outputScale, tolerance: 8},
 	{name: "часы/раунды (подпись)", capTop: targetHoursLabelCapTop * outputScale, tolerance: 8},
 	{name: "полоса", capTop: targetBarCapTop * outputScale, tolerance: 8},
 	{name: "легенда", capTop: targetLegendCapTop * outputScale, tolerance: 8},
 	{name: "линия футера", capTop: targetFooterLineCapTop * outputScale, tolerance: 8},
 	{name: "@JitLogBot", capTop: targetHandleCapTop * outputScale, tolerance: 8},
-	{name: "таглайн", baseline: targetTaglineBaseline * outputScale, tolerance: 8},
+	{name: "таглайн", capTop: targetTaglineCapTop * outputScale, tolerance: 8},
 }
 
 // TestDebugLayoutPositions prints every block's own measured cap-top and
