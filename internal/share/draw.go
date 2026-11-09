@@ -98,3 +98,35 @@ func measureTracked(dc *gg.Context, s string, spacing float64) float64 {
 
 	return w
 }
+
+// measureString is s's own advance width in face w at size, without a
+// gg.Context — used by fitNumberSize, which needs to probe several
+// candidate sizes before a context's own font face is set to any of
+// them.
+func measureString(w weight, size float64, s string) float64 {
+	return float64(font.MeasureString(face(w, size), s)) / 64
+}
+
+// fitNumberSize returns the largest size, stepping down from base in
+// shrinkStep increments, at which s measures no wider than availWidth —
+// or shrinkFloorRatio*base itself once that's reached, even if s still
+// doesn't fit at that floor (the year card's own "big number" blocks
+// shrink to fit, per the spec, but never truncate the number itself).
+func fitNumberSize(w weight, base, availWidth float64, s string) float64 {
+	const (
+		shrinkStep       = 4.0 // 8 final.
+		shrinkFloorRatio = 0.7
+	)
+
+	floor := base * shrinkFloorRatio
+
+	size := base
+	for measureString(w, size, s) > availWidth && size > floor {
+		size -= shrinkStep
+		if size < floor {
+			size = floor
+		}
+	}
+
+	return size
+}

@@ -18,6 +18,18 @@ func monthTitle(month time.Time) string {
 	return monthsNominative[month.Month()-1] + " " + strconv.Itoa(month.Year())
 }
 
+// periodTitle is drawTitle's own label + headline text for p/anchor,
+// split out purely so the text choice is unit-testable without a real
+// font/context — PeriodMonth keeps the existing "МОЙ МЕСЯЦ НА ТАТАМИ" +
+// month name, PeriodYear is "МОЙ ГОД НА ТАТАМИ" + the year, digits only.
+func periodTitle(p Period, anchor time.Time) (label, title string) {
+	if p == PeriodYear {
+		return "МОЙ ГОД НА ТАТАМИ", strconv.Itoa(anchor.Year())
+	}
+
+	return "МОЙ МЕСЯЦ НА ТАТАМИ", monthTitle(anchor)
+}
+
 // roundHours sums totalMinutes into whole hours, rounded to the nearest
 // — except any positive total under 60 minutes still shows as 1, never
 // 0, so a single short session doesn't vanish from its own headline
@@ -63,6 +75,26 @@ func hoursWord(n int) string {
 
 func roundsWord(n int) string {
 	return pluralForm(n, "раунд", "раунда", "раундов")
+}
+
+// formatThousands renders n with a space as the thousands separator
+// (e.g. 1204 -> "1 204") — a year's totals routinely run into four
+// digits where a month's never do. n is never negative in this domain
+// (training/hour/round counts), so that case isn't handled.
+func formatThousands(n int) string {
+	s := strconv.Itoa(n)
+
+	var out []byte
+
+	for i := range len(s) {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			out = append(out, ' ')
+		}
+
+		out = append(out, s[i])
+	}
+
+	return string(out)
 }
 
 // truncateToWidth returns s unchanged if measure(s) already fits within

@@ -79,13 +79,13 @@ func drawHeader(dc *gg.Context, name string, tr *trace) {
 	dc.DrawStringAnchored(name, contentRight, nameCenterY, 1, 0.5)
 }
 
-// drawTitle draws "МОЙ МЕСЯЦ НА ТАТАМИ" and the month/year headline, each
-// independently placed at its own target cap-top (from
-// reference_layout.json), plus the seal (bottom aligned to the
-// headline's own baseline, per the original spec — its own box top sits
-// 4px above the title box's, consistent with "baseline" rather than
-// "box bottom" alignment).
-func drawTitle(dc *gg.Context, month time.Time, tr *trace) {
+// drawTitle draws the period label ("МОЙ МЕСЯЦ НА ТАТАМИ" or "МОЙ ГОД НА
+// ТАТАМИ") and the month/year headline, each independently placed at
+// its own target cap-top (from reference_layout.json), plus the seal
+// (bottom aligned to the headline's own baseline, per the original spec
+// — its own box top sits 4px above the title box's, consistent with
+// "baseline" rather than "box bottom" alignment).
+func drawTitle(dc *gg.Context, p Period, anchor time.Time, tr *trace) {
 	const (
 		labelSize    = 15.0 // 30 final.
 		labelSpacing = 3.0
@@ -94,11 +94,12 @@ func drawTitle(dc *gg.Context, month time.Time, tr *trace) {
 		sealSize     = 52.0 // 104 final.
 	)
 
+	labelText, title := periodTitle(p, anchor)
+
 	labelFace := face(weightSemiBold, labelSize)
 	dc.SetFontFace(labelFace)
 	dc.SetColor(colorAccent)
 
-	const labelText = "МОЙ МЕСЯЦ НА ТАТАМИ"
 	labelBaseline := baselineForCapTop(weightSemiBold, labelSize, targetLabelCapTop, labelText)
 	drawTracked(dc, labelText, contentLeft, labelBaseline, labelSpacing)
 	tr.text("надпись", weightSemiBold, labelSize, labelBaseline, labelText)
@@ -107,7 +108,6 @@ func drawTitle(dc *gg.Context, month time.Time, tr *trace) {
 	dc.SetFontFace(titleFace)
 	dc.SetColor(colorText)
 
-	title := monthTitle(month)
 	titleBaseline := baselineForCapTop(weightExtraBold, titleSize, targetTitleCapTop, title)
 	drawTracked(dc, title, contentLeft, titleBaseline, titleSpacing)
 	tr.text("заголовок", weightExtraBold, titleSize, titleBaseline, title)
@@ -121,7 +121,10 @@ func drawTitle(dc *gg.Context, month time.Time, tr *trace) {
 
 // drawTrainingsCount draws the big trainings number and its declined
 // label on one baseline, the number's own cap-top pinned to
-// targetTrainingsCapTop.
+// targetTrainingsCapTop. The number's own font shrinks (never the
+// label's) in fitNumberSize's own steps if contentWidth minus the
+// label's width can't otherwise fit it — a year's trainings count can
+// run into three digits where a month's never does.
 func drawTrainingsCount(dc *gg.Context, n int, tr *trace) {
 	const (
 		numSize  = 112.0 // 224 final.
@@ -129,21 +132,24 @@ func drawTrainingsCount(dc *gg.Context, n int, tr *trace) {
 		numToLbl = 20.0
 	)
 
-	numFace := face(weightExtraBold, numSize)
-	dc.SetFontFace(numFace)
+	numStr := formatThousands(n)
+	label := trainingsWord(n)
 
-	numStr := strconv.Itoa(n)
-	baseline := baselineForCapTop(weightExtraBold, numSize, targetTrainingsCapTop, numStr)
+	avail := contentWidth - numToLbl - measureString(weightSemiBold, lblSize, label)
+	size := fitNumberSize(weightExtraBold, numSize, avail, numStr)
+
+	dc.SetFontFace(face(weightExtraBold, size))
+
+	baseline := baselineForCapTop(weightExtraBold, size, targetTrainingsCapTop, numStr)
 
 	dc.SetColor(colorText)
 	dc.DrawString(numStr, contentLeft, baseline)
-	tr.text("число тренировок", weightExtraBold, numSize, baseline, numStr)
+	tr.text("число тренировок", weightExtraBold, size, baseline, numStr)
 	numW, _ := dc.MeasureString(numStr)
 
-	lblFace := face(weightSemiBold, lblSize)
-	dc.SetFontFace(lblFace)
+	dc.SetFontFace(face(weightSemiBold, lblSize))
 	dc.SetColor(colorSub)
-	dc.DrawString(trainingsWord(n), contentLeft+numW+numToLbl, baseline)
+	dc.DrawString(label, contentLeft+numW+numToLbl, baseline)
 }
 
 type numberBlock struct {
@@ -155,13 +161,26 @@ type numberBlock struct {
 // block (only when rounds > 0 — see the spec's own "no rounds, no
 // block" rule), side by side — each number's cap-top pinned to
 // targetHoursCapTop, each label's cap-top pinned to
-// targetHoursLabelCapTop.
+// targetHoursLabelCapTop. Each number's own font shrinks independently
+// (fitNumberSize, against a fixed half-row-minus-gap budget, not the
+// natural layout width below) if it would otherwise run past that
+// budget — a year's hours/rounds totals can run into four digits where
+// a month's never do.
 func drawHoursAndRounds(dc *gg.Context, totalMinutes, rounds int32, tr *trace) {
 	const (
 		numSize  = 56.0 // 112 final.
 		lblSize  = 16.0 // 32 final.
 		blockGap = 48.0
+
+		// shrinkGap is the spec's own fixed clearance (80 final) a
+		// number must leave within half of contentWidth before it
+		// starts shrinking — independent of blockGap/the natural
+		// content-hugging width below, which is what actually
+		// positions the drawn blocks.
+		shrinkGap = 40.0 // 80 final.
 	)
+
+	shrinkAvail := contentWidth/2 - shrinkGap
 
 	hours := roundHours(totalMinutes)
 
@@ -170,7 +189,6 @@ func drawHoursAndRounds(dc *gg.Context, totalMinutes, rounds int32, tr *trace) {
 		blocks = append(blocks, numberBlock{int(rounds), roundsWord(int(rounds))})
 	}
 
-	numFace := face(weightExtraBold, numSize)
 	lblFace := face(weightSemiBold, lblSize)
 
 	blockNames := []string{"часы", "раунды"}
@@ -185,13 +203,14 @@ func drawHoursAndRounds(dc *gg.Context, totalMinutes, rounds int32, tr *trace) {
 	x := contentLeft
 
 	for i, b := range blocks {
-		numStr := strconv.Itoa(b.n)
-		numBaseline := baselineForCapTop(weightExtraBold, numSize, targetHoursCapTop, numStr)
+		numStr := formatThousands(b.n)
+		size := fitNumberSize(weightExtraBold, numSize, shrinkAvail, numStr)
+		numBaseline := baselineForCapTop(weightExtraBold, size, targetHoursCapTop, numStr)
 
-		dc.SetFontFace(numFace)
+		dc.SetFontFace(face(weightExtraBold, size))
 		dc.SetColor(colorText)
 		dc.DrawString(numStr, x, numBaseline)
-		tr.text(blockNames[i]+" (число)", weightExtraBold, numSize, numBaseline, numStr)
+		tr.text(blockNames[i]+" (число)", weightExtraBold, size, numBaseline, numStr)
 		numW, _ := dc.MeasureString(numStr)
 
 		labelBaseline := baselineForCapTop(weightSemiBold, lblSize, targetHoursLabelCapTop, b.label)

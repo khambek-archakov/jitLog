@@ -184,6 +184,15 @@ func TestStatsKeyboard(t *testing.T) {
 		assert.Equal(t, "← Главное меню", kb[3][0].Label)
 	})
 
+	t.Run("share button on the Year tab points at share:year", func(t *testing.T) {
+		t.Parallel()
+
+		kb := statsKeyboard(periodYear, false, true, now)
+
+		assert.Equal(t, "📤 Поделиться", kb[2][0].Label)
+		assert.Equal(t, "share:year", kb[2][0].Data)
+	})
+
 	t.Run("share button and mode switch together — share comes first", func(t *testing.T) {
 		t.Parallel()
 

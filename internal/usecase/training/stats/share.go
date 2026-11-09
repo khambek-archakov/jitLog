@@ -10,25 +10,62 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/internal/usertime"
 )
 
-// callbackShareMonth is the "📤 Поделиться" button's own callback — only
-// ever shown on the Month tab, and only once it has ≥1 training (see
-// statsKeyboard). It always means "this month", so the callback itself
-// carries no extra data.
-const callbackShareMonth = "share:month"
+// callbackShareMonth/callbackShareYear are the "📤 Поделиться" button's
+// own callbacks — shown only on the Month and Year tabs, and only once
+// that period has ≥1 training (see statsKeyboard). Each carries no
+// extra data: it always means "this period, right now".
+const (
+	callbackSharePrefix = "share:"
+	callbackShareMonth  = callbackSharePrefix + "month"
+	callbackShareYear   = callbackSharePrefix + "year"
+)
 
-const sharePhotoFilename = "jitlog-month.png"
+// shareCallback is statsKeyboard's own share button target for p —
+// callbackShareMonth for every period except periodYear.
+func shareCallback(p period) string {
+	if p == periodYear {
+		return callbackShareYear
+	}
 
-const shareCaption = "Поделись своим прогрессом 🥋"
+	return callbackShareMonth
+}
+
+// sharePhotoFilename names the sent photo by period — "jitlog-month.png"
+// unchanged for the Month tab, "jitlog-year.png" for the new Year one.
+func sharePhotoFilename(p period) string {
+	if p == periodYear {
+		return "jitlog-year.png"
+	}
+
+	return "jitlog-month.png"
+}
 
 func shareKeyboard() dto.Keyboard {
 	return dto.Keyboard{dto.Row(dto.Button{Label: "← Главное меню", Data: callbackMenuBack})}
 }
 
-// handleShare renders the current month's recap image and sends it as
-// its own new message — the stats screen underneath is left exactly as
-// it was, never edited or removed. Nothing is stored or cached: a repeat
-// tap just re-aggregates and re-renders from scratch.
+// parseSharePeriod maps a share:* callback back to the period it means.
+func parseSharePeriod(data string) (period, bool) {
+	switch data {
+	case callbackShareMonth:
+		return periodMonth, true
+	case callbackShareYear:
+		return periodYear, true
+	default:
+		return "", false
+	}
+}
+
+// handleShare renders the requested period's recap image and sends it
+// as its own new message — the stats screen underneath is left exactly
+// as it was, never edited or removed. Nothing is stored or cached: a
+// repeat tap just re-aggregates and re-renders from scratch.
 func (uc *UseCase) handleShare(ctx context.Context, u *model.User, in dto.Input) error {
+	p, ok := parseSharePeriod(in.CallbackData)
+	if !ok {
+		return uc.bot.AnswerCallback(ctx, in.CallbackID)
+	}
+
 	if err := uc.bot.AnswerCallback(ctx, in.CallbackID); err != nil {
 		return err
 	}
@@ -43,18 +80,24 @@ func (uc *UseCase) handleShare(ctx context.Context, u *model.User, in dto.Input)
 	}
 
 	now := uc.now().In(usertime.Location(u))
-	c := countStats(filterByPeriod(all, periodMonth, now))
+	c := countStats(filterByPeriod(all, p, now))
 
 	if c.Total == 0 {
 		// Stale tap — the button shouldn't have been visible, but a
 		// message already sent to the user can always be tapped again
-		// after the data it was built from changed (e.g. the month's
+		// after the data it was built from changed (e.g. the period's
 		// only training got deleted). Silently do nothing rather than
 		// share an empty image.
 		return nil
 	}
 
+	sharePeriod := share.PeriodMonth
+	if p == periodYear {
+		sharePeriod = share.PeriodYear
+	}
+
 	img, err := share.Render(share.Input{
+		Period:       sharePeriod,
 		Name:         nameOrEmpty(u),
 		Month:        now,
 		Trainings:    c.Total,
@@ -68,7 +111,8 @@ func (uc *UseCase) handleShare(ctx context.Context, u *model.User, in dto.Input)
 		return fmt.Errorf("render share image: %w", err)
 	}
 
-	return uc.bot.SendPhotoWithKeyboard(ctx, in.ChatID, img, sharePhotoFilename, shareCaption, shareKeyboard())
+	// No caption — just the image.
+	return uc.bot.SendPhotoWithKeyboard(ctx, in.ChatID, img, sharePhotoFilename(p), "", shareKeyboard())
 }
 
 func nameOrEmpty(u *model.User) string {

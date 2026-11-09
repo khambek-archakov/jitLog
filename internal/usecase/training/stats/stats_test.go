@@ -221,6 +221,74 @@ func TestUseCase_Handle(t *testing.T) {
 		},
 
 		{
+			name: "share button shows on the Year tab once it has a training",
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "stats:period:year",
+			},
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
+				repo.EXPECT().
+					ListAllTrainings(gomock.Any(), userID).
+					Return([]*model.Training{{Date: today, DurationMinutes: 60}}, nil)
+
+				belts.EXPECT().
+					ListBeltPromotions(gomock.Any(), userID).
+					Return([]*model.BeltPromotion{{Belt: model.BeltWhite}}, nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
+						require.Len(t, kb, 4) // period row + "other dates" row + share row + back row
+						assert.Equal(t, "📤 Поделиться", kb[2][0].Label)
+						assert.Equal(t, "share:year", kb[2][0].Data)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name: "share button hidden on the Year tab when that year has no trainings",
+			in: dto.Input{
+				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
+				CallbackData: "stats:period:year",
+			},
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo, belts *MockbeltRepo) {
+				// Only a training from well outside the current year —
+				// len(all) != 0, so the empty-state screen never fires,
+				// but filterByPeriod(year) still comes back empty.
+				repo.EXPECT().
+					ListAllTrainings(gomock.Any(), userID).
+					Return([]*model.Training{{Date: today.AddDate(-2, 0, 0), DurationMinutes: 60}}, nil)
+
+				belts.EXPECT().
+					ListBeltPromotions(gomock.Any(), userID).
+					Return([]*model.BeltPromotion{{Belt: model.BeltWhite}}, nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+
+				sender.EXPECT().
+					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
+						require.Len(t, kb, 3) // period row + "other dates" row + back row, no share row
+						for _, row := range kb {
+							assert.NotEqual(t, "share:year", row[0].Data)
+						}
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
 			name: "mode switch shown with two or more belts",
 			in: dto.Input{
 				ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1",
@@ -696,9 +764,9 @@ func TestUseCase_Handle_Calendar(t *testing.T) {
 	}
 }
 
-// TestUseCase_Handle_Share covers the "📤 Поделиться" monthly recap image
-// (share:month) — a fixed clock, since "this month" needs to be
-// deterministic.
+// TestUseCase_Handle_Share covers the "📤 Поделиться" recap image for
+// both share:month and share:year — a fixed clock, since "this
+// month"/"this year" need to be deterministic.
 func TestUseCase_Handle_Share(t *testing.T) {
 	t.Parallel()
 
@@ -711,9 +779,10 @@ func TestUseCase_Handle_Share(t *testing.T) {
 	u := &model.User{ID: userID, Name: &name}
 
 	tests := []struct {
-		name     string
-		prepare  func(sender *Mocksender, repo *MocktrainingRepo)
-		expected func(t assert.TestingT, err error)
+		name         string
+		callbackData string // defaults to "share:month" when empty.
+		prepare      func(sender *Mocksender, repo *MocktrainingRepo)
+		expected     func(t assert.TestingT, err error)
 	}{
 		{
 			name: "renders and sends the month's recap as a new photo message",
@@ -735,7 +804,7 @@ func TestUseCase_Handle_Share(t *testing.T) {
 					DoAndReturn(func(_ context.Context, _ int64, photo []byte, filename, caption string, kb dto.Keyboard) error {
 						assert.NotEmpty(t, photo)
 						assert.Equal(t, "jitlog-month.png", filename)
-						assert.Equal(t, "Поделись своим прогрессом 🥋", caption)
+						assert.Empty(t, caption)
 						assert.Equal(t, "← Главное меню", kb[0][0].Label)
 						assert.Equal(t, "menu:back", kb[0][0].Data)
 
@@ -790,6 +859,51 @@ func TestUseCase_Handle_Share(t *testing.T) {
 				assert.Error(t, err)
 			},
 		},
+
+		{
+			name:         "renders and sends the year's recap as a new photo message",
+			callbackData: "share:year",
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo) {
+				repo.EXPECT().
+					ListAllTrainings(gomock.Any(), userID).
+					Return([]*model.Training{
+						{Date: time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC), TrainingType: model.TrainingTypeNoGi, DurationMinutes: 60},
+						{Date: time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC), TrainingType: model.TrainingTypeGi, DurationMinutes: 60}, // outside 2026 — must not count.
+					}, nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().SendUploadPhotoAction(gomock.Any(), chatID).Return(nil)
+
+				sender.EXPECT().
+					SendPhotoWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, photo []byte, filename, caption string, kb dto.Keyboard) error {
+						assert.NotEmpty(t, photo)
+						assert.Equal(t, "jitlog-year.png", filename)
+						assert.Empty(t, caption)
+						assert.Equal(t, "← Главное меню", kb[0][0].Label)
+						assert.Equal(t, "menu:back", kb[0][0].Data)
+
+						return nil
+					})
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
+
+		{
+			name:         "a stale tap with nothing left in the year sends nothing",
+			callbackData: "share:year",
+			prepare: func(sender *Mocksender, repo *MocktrainingRepo) {
+				repo.EXPECT().ListAllTrainings(gomock.Any(), userID).Return(nil, nil)
+
+				sender.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+				sender.EXPECT().SendUploadPhotoAction(gomock.Any(), chatID).Return(nil)
+			},
+			expected: func(t assert.TestingT, err error) {
+				assert.NoError(t, err)
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -806,7 +920,12 @@ func TestUseCase_Handle_Share(t *testing.T) {
 
 			uc := stats.NewWithClock(mockSender, mockRepo, mockBelts, nowFn)
 
-			in := dto.Input{ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1", CallbackData: "share:month"}
+			callbackData := tc.callbackData
+			if callbackData == "" {
+				callbackData = "share:month"
+			}
+
+			in := dto.Input{ChatID: chatID, MessageID: int(messageID), HasCallback: true, CallbackID: "cb-1", CallbackData: callbackData}
 
 			err := uc.Handle(context.Background(), u, in)
 

@@ -19,6 +19,18 @@ const (
 	safeZoneBottom = 1536
 )
 
+// safeZoneLeft/safeZoneRight are contentLeft/contentRight at final
+// scale — every row's own content must stay within them. The header row
+// (logo + name) is checked separately, from safeZoneHeaderBelow down:
+// the logo's own left edge deliberately bleeds 8px past safeZoneLeft
+// (see drawHeader's own logoShiftX), an already-shipped, unrelated
+// design choice this check isn't meant to relitigate.
+const (
+	safeZoneLeft        = 96
+	safeZoneRight       = 984
+	safeZoneHeaderBelow = targetLabelCapTop * outputScale
+)
+
 // contentColorDistance is how far a pixel's color must sit from colorBg
 // before it counts as "content" rather than background or the faint (4%
 // opacity) enso decor — chosen well above what 4% opacity can ever
@@ -72,6 +84,34 @@ func TestContentStaysInSafeZone(t *testing.T) {
 				GiCount: 128, NoGiCount: 104, OpenMatCount: 97,
 			},
 		},
+		{
+			name: "year: three types, large numbers",
+			in: Input{
+				Period: PeriodYear,
+				Name:   "Алексей", Month: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+				Trainings: 187, TotalMinutes: 312 * 60, Rounds: 1204,
+				GiCount: 110, NoGiCount: 60, OpenMatCount: 17,
+			},
+		},
+		{
+			name: "year: one type, no rounds",
+			in: Input{
+				Period: PeriodYear,
+				Name:   "Алексей", Month: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+				Trainings: 4, TotalMinutes: 6 * 60, Rounds: 0,
+				NoGiCount: 4,
+			},
+		},
+		{
+			name: "year: long name, very large numbers",
+			in: Input{
+				Period:    PeriodYear,
+				Name:      "Константин Александрович Долгопрудненский-Воронцов",
+				Month:     time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+				Trainings: 365, TotalMinutes: 999 * 60, Rounds: 4800,
+				GiCount: 200, NoGiCount: 100, OpenMatCount: 65,
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -86,6 +126,12 @@ func TestContentStaysInSafeZone(t *testing.T) {
 
 			assert.GreaterOrEqualf(t, top, safeZoneTop, "content starts at y=%d, above the safe zone's own top (%d)", top, safeZoneTop)
 			assert.LessOrEqualf(t, bottom, safeZoneBottom, "content ends at y=%d, below the safe zone's own bottom (%d)", bottom, safeZoneBottom)
+
+			left, right, foundX := contentXExtent(t, data, int(safeZoneHeaderBelow))
+			require.True(t, foundX, "no content pixels found below the header row")
+
+			assert.GreaterOrEqualf(t, left, safeZoneLeft, "content starts at x=%d, left of the safe zone's own left edge (%d)", left, safeZoneLeft)
+			assert.LessOrEqualf(t, right, safeZoneRight, "content ends at x=%d, right of the safe zone's own right edge (%d)", right, safeZoneRight)
 		})
 	}
 }
@@ -133,4 +179,53 @@ func contentYExtent(t *testing.T, png []byte) (top, bottom int, found bool) {
 	}
 
 	return top, bottom, found
+}
+
+// contentXExtent is contentYExtent's own twin for the horizontal axis,
+// restricted to rows at or below fromY (see safeZoneHeaderBelow's own
+// doc comment on why the header row is excluded).
+func contentXExtent(t *testing.T, png []byte, fromY int) (left, right int, found bool) {
+	t.Helper()
+
+	img, _, err := image.Decode(bytes.NewReader(png))
+	require.NoError(t, err)
+
+	bgR, bgG, bgB, _ := colorBg.RGBA()
+	bgR, bgG, bgB = bgR>>8, bgG>>8, bgB>>8
+
+	b := img.Bounds()
+	left, right, found = -1, -1, false
+
+	startY := b.Min.Y
+	if fromY > startY {
+		startY = fromY
+	}
+
+	for x := b.Min.X; x < b.Max.X; x++ {
+		colHasContent := false
+
+		for y := startY; y < b.Max.Y; y++ {
+			r, g, bl, _ := img.At(x, y).RGBA()
+			dr := int(r>>8) - int(bgR)
+			dg := int(g>>8) - int(bgG)
+			db := int(bl>>8) - int(bgB)
+
+			if dr*dr+dg*dg+db*db > contentColorDistance*contentColorDistance {
+				colHasContent = true
+
+				break
+			}
+		}
+
+		if colHasContent {
+			if !found {
+				left = x
+				found = true
+			}
+
+			right = x
+		}
+	}
+
+	return left, right, found
 }

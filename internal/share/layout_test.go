@@ -43,6 +43,25 @@ func TestLegendClearsFooter(t *testing.T) {
 			Trainings: 329, TotalMinutes: 329 * 60, Rounds: 1200,
 			GiCount: 128, NoGiCount: 104, OpenMatCount: 97,
 		}},
+		{name: "year: three types, large numbers", in: Input{
+			Period: PeriodYear,
+			Name:   "Алексей", Month: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+			Trainings: 187, TotalMinutes: 312 * 60, Rounds: 1204,
+			GiCount: 110, NoGiCount: 60, OpenMatCount: 17,
+		}},
+		{name: "year: one type, no rounds", in: Input{
+			Period: PeriodYear,
+			Name:   "Алексей", Month: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+			Trainings: 4, TotalMinutes: 6 * 60, Rounds: 0,
+			NoGiCount: 4,
+		}},
+		{name: "year: long name, very large numbers", in: Input{
+			Period:    PeriodYear,
+			Name:      "Константин Александрович Долгопрудненский-Воронцов",
+			Month:     time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+			Trainings: 365, TotalMinutes: 999 * 60, Rounds: 4800,
+			GiCount: 200, NoGiCount: 100, OpenMatCount: 65,
+		}},
 	}
 
 	for _, tc := range tests {
