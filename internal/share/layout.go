@@ -91,7 +91,7 @@ func drawTitle(dc *gg.Context, p Period, anchor time.Time, tr *trace) {
 		labelSpacing = 3.0
 		titleSize    = 52.0 // 104 final.
 		titleSpacing = -3.0
-		sealSize     = 52.0 // 104 final.
+		sealSize     = 44.0 // 88 final.
 	)
 
 	labelText, title := periodTitle(p, anchor)
@@ -168,7 +168,7 @@ type numberBlock struct {
 // a month's never do.
 func drawHoursAndRounds(dc *gg.Context, totalMinutes, rounds int32, tr *trace) {
 	const (
-		numSize  = 56.0 // 112 final.
+		numSize  = 63.0 // 126 final.
 		lblSize  = 16.0 // 32 final.
 		blockGap = 48.0
 

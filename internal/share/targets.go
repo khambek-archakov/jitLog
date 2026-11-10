@@ -9,16 +9,26 @@ package share
 // the "6-8px" the reference's own author called a normal difference —
 // see TestMatchesReference, which checks against it directly.
 const (
-	targetLogoCapTop       = 270.0 / outputScale
-	targetLabelCapTop      = 438.0 / outputScale
-	targetTitleCapTop      = 482.0 / outputScale
-	targetSealTop          = 478.0 / outputScale
-	targetTrainingsCapTop  = 642.0 / outputScale
-	targetHoursCapTop      = 880.0 / outputScale
+	targetLogoCapTop      = 270.0 / outputScale
+	targetLabelCapTop     = 438.0 / outputScale
+	targetTitleCapTop     = 482.0 / outputScale
+	targetSealTop         = 494.0 / outputScale
+	targetTrainingsCapTop = 642.0 / outputScale
+	targetHoursCapTop     = 880.0 / outputScale
+	// targetHoursLabelCapTop was derived from hours_rounds_row's own
+	// combined box (there's no separate label sub-box in the reference
+	// JSON) — unaffected by the hours/rounds number growing to 126px,
+	// since that's the same cap-top-pinned sizing every other block
+	// uses (see baselineForCapTop): a bigger font shifts the number's
+	// own baseline down, never the label's.
 	targetHoursLabelCapTop = 985.0 / outputScale
 	targetBarCapTop        = 1089.0 / outputScale
 	targetLegendCapTop     = 1139.0 / outputScale
-	targetFooterLineCapTop = 1420.0 / outputScale
-	targetHandleCapTop     = 1460.0 / outputScale
-	targetTaglineCapTop    = 1505.0 / outputScale
+	// footer line/handle/tagline moved up 80px (final) from their
+	// original 1420/1460/1505, per a later revision to the card — the
+	// handle and tagline keep the same 40/45px gaps below the line they
+	// always had, just 80px higher up the card.
+	targetFooterLineCapTop = 1340.0 / outputScale
+	targetHandleCapTop     = 1380.0 / outputScale
+	targetTaglineCapTop    = 1425.0 / outputScale
 )
