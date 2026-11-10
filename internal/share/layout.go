@@ -71,10 +71,11 @@ func drawDecor(dc *gg.Context) {
 // top sits exactly at targetLogoCapTop.
 func drawHeader(dc *gg.Context, name string, tr *trace) {
 	const (
-		logoHeight = 56.0
-		logoShiftX = -8.0
-		nameGap    = 20.0
-		nameSize   = 15.0 // 30 final.
+		logoHeight  = 56.0
+		logoShiftX  = -8.0
+		nameGap     = 20.0
+		nameSize    = 21.0  // 42 final.
+		nameMaxWide = 300.0 // 600 final.
 	)
 
 	logo := scaleToHeight(logoImage, int(logoHeight))
@@ -88,9 +89,9 @@ func drawHeader(dc *gg.Context, name string, tr *trace) {
 
 	nameFace := face(weightSemiBold, nameSize)
 	dc.SetFontFace(nameFace)
-	dc.SetColor(colorSub)
+	dc.SetColor(colorText)
 
-	maxNameWidth := contentRight - (logoX + logoW) - nameGap
+	maxNameWidth := math.Min(contentRight-(logoX+logoW)-nameGap, nameMaxWide)
 	name = truncateToWidth(name, maxNameWidth, func(s string) float64 {
 		w, _ := dc.MeasureString(s)
 		return w

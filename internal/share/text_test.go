@@ -165,4 +165,18 @@ func TestTruncateToWidth(t *testing.T) {
 
 		assert.Equal(t, "…", truncateToWidth("Константин", 5, measure))
 	})
+
+	t.Run("a cut landing right after a word break drops the trailing space", func(t *testing.T) {
+		t.Parallel()
+
+		// "Константин " is 11 runes (110 units) — a maxWidth of 120
+		// lands the cut exactly there, where the untrimmed candidate
+		// would be "Константин …" (12 runes, 120 units — it also still
+		// fits, which is exactly the bug: a worse candidate was
+		// accepted before the better, space-trimmed one got a chance).
+		got := truncateToWidth("Константин Александрович", 120, measure)
+
+		assert.Equal(t, "Константин…", got)
+		assert.False(t, strings.Contains(got, " …"))
+	})
 }

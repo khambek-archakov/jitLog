@@ -3,6 +3,7 @@ package share
 import (
 	"math"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -99,9 +100,12 @@ func formatThousands(n int) string {
 
 // truncateToWidth returns s unchanged if measure(s) already fits within
 // maxWidth, otherwise trims characters from the end and appends "…"
-// until it does. measure is injected so this stays unit-testable without
-// a real font face — the drawing code passes dc.MeasureString's own
-// width.
+// until it does — trimming any trailing space off what's left first, so
+// a cut that lands right after a word break never leaves a dangling
+// space before the ellipsis (e.g. "Константин Александрович " + "…"
+// becomes "Константин Александрович…", not "...ич …"). measure is
+// injected so this stays unit-testable without a real font face — the
+// drawing code passes dc.MeasureString's own width.
 func truncateToWidth(s string, maxWidth float64, measure func(string) float64) string {
 	if measure(s) <= maxWidth {
 		return s
@@ -110,7 +114,7 @@ func truncateToWidth(s string, maxWidth float64, measure func(string) float64) s
 	runes := []rune(s)
 
 	for i := len(runes) - 1; i > 0; i-- {
-		candidate := string(runes[:i]) + "…"
+		candidate := strings.TrimRight(string(runes[:i]), " ") + "…"
 		if measure(candidate) <= maxWidth {
 			return candidate
 		}
