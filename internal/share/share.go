@@ -1,4 +1,4 @@
-// Package share renders the "📤 Поделиться" month/year recap image — a
+// Package share renders the "↗️ Поделиться" month/year recap image — a
 // self-contained drawing package with no Telegram/usecase dependencies
 // at all (see internal/usecase/training/stats, the only caller, which
 // aggregates one period's trainings into Input and does all the

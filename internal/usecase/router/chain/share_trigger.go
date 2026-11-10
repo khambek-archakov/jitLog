@@ -8,7 +8,7 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/dto"
 )
 
-// callbackSharePrefix covers the "📤 Поделиться" monthly recap image (see
+// callbackSharePrefix covers the "↗️ Поделиться" monthly recap image (see
 // internal/usecase/training/stats) — a separate top-level prefix from
 // stats:*, dispatched to the exact same underlying usecase, which
 // already knows how to tell it apart from every other stats screen.

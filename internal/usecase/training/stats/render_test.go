@@ -178,7 +178,7 @@ func TestStatsKeyboard(t *testing.T) {
 		require.Len(t, kb, 4)
 		assert.Equal(t, "📅 Другие даты", kb[1][0].Label)
 
-		assert.Equal(t, "📤 Поделиться", kb[2][0].Label)
+		assert.Equal(t, "↗️ Поделиться", kb[2][0].Label)
 		assert.Equal(t, "share:month", kb[2][0].Data)
 
 		assert.Equal(t, "← Главное меню", kb[3][0].Label)
@@ -189,7 +189,7 @@ func TestStatsKeyboard(t *testing.T) {
 
 		kb := statsKeyboard(periodYear, false, true, now)
 
-		assert.Equal(t, "📤 Поделиться", kb[2][0].Label)
+		assert.Equal(t, "↗️ Поделиться", kb[2][0].Label)
 		assert.Equal(t, "share:year", kb[2][0].Data)
 	})
 
@@ -199,7 +199,7 @@ func TestStatsKeyboard(t *testing.T) {
 		kb := statsKeyboard(periodMonth, true, true, now)
 
 		require.Len(t, kb, 5)
-		assert.Equal(t, "📤 Поделиться", kb[2][0].Label)
+		assert.Equal(t, "↗️ Поделиться", kb[2][0].Label)
 		assert.Equal(t, "• За период •", kb[3][0].Label)
 		assert.Equal(t, "← Главное меню", kb[4][0].Label)
 	})

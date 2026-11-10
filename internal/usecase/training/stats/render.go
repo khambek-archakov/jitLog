@@ -209,7 +209,7 @@ func statsKeyboard(selected period, showModeSwitch, showShare bool, now time.Tim
 	kb := dto.Keyboard{periodRow(selected), otherDatesRow(now)}
 
 	if showShare {
-		kb = append(kb, dto.Row(dto.Button{Label: "📤 Поделиться", Data: shareCallback(selected)}))
+		kb = append(kb, dto.Row(dto.Button{Label: "↗️ Поделиться", Data: shareCallback(selected)}))
 	}
 
 	if showModeSwitch {

@@ -173,7 +173,7 @@ func TestUseCase_Handle(t *testing.T) {
 					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
 						require.Len(t, kb, 4) // period row + "other dates" row + share row + back row
-						assert.Equal(t, "📤 Поделиться", kb[2][0].Label)
+						assert.Equal(t, "↗️ Поделиться", kb[2][0].Label)
 						assert.Equal(t, "share:month", kb[2][0].Data)
 
 						return nil
@@ -241,7 +241,7 @@ func TestUseCase_Handle(t *testing.T) {
 					EditMessageWithKeyboard(gomock.Any(), chatID, int(messageID), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int64, _ int, _ string, kb dto.Keyboard) error {
 						require.Len(t, kb, 4) // period row + "other dates" row + share row + back row
-						assert.Equal(t, "📤 Поделиться", kb[2][0].Label)
+						assert.Equal(t, "↗️ Поделиться", kb[2][0].Label)
 						assert.Equal(t, "share:year", kb[2][0].Data)
 
 						return nil
@@ -764,7 +764,7 @@ func TestUseCase_Handle_Calendar(t *testing.T) {
 	}
 }
 
-// TestUseCase_Handle_Share covers the "📤 Поделиться" recap image for
+// TestUseCase_Handle_Share covers the "↗️ Поделиться" recap image for
 // both share:month and share:year — a fixed clock, since "this
 // month"/"this year" need to be deterministic.
 func TestUseCase_Handle_Share(t *testing.T) {

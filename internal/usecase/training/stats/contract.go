@@ -17,9 +17,9 @@ type sender interface {
 	// it, to bold the open month/year line.
 	EditMessageWithKeyboardMarkdown(ctx context.Context, chatID int64, messageID int, text string, keyboard dto.Keyboard) error
 	AnswerCallback(ctx context.Context, callbackID string) error
-	// SendUploadPhotoAction and SendPhotoWithKeyboard back the "📤
-	// Поделиться" monthly recap image (see share.go) — nothing else in
-	// this package sends a photo.
+	// SendUploadPhotoAction and SendPhotoWithKeyboard back the "↗️
+	// Поделиться" month/year recap image (see share.go) — nothing else
+	// in this package sends a photo.
 	SendUploadPhotoAction(ctx context.Context, chatID int64) error
 	SendPhotoWithKeyboard(ctx context.Context, chatID int64, photo []byte, filename, caption string, keyboard dto.Keyboard) error
 }

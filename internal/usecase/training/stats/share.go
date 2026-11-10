@@ -10,7 +10,7 @@ import (
 	"github.com/khambek-archakov/jitLog/internal/usecase/internal/usertime"
 )
 
-// callbackShareMonth/callbackShareYear are the "📤 Поделиться" button's
+// callbackShareMonth/callbackShareYear are the "↗️ Поделиться" button's
 // own callbacks — shown only on the Month and Year tabs, and only once
 // that period has ≥1 training (see statsKeyboard). Each carries no
 // extra data: it always means "this period, right now".

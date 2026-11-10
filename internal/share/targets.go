@@ -24,11 +24,11 @@ const (
 	targetHoursLabelCapTop = 985.0 / outputScale
 	targetBarCapTop        = 1089.0 / outputScale
 	targetLegendCapTop     = 1139.0 / outputScale
-	// footer line/handle/tagline moved up 80px (final) from their
-	// original 1420/1460/1505, per a later revision to the card — the
-	// handle and tagline keep the same 40/45px gaps below the line they
-	// always had, just 80px higher up the card.
-	targetFooterLineCapTop = 1340.0 / outputScale
-	targetHandleCapTop     = 1380.0 / outputScale
-	targetTaglineCapTop    = 1425.0 / outputScale
+	// footer line/handle/tagline: originally 1420/1460/1505, moved up
+	// 80px to 1340/1380/1425, then back down 40px to the values below
+	// (net 40px up from the original) — the handle and tagline keep the
+	// same 40/45px gaps below the line they've always had.
+	targetFooterLineCapTop = 1380.0 / outputScale
+	targetHandleCapTop     = 1420.0 / outputScale
+	targetTaglineCapTop    = 1465.0 / outputScale
 )
