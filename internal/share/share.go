@@ -84,10 +84,20 @@ func Render(in Input) ([]byte, error) {
 // below free no-ops.
 func renderTraced(in Input, tr *trace) ([]byte, *trace, error) {
 	dc := gg.NewContext(logicalW*outputScale, logicalH*outputScale)
-	dc.Scale(outputScale, outputScale)
 
 	dc.SetColor(colorBg)
 	dc.Clear()
+
+	// Drawn in raw final-pixel space, before dc.Scale below switches
+	// everything else (including drawDecor, right after) to the logical
+	// (540×960) coordinate system this package otherwise draws in.
+	// seigaihaBottomImage is already sized for the final 1080×1920
+	// canvas (1080×440), bottom-aligned at y=1480 (1480+440=1920), so it
+	// needs no scaling of its own — see drawSeigaihaBottom's own doc
+	// comment on why this one image alone draws pre-scale.
+	drawSeigaihaBottom(dc)
+
+	dc.Scale(outputScale, outputScale)
 
 	drawDecor(dc)
 

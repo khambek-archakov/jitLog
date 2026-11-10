@@ -8,6 +8,27 @@ import (
 	"github.com/fogleman/gg"
 )
 
+// drawSeigaihaBottom paints the bottom decorative wave pattern — the
+// very first layer, before even the background color's own Clear has
+// settled and well before drawDecor's own enso arc or any text. Unlike
+// every other draw* function here, it must run before share.go's own
+// dc.Scale(outputScale, outputScale) call: seigaihaBottomImage is
+// already native final-pixel size (1080×440), so drawing it in that
+// same pre-scale, untransformed coordinate space is what makes (0,1480)
+// land exactly on final pixels without any resizing — the same trick
+// scaleToHeight exists to avoid needing elsewhere, just taken from the
+// other direction (this image needs no resize at all, so it skips the
+// logical coordinate system entirely instead of being resized to fit
+// it).
+func drawSeigaihaBottom(dc *gg.Context) {
+	const (
+		x = 0.0
+		y = 1480.0
+	)
+
+	dc.DrawImage(seigaihaBottomImage, int(x), int(y))
+}
+
 // drawDecor paints the background's own faint "enso" arc — behind every
 // other element, drawn right after the flat background fill and before
 // anything else. Its center sits off-canvas to the right on purpose

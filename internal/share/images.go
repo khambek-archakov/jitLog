@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"fmt"
 	"image"
-	_ "image/jpeg" // logo.png's own bytes are actually JPEG-encoded, despite the extension.
+	_ "image/jpeg" // kept for robustness — not needed by any asset currently embedded, all genuine PNGs.
 	_ "image/png"
 
 	shareassets "github.com/khambek-archakov/jitLog/assets/share"
 )
 
 var (
-	logoImage image.Image
-	sealImage image.Image
+	logoImage           image.Image
+	sealImage           image.Image
+	seigaihaBottomImage image.Image
 )
 
 func init() {
@@ -27,4 +28,5 @@ func init() {
 
 	logoImage = decode(shareassets.LogoPNG, "logo.png")
 	sealImage = decode(shareassets.SealPNG, "seal.png")
+	seigaihaBottomImage = decode(shareassets.SeigaihaBottomPNG, "seigaiha_bottom.png")
 }

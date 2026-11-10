@@ -15,6 +15,9 @@ var LogoPNG []byte
 //go:embed seal.png
 var SealPNG []byte
 
+//go:embed seigaiha_bottom.png
+var SeigaihaBottomPNG []byte
+
 //go:embed fonts/Inter-Regular.ttf
 var FontRegular []byte
 
