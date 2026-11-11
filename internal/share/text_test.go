@@ -20,11 +20,11 @@ func TestPeriodTitle(t *testing.T) {
 	t.Parallel()
 
 	label, title := periodTitle(PeriodMonth, time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC))
-	assert.Equal(t, "МОЙ МЕСЯЦ НА ТАТАМИ", label)
+	assert.Equal(t, "Мой месяц на татами", label)
 	assert.Equal(t, "Октябрь 2026", title)
 
 	label, title = periodTitle(PeriodYear, time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
-	assert.Equal(t, "МОЙ ГОД НА ТАТАМИ", label)
+	assert.Equal(t, "Мой год на татами", label)
 	assert.Equal(t, "2026", title)
 }
 

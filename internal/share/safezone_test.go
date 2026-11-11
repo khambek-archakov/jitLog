@@ -20,15 +20,11 @@ const (
 )
 
 // safeZoneLeft/safeZoneRight are contentLeft/contentRight at final
-// scale — every row's own content must stay within them. The header row
-// (logo + name) is checked separately, from safeZoneHeaderBelow down:
-// the logo's own left edge deliberately bleeds 8px past safeZoneLeft
-// (see drawHeader's own logoShiftX), an already-shipped, unrelated
-// design choice this check isn't meant to relitigate.
+// scale — every row's own content, including the header (logo + name),
+// must stay within them.
 const (
-	safeZoneLeft        = 96
-	safeZoneRight       = 984
-	safeZoneHeaderBelow = targetLabelCapTop * outputScale
+	safeZoneLeft  = 96
+	safeZoneRight = 984
 )
 
 // contentColorDistance is how far a pixel's color must sit from colorBg
@@ -127,11 +123,72 @@ func TestContentStaysInSafeZone(t *testing.T) {
 			assert.GreaterOrEqualf(t, top, safeZoneTop, "content starts at y=%d, above the safe zone's own top (%d)", top, safeZoneTop)
 			assert.LessOrEqualf(t, bottom, safeZoneBottom, "content ends at y=%d, below the safe zone's own bottom (%d)", bottom, safeZoneBottom)
 
-			left, right, foundX := contentXExtent(t, data, int(safeZoneHeaderBelow))
-			require.True(t, foundX, "no content pixels found below the header row")
+			left, right, foundX := contentXExtent(t, data, 0)
+			require.True(t, foundX, "no content pixels found at all")
 
 			assert.GreaterOrEqualf(t, left, safeZoneLeft, "content starts at x=%d, left of the safe zone's own left edge (%d)", left, safeZoneLeft)
 			assert.LessOrEqualf(t, right, safeZoneRight, "content ends at x=%d, right of the safe zone's own right edge (%d)", right, safeZoneRight)
+		})
+	}
+}
+
+// handleSizeForTest mirrors drawFooter's own unexported handleSize
+// constant, purely so TestFooterEndsAtHandle can compute "@JitLogBot"'s
+// own true ink bottom the same way drawFooter positions it.
+const handleSizeForTest = 22.0 // 44 final — keep in sync with drawFooter's own handleSize.
+
+// TestFooterEndsAtHandle guards the tagline's removal: "@JitLogBot" is
+// now the footer's own last line, and nothing may be recorded or drawn
+// below its own true ink bottom.
+func TestFooterEndsAtHandle(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		in   Input
+	}{
+		{name: "month", in: Input{
+			Name: "Алексей", Month: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
+			Trainings: 14, TotalMinutes: 21 * 60, Rounds: 63,
+			GiCount: 8, NoGiCount: 4, OpenMatCount: 2,
+		}},
+		{name: "year", in: Input{
+			Period: PeriodYear,
+			Name:   "Алексей", Month: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+			Trainings: 187, TotalMinutes: 312 * 60, Rounds: 1204,
+			GiCount: 110, NoGiCount: 60, OpenMatCount: 17,
+		}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			data, tr, err := renderTraced(tc.in, &trace{})
+			require.NoError(t, err)
+
+			var handle *blockPosition
+
+			for i, b := range tr.blocks {
+				assert.NotEqualf(t, "таглайн", b.name, "the tagline block should no longer be drawn at all")
+
+				if b.name == "@JitLogBot" {
+					handle = &tr.blocks[i]
+				}
+			}
+
+			require.NotNil(t, handle, "no @JitLogBot block recorded")
+
+			_, maxY := inkBounds(weightSemiBold, handleSizeForTest, "@JitLogBot")
+			wantBottom := handle.baseline + maxY*outputScale
+
+			_, bottom, found := contentYExtent(t, data)
+			require.True(t, found, "no content pixels found at all")
+
+			assert.InDeltaf(t, wantBottom, float64(bottom), 8,
+				"content ends at y=%d, want close to @JitLogBot's own bottom (%.1f) — something is drawing below the footer handle",
+				bottom, wantBottom,
+			)
 		})
 	}
 }
@@ -182,8 +239,8 @@ func contentYExtent(t *testing.T, png []byte) (top, bottom int, found bool) {
 }
 
 // contentXExtent is contentYExtent's own twin for the horizontal axis,
-// restricted to rows at or below fromY (see safeZoneHeaderBelow's own
-// doc comment on why the header row is excluded).
+// optionally restricted to rows at or below fromY (0 scans the whole
+// image).
 func contentXExtent(t *testing.T, png []byte, fromY int) (left, right int, found bool) {
 	t.Helper()
 

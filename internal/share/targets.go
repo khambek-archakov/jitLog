@@ -24,11 +24,11 @@ const (
 	targetHoursLabelCapTop = 985.0 / outputScale
 	targetBarCapTop        = 1089.0 / outputScale
 	targetLegendCapTop     = 1139.0 / outputScale
-	// footer line/handle/tagline: originally 1420/1460/1505, moved up
-	// 80px to 1340/1380/1425, then back down 40px to the values below
-	// (net 40px up from the original) — the handle and tagline keep the
-	// same 40/45px gaps below the line they've always had.
+	// footer line/handle: originally 1420/1460, moved up 80px to
+	// 1340/1380, then back down 40px to the values below (net 40px up
+	// from the original) — the handle keeps the same 40px gap below the
+	// line it's always had. The tagline that used to follow at 1465 is
+	// gone; nothing draws below the handle any more (see drawFooter).
 	targetFooterLineCapTop = 1380.0 / outputScale
 	targetHandleCapTop     = 1420.0 / outputScale
-	targetTaglineCapTop    = 1465.0 / outputScale
 )

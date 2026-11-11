@@ -21,14 +21,17 @@ func monthTitle(month time.Time) string {
 
 // periodTitle is drawTitle's own label + headline text for p/anchor,
 // split out purely so the text choice is unit-testable without a real
-// font/context — PeriodMonth keeps the existing "МОЙ МЕСЯЦ НА ТАТАМИ" +
-// month name, PeriodYear is "МОЙ ГОД НА ТАТАМИ" + the year, digits only.
+// font/context — PeriodMonth is "Мой месяц на татами" + the month name,
+// PeriodYear is "Мой год на татами" + the year, digits only. Sentence
+// case, no letter-spacing — an earlier, all-caps/tracked-out version of
+// this label was dropped as part of simplifying the card's visual
+// language down to one accent (the trainings-count number).
 func periodTitle(p Period, anchor time.Time) (label, title string) {
 	if p == PeriodYear {
-		return "МОЙ ГОД НА ТАТАМИ", strconv.Itoa(anchor.Year())
+		return "Мой год на татами", strconv.Itoa(anchor.Year())
 	}
 
-	return "МОЙ МЕСЯЦ НА ТАТАМИ", monthTitle(anchor)
+	return "Мой месяц на татами", monthTitle(anchor)
 }
 
 // roundHours sums totalMinutes into whole hours, rounded to the nearest

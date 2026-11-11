@@ -62,26 +62,26 @@ func drawDecor(dc *gg.Context) {
 	dc.Stroke()
 }
 
-// drawHeader draws the logo + name row. logoHeight is 56 logical px —
-// assets/share/reference/reference_layout.json's own logo box is
-// 112px tall at final (1080×1920) scale, i.e. half that here (see
-// share.go's own outputScale) — its width/height ratio (226/112≈2.018)
-// matches logo.png's own native aspect almost exactly, confirming the
-// box is the rendered image itself, no extra padding. The logo's own
-// top sits exactly at targetLogoCapTop.
+// drawHeader draws the logo + name row. logoHeight is 56 logical px
+// (112 final) — unchanged by logo_final.png's own, wider replacement
+// (1321×587, vs. the old asset's 1000×496): only the width that height
+// scales to changed, not the height target itself. logoShiftX is gone
+// too — the old -8px nudge existed only to compensate for the previous
+// logo's own clipped left edge ("J"'s tail); logo_final.png's own left
+// edge needs no such compensation, so the logo's own left edge now sits
+// exactly on contentLeft, like every other block.
 func drawHeader(dc *gg.Context, name string, tr *trace) {
 	const (
 		logoHeight  = 56.0
-		logoShiftX  = -8.0
 		nameGap     = 20.0
-		nameSize    = 21.0  // 42 final.
+		nameSize    = 22.0  // 44 final.
 		nameMaxWide = 300.0 // 600 final.
 	)
 
 	logo := scaleToHeight(logoImage, int(logoHeight))
 	logoW := float64(logo.Bounds().Dx())
 
-	logoX := contentLeft + logoShiftX
+	logoX := contentLeft
 	logoY := targetLogoCapTop
 
 	dc.DrawImage(logo, int(math.Round(logoX)), int(math.Round(logoY)))
@@ -101,17 +101,20 @@ func drawHeader(dc *gg.Context, name string, tr *trace) {
 	dc.DrawStringAnchored(name, contentRight, nameCenterY, 1, 0.5)
 }
 
-// drawTitle draws the period label ("МОЙ МЕСЯЦ НА ТАТАМИ" or "МОЙ ГОД НА
-// ТАТАМИ") and the month/year headline, each independently placed at
+// drawTitle draws the period label ("Мой месяц на татами"/"Мой год на
+// татами") and the month/year headline, each independently placed at
 // its own target cap-top (from reference_layout.json), plus the seal
 // (bottom aligned to the headline's own baseline, per the original spec
 // — its own box top sits 4px above the title box's, consistent with
-// "baseline" rather than "box bottom" alignment).
+// "baseline" rather than "box bottom" alignment). The label no longer
+// tracks letters out (that was tied to its old all-caps styling, since
+// dropped) — only the headline still does, to keep longer month names
+// ("Сентябрь 2026", "Декабрь 2026") clear of the seal in its own
+// top-right corner.
 func drawTitle(dc *gg.Context, p Period, anchor time.Time, tr *trace) {
 	const (
-		labelSize    = 15.0 // 30 final.
-		labelSpacing = 3.0
-		titleSize    = 52.0 // 104 final.
+		labelSize    = 16.0 // 32 final.
+		titleSize    = 56.0 // 112 final.
 		titleSpacing = -3.0
 		sealSize     = 44.0 // 88 final.
 	)
@@ -120,19 +123,19 @@ func drawTitle(dc *gg.Context, p Period, anchor time.Time, tr *trace) {
 
 	labelFace := face(weightSemiBold, labelSize)
 	dc.SetFontFace(labelFace)
-	dc.SetColor(colorAccent)
+	dc.SetColor(colorSub)
 
 	labelBaseline := baselineForCapTop(weightSemiBold, labelSize, targetLabelCapTop, labelText)
-	drawTracked(dc, labelText, contentLeft, labelBaseline, labelSpacing)
+	dc.DrawString(labelText, contentLeft, labelBaseline)
 	tr.text("надпись", weightSemiBold, labelSize, labelBaseline, labelText)
 
-	titleFace := face(weightExtraBold, titleSize)
+	titleFace := face(weightSemiBold, titleSize)
 	dc.SetFontFace(titleFace)
 	dc.SetColor(colorText)
 
-	titleBaseline := baselineForCapTop(weightExtraBold, titleSize, targetTitleCapTop, title)
+	titleBaseline := baselineForCapTop(weightSemiBold, titleSize, targetTitleCapTop, title)
 	drawTracked(dc, title, contentLeft, titleBaseline, titleSpacing)
-	tr.text("заголовок", weightExtraBold, titleSize, titleBaseline, title)
+	tr.text("заголовок", weightSemiBold, titleSize, titleBaseline, title)
 
 	seal := scaleToHeight(sealImage, int(sealSize))
 	sealW := float64(seal.Bounds().Dx())
@@ -150,7 +153,7 @@ func drawTitle(dc *gg.Context, p Period, anchor time.Time, tr *trace) {
 func drawTrainingsCount(dc *gg.Context, n int, tr *trace) {
 	const (
 		numSize  = 112.0 // 224 final.
-		lblSize  = 22.0  // 44 final.
+		lblSize  = 16.0  // 32 final.
 		numToLbl = 20.0
 	)
 
@@ -190,7 +193,7 @@ type numberBlock struct {
 // a month's never do.
 func drawHoursAndRounds(dc *gg.Context, totalMinutes, rounds int32, tr *trace) {
 	const (
-		numSize  = 63.0 // 126 final.
+		numSize  = 56.0 // 112 final.
 		lblSize  = 16.0 // 32 final.
 		blockGap = 48.0
 
@@ -304,13 +307,14 @@ func drawTypeBar(dc *gg.Context, in Input, tr *trace) float64 {
 	return drawLegend(dc, segs, tr)
 }
 
-// Legend sizing — the reference's own legend font is 28px final, i.e.
-// 14 here. legendGapFloor/legendSizeFloor are the shrink ladder's own
-// two rungs, tried in order, before falling back to wrapping the last
-// item onto its own second line — see drawLegend's own doc comment for
-// why each step exists.
+// Legend sizing — 32px final, i.e. 16 here, matching the card's own
+// shared secondary-text size bucket (label/unit-captions/legend, all
+// #4A4F5A). legendGapFloor/legendSizeFloor are the shrink ladder's
+// own two rungs, tried in order, before falling back to wrapping the
+// last item onto its own second line — see drawLegend's own doc comment
+// for why each step exists.
 const (
-	legendSizeDefault = 14.0 // 28 final.
+	legendSizeDefault = 16.0 // 32 final.
 	legendGapDefault  = 14.0 // 28 final.
 	swatchSize        = 9.0  // 18 final.
 	swatchGap         = 5.0  // 10 final.
@@ -393,7 +397,7 @@ func drawLegendRow(dc *gg.Context, segs []typeSegment, capTop, size, gap float64
 
 		lx += swatchSize + swatchGap
 
-		dc.SetColor(colorText)
+		dc.SetColor(colorSub)
 		dc.DrawString(s.label, lx, baseline)
 
 		if i == 0 {
@@ -447,16 +451,14 @@ func typeSegments(in Input) []typeSegment {
 	return segs
 }
 
-// drawFooter draws the top rule (targetFooterLineCapTop), the handle
-// (targetHandleCapTop) and the tagline (targetTaglineCapTop) — all three
-// cap-top targets now, matching reference_layout.json's own shape (its
-// "tagline" box, unlike the first hand-derived target table, is given as
-// a top/bottom box like everything else, not a baseline).
+// drawFooter draws the top rule (targetFooterLineCapTop) and the handle
+// (targetHandleCapTop) — nothing is drawn below the handle any more
+// (the tagline that used to sit there is gone); the line and handle
+// themselves keep their own existing positions untouched.
 func drawFooter(dc *gg.Context, tr *trace) {
 	const (
 		lineThickness = 4.0
-		handleSize    = 18.0 // 36 final.
-		taglineSize   = 14.0 // 28 final.
+		handleSize    = 22.0 // 44 final.
 	)
 
 	lineTop := targetFooterLineCapTop
@@ -466,21 +468,12 @@ func drawFooter(dc *gg.Context, tr *trace) {
 	dc.Fill()
 	tr.shape("линия футера", lineTop)
 
-	handleFace := face(weightExtraBold, handleSize)
+	handleFace := face(weightSemiBold, handleSize)
 	dc.SetFontFace(handleFace)
 	dc.SetColor(colorText)
 
 	const handleText = "@JitLogBot"
-	handleBaseline := baselineForCapTop(weightExtraBold, handleSize, targetHandleCapTop, handleText)
+	handleBaseline := baselineForCapTop(weightSemiBold, handleSize, targetHandleCapTop, handleText)
 	dc.DrawString(handleText, contentLeft, handleBaseline)
-	tr.text("@JitLogBot", weightExtraBold, handleSize, handleBaseline, handleText)
-
-	taglineFace := face(weightRegular, taglineSize)
-	dc.SetFontFace(taglineFace)
-	dc.SetColor(colorSub)
-
-	const taglineText = "Твой путь на татами под контролем"
-	taglineBaseline := baselineForCapTop(weightRegular, taglineSize, targetTaglineCapTop, taglineText)
-	dc.DrawString(taglineText, contentLeft, taglineBaseline)
-	tr.text("таглайн", weightRegular, taglineSize, taglineBaseline, taglineText)
+	tr.text("@JitLogBot", weightSemiBold, handleSize, handleBaseline, handleText)
 }

@@ -1,8 +1,10 @@
 {"canvas":[1080,1920],"safe_zone_y":[270,1536],"content_x":[96,984],
  "boxes_left_top_right_bottom_full_card":{
- "logo":[88,270,314,382],"name":[857,308,984,344],"label":[96,438,984,468],
+ "logo":[96,270,348,382],"name":[815,304,984,348],"label":[96,438,984,468],
  "title":[96,482,984,586],"seal":[896,494,984,582],"big_number_row":[96,642,984,832],
  "hours_rounds_row":[96,880,984,1033],"bar":[96,1089,984,1117],"legend":[96,1139,984,1173],
- "footer_line_top":1380,"handle":[96,1420,984,1459],"tagline":[96,1465,984,1496]},
- "font_px":{"name":30,"label":30,"title":104,"big_number":224,"big_label":44,"small_number":126,"small_label":32,"legend":28,"handle":36,"tagline":28},
- "note":"boxes are CSS line boxes; glyph tops are a few px inside. Updated per follow-ups: footer line/handle/tagline moved up 80px then back down 40px (net 40px up from the original 1420/1460/1505), seal shrunk 104x104 -> 88x88 (bottom still on the title's own baseline, right edge still on the right margin), small_number (hours/rounds) grown 112 -> 126. reference_full.png/reference_single.png themselves are the original external HTML render and were NOT regenerated to match — only this JSON was updated, since only it is hand-maintained here."}
+ "footer_line_top":1380,"handle":[96,1420,984,1459]},
+ "font_px":{"name":44,"label":32,"title":112,"big_number":224,"big_label":32,"small_number":112,"small_label":32,"legend":32,"handle":44},
+ "font_weight":{"name":"SemiBold","label":"SemiBold","title":"SemiBold","big_number":"ExtraBold","big_label":"SemiBold","small_number":"ExtraBold","small_label":"SemiBold","legend":"SemiBold","handle":"SemiBold"},
+ "colors":{"primary":"#16181D","secondary":"#4A4F5A","type_gi":"#16181D","type_nogi":"#7A808C","type_openmat":"#C4C7CE","seal":"red (baked into seal.png, not drawn)"},
+ "note":"boxes are CSS line boxes; glyph tops are a few px inside. Updated per the visual-simplification follow-up: one accent (the trainings-count number) + two colors (#16181D primary, #4A4F5A secondary) everywhere else; the old blue (#2B45C9) and lavender (#9AA3C7) accents are gone; label text is sentence case, no letter-spacing, no longer blue; title dropped from ExtraBold 104 to SemiBold 112; hours/rounds numbers dropped from ExtraBold 126 to ExtraBold 112; trainings-count label and legend unified to SemiBold 32/#4A4F5A; name/@JitLogBot unified to SemiBold 44/#16181D; logo box reflects logo_final.png's own wider aspect, drawn flush left on content_x[0] (the old -8px nudge is gone — logo_final.png's own left edge needs no compensation). Updated again per the tagline-removal follow-up: the tagline (\"Твой путь на татами под контролем\") is gone entirely — @JitLogBot's own box is now the footer's last line; nothing else moved. reference_full.png/reference_single.png themselves are the original external HTML render and were NOT regenerated to match — only this JSON was updated, since only it is hand-maintained here."}

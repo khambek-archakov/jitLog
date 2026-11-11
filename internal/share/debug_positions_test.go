@@ -22,11 +22,11 @@ type target struct {
 // box-top table (targets.go holds the same numbers, halved into logical
 // space, as the actual drawing constants) — capTop in final px, ±8px
 // tolerance throughout. No baseline targets here any more: the
-// reference gives CSS line-box tops, not baselines, for every block
-// (including "таглайн", which earlier rounds tracked by baseline before
-// the reference showed it as a box like everything else) — see
-// targets.go's own comment on why cap-top is the right thing to check
-// against a box-top target in the first place.
+// reference gives CSS line-box tops, not baselines, for every block —
+// see targets.go's own comment on why cap-top is the right thing to
+// check against a box-top target in the first place. There's no
+// "таглайн" entry any more — the tagline itself is gone (see
+// drawFooter); "@JitLogBot" is the last block now.
 var wantedLayout = []target{
 	{name: "логотип", capTop: targetLogoCapTop * outputScale, tolerance: 8},
 	{name: "надпись", capTop: targetLabelCapTop * outputScale, tolerance: 8},
@@ -38,7 +38,6 @@ var wantedLayout = []target{
 	{name: "легенда", capTop: targetLegendCapTop * outputScale, tolerance: 8},
 	{name: "линия футера", capTop: targetFooterLineCapTop * outputScale, tolerance: 8},
 	{name: "@JitLogBot", capTop: targetHandleCapTop * outputScale, tolerance: 8},
-	{name: "таглайн", capTop: targetTaglineCapTop * outputScale, tolerance: 8},
 }
 
 // TestDebugLayoutPositions prints every block's own measured cap-top and
