@@ -32,5 +32,8 @@ type draftRepo interface {
 		durationMinutes int32,
 		notes *string,
 	) (*model.Training, error)
+	// CountTrainings backs the milestone congratulation in
+	// DurationStep.finish — see info.ConfirmationText.
+	CountTrainings(ctx context.Context, userID int64) (int, error)
 	DeleteDraft(ctx context.Context, userID int64) error
 }

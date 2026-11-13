@@ -160,6 +160,31 @@ func TestFormatRounds(t *testing.T) {
 	}
 }
 
+func TestConfirmationText(t *testing.T) {
+	t.Parallel()
+
+	date := time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)
+	tr := &model.Training{Date: date, TrainingType: model.TrainingTypeGi, DurationMinutes: 60}
+
+	t.Run("no congratulation on a non-milestone count", func(t *testing.T) {
+		t.Parallel()
+
+		text := info.ConfirmationText(tr, 9)
+
+		assert.Contains(t, text, "✅ Тренировка сохранена!")
+		assert.NotContains(t, text, "🎉")
+	})
+
+	t.Run("a milestone count appends the congratulation on its own blank line", func(t *testing.T) {
+		t.Parallel()
+
+		text := info.ConfirmationText(tr, 50)
+
+		assert.Contains(t, text, "✅ Тренировка сохранена!")
+		assert.Contains(t, text, "\n\n🎉 Это твоя 50-я тренировка! Так держать!")
+	})
+}
+
 func TestFormatDateShort(t *testing.T) {
 	t.Parallel()
 

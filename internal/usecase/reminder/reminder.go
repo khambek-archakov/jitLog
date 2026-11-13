@@ -429,8 +429,13 @@ func (uc *UseCase) handleRec(ctx context.Context, u *model.User, in dto.Input) e
 		return fmt.Errorf("create training: %w", err)
 	}
 
+	trainingCount, err := uc.trainings.CountTrainings(ctx, u.ID)
+	if err != nil {
+		return fmt.Errorf("count trainings: %w", err)
+	}
+
 	if err := uc.bot.EditMessageWithKeyboard(
-		ctx, in.ChatID, in.MessageID, traininginfo.ConfirmationText(t), traininginfo.ConfirmationKeyboard(t.ID),
+		ctx, in.ChatID, in.MessageID, traininginfo.ConfirmationText(t, trainingCount), traininginfo.ConfirmationKeyboard(t.ID),
 	); err != nil {
 		return err
 	}

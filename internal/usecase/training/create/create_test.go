@@ -114,6 +114,10 @@ func TestUseCase_Continue(t *testing.T) {
 					Return(&model.Training{ID: 7, Date: trainingDate, TrainingType: model.TrainingTypeGi, DurationMinutes: 60}, nil)
 
 				repo.EXPECT().
+					CountTrainings(gomock.Any(), int64(42)).
+					Return(1, nil)
+
+				repo.EXPECT().
 					DeleteDraft(gomock.Any(), int64(42)).
 					Return(nil)
 

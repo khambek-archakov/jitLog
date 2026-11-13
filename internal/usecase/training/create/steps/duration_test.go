@@ -150,6 +150,10 @@ func TestDurationStep_Handle(t *testing.T) {
 					Return(&model.Training{ID: 7, Date: date, TrainingType: model.TrainingTypeGi, DurationMinutes: 90}, nil)
 
 				repo.EXPECT().
+					CountTrainings(gomock.Any(), userID).
+					Return(3, nil)
+
+				repo.EXPECT().
 					DeleteDraft(gomock.Any(), userID).
 					Return(nil)
 
@@ -175,6 +179,10 @@ func TestDurationStep_Handle(t *testing.T) {
 				repo.EXPECT().
 					CreateTraining(gomock.Any(), userID, date, model.TrainingTypeNoGi, int32(60), gomock.Nil()).
 					Return(&model.Training{ID: 7, Date: date, TrainingType: model.TrainingTypeNoGi, DurationMinutes: 60}, nil)
+
+				repo.EXPECT().
+					CountTrainings(gomock.Any(), userID).
+					Return(4, nil)
 
 				repo.EXPECT().
 					DeleteDraft(gomock.Any(), userID).
@@ -208,6 +216,10 @@ func TestDurationStep_Handle(t *testing.T) {
 					Return(&model.Training{ID: 7, Date: date, TrainingType: model.TrainingTypeOpenMat, DurationMinutes: 90}, nil)
 
 				repo.EXPECT().
+					CountTrainings(gomock.Any(), userID).
+					Return(3, nil)
+
+				repo.EXPECT().
 					DeleteDraft(gomock.Any(), userID).
 					Return(nil)
 
@@ -219,6 +231,7 @@ func TestDurationStep_Handle(t *testing.T) {
 						assert.NotContains(t, text, "2026")
 						assert.Contains(t, text, "🤼 Open Mat")
 						assert.Contains(t, text, "90 минут")
+						assert.NotContains(t, text, "🎉", "3 is not a milestone — no congratulation")
 
 						require.Len(t, keyboard, 2)
 						assert.Equal(t, "➕ Схватки", keyboard[0][0].Label)
@@ -254,6 +267,64 @@ func TestDurationStep_Handle(t *testing.T) {
 			},
 			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
 				assert.Error(t, err)
+			},
+		},
+
+		{
+			name: "failed to count trainings",
+			d:    &model.TrainingDraft{ID: 1, UserID: userID, Date: &date, TrainingType: model.TrainingTypeGi, Step: model.TrainingDraftStepAwaitingDuration},
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackDuration90},
+			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
+				repo.EXPECT().
+					CreateTraining(gomock.Any(), userID, date, model.TrainingTypeGi, int32(90), gomock.Nil()).
+					Return(&model.Training{ID: 7, Date: date, TrainingType: model.TrainingTypeGi, DurationMinutes: 90}, nil)
+
+				repo.EXPECT().
+					CountTrainings(gomock.Any(), userID).
+					Return(0, errors.New("fail"))
+			},
+			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
+				assert.Error(t, err)
+			},
+		},
+
+		{
+			name: "landing on a milestone adds the congratulation",
+			d:    &model.TrainingDraft{ID: 1, UserID: userID, Date: &date, TrainingType: model.TrainingTypeGi, Step: model.TrainingDraftStepAwaitingDuration},
+			in:   dto.Input{ChatID: chatID, HasCallback: true, CallbackID: "cb-1", CallbackData: callbackDuration90},
+			prepare: func(sender *Mocksender, repo *MockdraftRepo) {
+				sender.EXPECT().
+					AnswerCallback(gomock.Any(), "cb-1").
+					Return(nil)
+
+				repo.EXPECT().
+					CreateTraining(gomock.Any(), userID, date, model.TrainingTypeGi, int32(90), gomock.Nil()).
+					Return(&model.Training{ID: 7, Date: date, TrainingType: model.TrainingTypeGi, DurationMinutes: 90}, nil)
+
+				repo.EXPECT().
+					CountTrainings(gomock.Any(), userID).
+					Return(50, nil)
+
+				repo.EXPECT().
+					DeleteDraft(gomock.Any(), userID).
+					Return(nil)
+
+				confirmation := sender.EXPECT().
+					SendWithKeyboard(gomock.Any(), chatID, gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int64, text string, _ dto.Keyboard) error {
+						assert.Contains(t, text, "✅ Тренировка сохранена!")
+						assert.Contains(t, text, "🎉 Это твоя 50-я тренировка! Так держать!")
+
+						return nil
+					})
+
+				sender.EXPECT().
+					SendWithKeyboard(gomock.Any(), chatID, "Вот что я умею:", gomock.Any()).
+					After(confirmation).
+					Return(nil)
+			},
+			expected: func(t assert.TestingT, d *model.TrainingDraft, err error) {
+				assert.NoError(t, err)
 			},
 		},
 	}

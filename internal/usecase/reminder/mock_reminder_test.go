@@ -259,6 +259,21 @@ func (m *MocktrainingRepo) EXPECT() *MocktrainingRepoMockRecorder {
 	return m.recorder
 }
 
+// CountTrainings mocks base method.
+func (m *MocktrainingRepo) CountTrainings(ctx context.Context, userID int64) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountTrainings", ctx, userID)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountTrainings indicates an expected call of CountTrainings.
+func (mr *MocktrainingRepoMockRecorder) CountTrainings(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountTrainings", reflect.TypeOf((*MocktrainingRepo)(nil).CountTrainings), ctx, userID)
+}
+
 // CountTrainingsOnDate mocks base method.
 func (m *MocktrainingRepo) CountTrainingsOnDate(ctx context.Context, userID int64, date time.Time) (int, error) {
 	m.ctrl.T.Helper()

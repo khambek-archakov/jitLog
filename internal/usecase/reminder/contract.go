@@ -46,6 +46,9 @@ type trainingRepo interface {
 		ctx context.Context, userID int64, date time.Time, trainingType model.TrainingType, durationMinutes int32,
 		notes *string,
 	) (*model.Training, error)
+	// CountTrainings backs the milestone congratulation after a
+	// successful "✅ Записать" — see info.ConfirmationText.
+	CountTrainings(ctx context.Context, userID int64) (int, error)
 }
 
 // sentRepo mirrors the reminder_log table — this job's own idempotency

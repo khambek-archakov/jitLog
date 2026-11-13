@@ -82,6 +82,11 @@ func (s *DurationStep) finish(ctx context.Context, d *model.TrainingDraft, in dt
 		return fmt.Errorf("create training: %w", err)
 	}
 
+	count, err := s.repo.CountTrainings(ctx, d.UserID)
+	if err != nil {
+		return fmt.Errorf("count trainings: %w", err)
+	}
+
 	if err := s.repo.DeleteDraft(ctx, d.UserID); err != nil {
 		return fmt.Errorf("delete training draft: %w", err)
 	}
@@ -92,7 +97,7 @@ func (s *DurationStep) finish(ctx context.Context, d *model.TrainingDraft, in dt
 		}
 	}
 
-	if err := s.bot.SendWithKeyboard(ctx, in.ChatID, info.ConfirmationText(t), info.ConfirmationKeyboard(t.ID)); err != nil {
+	if err := s.bot.SendWithKeyboard(ctx, in.ChatID, info.ConfirmationText(t, count), info.ConfirmationKeyboard(t.ID)); err != nil {
 		return err
 	}
 

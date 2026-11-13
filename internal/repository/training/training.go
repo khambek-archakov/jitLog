@@ -250,6 +250,21 @@ func (r *Repository) HasTrainingBetween(ctx context.Context, userID int64, from,
 	return exists, nil
 }
 
+// CountTrainings counts every training ever logged for userID — the
+// milestone congratulation's own "which number training is this" check
+// (see internal/usecase/training/info.ConfirmationText).
+func (r *Repository) CountTrainings(ctx context.Context, userID int64) (int, error) {
+	const query = `select count(*) from training where user_id = $1`
+
+	var n int
+
+	if err := r.db.QueryRow(ctx, query, userID).Scan(&n); err != nil {
+		return 0, fmt.Errorf("count trainings: %w", err)
+	}
+
+	return n, nil
+}
+
 // CountTrainingsOnDate counts userID's trainings logged with date exactly
 // equal to date — the post-session reminder's own "fewer trainings logged
 // today than scheduled slots so far" check (see

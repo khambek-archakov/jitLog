@@ -57,8 +57,41 @@ func Keyboard(trainingID int64) dto.Keyboard {
 // (manually, or via the post-session reminder's own "✅ Записать" button)
 // there's nothing to editorialize yet, so a dense one-liner plus
 // ConfirmationKeyboard's quick-action buttons says more with less.
-func ConfirmationText(t *model.Training) string {
-	return "✅ Тренировка сохранена!\n" + ConfirmationSummary(t)
+//
+// totalCount is the user's total training count including the one just
+// created — every training-creation path (the manual wizard's own
+// DurationStep.finish, and the post-session reminder's "✅ Записать")
+// routes through this one function, so isMilestone only ever needs
+// checking in one place to cover all of them. It's never meaningful to
+// call this with a historical count — a milestone only congratulates at
+// the exact moment a training is created, not retroactively.
+func ConfirmationText(t *model.Training, totalCount int) string {
+	text := "✅ Тренировка сохранена!\n" + ConfirmationSummary(t)
+
+	if isMilestone(totalCount) {
+		text += "\n\n" + milestoneText(totalCount)
+	}
+
+	return text
+}
+
+// isMilestone reports whether n — a user's total training count — is a
+// landmark worth congratulating: 10, 25, 50, 100, 150, 200, or any
+// multiple of 100 beyond 200 (300, 400, 500, ...).
+func isMilestone(n int) bool {
+	switch n {
+	case 10, 25, 50, 100, 150, 200:
+		return true
+	default:
+		return n > 200 && n%100 == 0
+	}
+}
+
+// milestoneText is isMilestone's own congratulation line. "-я" is
+// invariant across every n reachable here (10-я, 25-я, 100-я, ...), so
+// unlike this package's *Word helpers, no plural-form logic is needed.
+func milestoneText(n int) string {
+	return fmt.Sprintf("🎉 Это твоя %d-я тренировка! Так держать!", n)
 }
 
 func ConfirmationSummary(t *model.Training) string {

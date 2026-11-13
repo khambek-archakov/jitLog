@@ -665,10 +665,12 @@ func TestHandle_Rec(t *testing.T) {
 		m.trainings.EXPECT().
 			CreateTraining(gomock.Any(), userID, friToday, model.TrainingTypeGi, int32(60), (*string)(nil)).
 			Return(&model.Training{ID: 900, UserID: userID, Date: friToday, TrainingType: model.TrainingTypeGi, DurationMinutes: 60}, nil)
+		m.trainings.EXPECT().CountTrainings(gomock.Any(), userID).Return(5, nil)
 		m.bot.EXPECT().
 			EditMessageWithKeyboard(gomock.Any(), chatID, messageID, gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, _ int64, _ int, text string, _ dto.Keyboard) error {
 				assert.Contains(t, text, "Тренировка сохранена")
+				assert.NotContains(t, text, "🎉", "5 is not a milestone — no congratulation")
 
 				return nil
 			})
@@ -680,6 +682,61 @@ func TestHandle_Rec(t *testing.T) {
 
 		err := newUseCase(m, now).Handle(context.Background(), u, in)
 		assert.NoError(t, err)
+	})
+
+	t.Run("landing on a milestone adds the congratulation", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		m := newMocks(ctrl)
+
+		m.slots.EXPECT().GetSlot(gomock.Any(), int64(60)).Return(slot, nil)
+		m.slots.EXPECT().ListSlots(gomock.Any(), userID).Return([]*model.ScheduleSlot{slot}, nil)
+		m.trainings.EXPECT().CountTrainingsOnDate(gomock.Any(), userID, friToday).Return(0, nil)
+		m.bot.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+		m.trainings.EXPECT().
+			CreateTraining(gomock.Any(), userID, friToday, model.TrainingTypeGi, int32(60), (*string)(nil)).
+			Return(&model.Training{ID: 900, UserID: userID, Date: friToday, TrainingType: model.TrainingTypeGi, DurationMinutes: 60}, nil)
+		m.trainings.EXPECT().CountTrainings(gomock.Any(), userID).Return(100, nil)
+		m.bot.EXPECT().
+			EditMessageWithKeyboard(gomock.Any(), chatID, messageID, gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ int64, _ int, text string, _ dto.Keyboard) error {
+				assert.Contains(t, text, "Тренировка сохранена")
+				assert.Contains(t, text, "🎉 Это твоя 100-я тренировка! Так держать!")
+
+				return nil
+			})
+		m.bot.EXPECT().SendWithKeyboard(gomock.Any(), chatID, menu.Text, menu.Keyboard()).Return(nil)
+
+		in := dto.Input{
+			ChatID: chatID, MessageID: messageID, HasCallback: true, CallbackID: "cb-1", CallbackData: "rec:60:20261016",
+		}
+
+		err := newUseCase(m, now).Handle(context.Background(), u, in)
+		assert.NoError(t, err)
+	})
+
+	t.Run("failed to count trainings", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		m := newMocks(ctrl)
+
+		m.slots.EXPECT().GetSlot(gomock.Any(), int64(60)).Return(slot, nil)
+		m.slots.EXPECT().ListSlots(gomock.Any(), userID).Return([]*model.ScheduleSlot{slot}, nil)
+		m.trainings.EXPECT().CountTrainingsOnDate(gomock.Any(), userID, friToday).Return(0, nil)
+		m.bot.EXPECT().AnswerCallback(gomock.Any(), "cb-1").Return(nil)
+		m.trainings.EXPECT().
+			CreateTraining(gomock.Any(), userID, friToday, model.TrainingTypeGi, int32(60), (*string)(nil)).
+			Return(&model.Training{ID: 900, UserID: userID, Date: friToday, TrainingType: model.TrainingTypeGi, DurationMinutes: 60}, nil)
+		m.trainings.EXPECT().CountTrainings(gomock.Any(), userID).Return(0, errors.New("fail"))
+
+		in := dto.Input{
+			ChatID: chatID, MessageID: messageID, HasCallback: true, CallbackID: "cb-1", CallbackData: "rec:60:20261016",
+		}
+
+		err := newUseCase(m, now).Handle(context.Background(), u, in)
+		assert.Error(t, err)
 	})
 
 	t.Run("a repeat tap shows the existing training instead of creating a duplicate", func(t *testing.T) {
