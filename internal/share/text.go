@@ -78,7 +78,7 @@ func hoursWord(n int) string {
 }
 
 func roundsWord(n int) string {
-	return pluralForm(n, "раунд", "раунда", "раундов")
+	return pluralForm(n, "схватка", "схватки", "схваток")
 }
 
 // formatThousands renders n with a space as the thousands separator

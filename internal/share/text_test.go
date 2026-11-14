@@ -122,10 +122,10 @@ func TestPluralWords(t *testing.T) {
 	t.Run("roundsWord", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, "раунд", roundsWord(1))
-		assert.Equal(t, "раунда", roundsWord(3))
-		assert.Equal(t, "раунда", roundsWord(63)) // 63%10==3 and 63%100 isn't 11-14.
-		assert.Equal(t, "раундов", roundsWord(480))
+		assert.Equal(t, "схватка", roundsWord(1))
+		assert.Equal(t, "схватки", roundsWord(3))
+		assert.Equal(t, "схватки", roundsWord(63)) // 63%10==3 and 63%100 isn't 11-14.
+		assert.Equal(t, "схваток", roundsWord(480))
 	})
 }
 
