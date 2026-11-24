@@ -21,7 +21,7 @@ const disabledText = "🔕 Напоминания отключены."
 // feature's own spec for why.
 func reminderText(slot *model.ScheduleSlot) string {
 	return fmt.Sprintf(
-		"На этой неделе ещё не было тренировок. Сегодня по расписанию: %s в %s.",
+		"На этой неделе пока без тренировок. Сегодня %s в %s. Отличный повод выбраться на татами.",
 		scheduleinfo.TrainingTypeLabel(slot.TrainingType), scheduleinfo.FormatTime(slot.TimeMinutes),
 	)
 }
